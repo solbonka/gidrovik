@@ -50,7 +50,7 @@ class StockTransferController extends Controller
             productId: (int) $data['product_id'],
             fromLocationId: (int) $data['from_location_id'],
             toLocationId: (int) $data['to_location_id'],
-            quantity: (int) $data['quantity'],
+            quantity: (string) $data['quantity'],
             comment: $data['comment'] ?? null,
             userId: $request->user()?->id,
         );

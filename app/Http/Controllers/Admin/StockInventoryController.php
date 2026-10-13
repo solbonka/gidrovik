@@ -62,7 +62,11 @@ class StockInventoryController extends Controller
             ->value('quantity');
 
         return response()->json([
-            'quantity' => (int) ($quantity ?? 0),
+            'quantity' => bcadd(
+                (string) ($quantity ?? '0'),
+                '0',
+                3,
+            ),
         ]);
     }
 
@@ -74,7 +78,7 @@ class StockInventoryController extends Controller
         $movement = $this->stockMovementService->inventory(
             productId: (int) $validated['product_id'],
             locationId: (int) $validated['location_id'],
-            actualQuantity: (int) $validated['actual_quantity'],
+            actualQuantity: (string) $validated['actual_quantity'],
             comment: $validated['comment'],
             userId: $request->user()?->id,
         );

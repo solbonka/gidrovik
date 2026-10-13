@@ -43,7 +43,7 @@ class StockWriteOffController extends Controller
         $stockMovementService->writeOff(
             productId: (int) $data['product_id'],
             locationId: (int) $data['location_id'],
-            quantity: (int) $data['quantity'],
+            quantity: (string) $data['quantity'],
             comment: $data['comment'],
             userId: $request->user()?->id,
         );

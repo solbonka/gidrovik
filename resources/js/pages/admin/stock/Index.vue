@@ -23,7 +23,7 @@ interface StockLocation {
     code: string
     rack_code: string | null
     rack_name: string | null
-    quantity: number
+    quantity: number | string
 }
 
 interface StockProduct {
@@ -31,7 +31,10 @@ interface StockProduct {
     name: string
     sku: string | null
     category: string | null
-    stock_quantity: number
+    unit: string
+    stock_quantity: number | string
+    minimum_stock: number | string | null
+    stock_deficit: number | string
     locations: StockLocation[]
 }
 
@@ -69,17 +72,31 @@ const filters = reactive<Filters>({
     ...props.filters,
 })
 
-function applyFilters(): void {
-    router.get('/admin/stock', {
-        search: filters.search || undefined,
-        category_id: filters.category_id || undefined,
-        rack_id: filters.rack_id || undefined,
-        stock: filters.stock === 'all' ? undefined : filters.stock,
-    }, {
-        preserveState: true,
-        preserveScroll: true,
-        replace: true,
+function formatNumber(value: number | string | null): string {
+    if (value === null) {
+        return '—'
+    }
+
+    return Number(value).toLocaleString('ru-RU', {
+        maximumFractionDigits: 3,
     })
+}
+
+function applyFilters(): void {
+    router.get(
+        '/admin/stock',
+        {
+            search: filters.search || undefined,
+            category_id: filters.category_id || undefined,
+            rack_id: filters.rack_id || undefined,
+            stock: filters.stock === 'all' ? undefined : filters.stock,
+        },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        },
+    )
 }
 
 function resetFilters(): void {
@@ -90,17 +107,31 @@ function resetFilters(): void {
 
     applyFilters()
 }
+
+function goToPage(url: string | null): void {
+    if (!url) {
+        return
+    }
+
+    router.visit(url, {
+        preserveScroll: true,
+        preserveState: true,
+    })
+}
 </script>
 
 <template>
     <Head title="Остатки на складе" />
 
     <div class="space-y-6">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
             <div>
                 <h1 class="text-2xl font-semibold text-gray-900">
                     Остатки на складе
                 </h1>
+
                 <p class="mt-1 text-sm text-gray-500">
                     Текущие запасы товаров и их расположение по ячейкам.
                 </p>
@@ -165,6 +196,7 @@ function resetFilters(): void {
                     >
                         Поиск товара
                     </label>
+
                     <input
                         id="search"
                         v-model="filters.search"
@@ -181,12 +213,14 @@ function resetFilters(): void {
                     >
                         Категория
                     </label>
+
                     <select
                         id="category_id"
                         v-model="filters.category_id"
                         class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                     >
                         <option value="">Все категории</option>
+
                         <option
                             v-for="category in props.categories"
                             :key="category.id"
@@ -204,12 +238,14 @@ function resetFilters(): void {
                     >
                         Стеллаж
                     </label>
+
                     <select
                         id="rack_id"
                         v-model="filters.rack_id"
                         class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
                     >
                         <option value="">Все стеллажи</option>
+
                         <option
                             v-for="rack in props.racks"
                             :key="rack.id"
@@ -230,6 +266,7 @@ function resetFilters(): void {
                     >
                         Наличие
                     </label>
+
                     <select
                         id="stock"
                         v-model="filters.stock"
@@ -238,11 +275,16 @@ function resetFilters(): void {
                         <option value="all">Все товары</option>
                         <option value="in_stock">Есть остаток</option>
                         <option value="out_of_stock">Нет остатка</option>
+                        <option value="below_minimum">
+                            Ниже минимального остатка
+                        </option>
                     </select>
                 </div>
             </div>
 
-            <div class="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4">
+            <div
+                class="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4"
+            >
                 <button
                     type="button"
                     class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -260,25 +302,36 @@ function resetFilters(): void {
             </div>
         </form>
 
-        <!-- Таблица -->
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div class="flex flex-col gap-1 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+        <!-- Таблица остатков -->
+        <div
+            class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+        >
+            <div
+                class="flex flex-col gap-1 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <h2 class="font-semibold text-gray-900">
                     Складские запасы
                 </h2>
+
                 <p class="text-sm text-gray-500">
                     Найдено товаров: {{ props.products.total }}
                 </p>
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full min-w-[850px] divide-y divide-gray-200 text-sm">
-                    <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500">
+                <table
+                    class="w-full min-w-[1050px] divide-y divide-gray-200 text-sm"
+                >
+                    <thead
+                        class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                    >
                     <tr>
                         <th class="px-4 py-3">Товар</th>
                         <th class="px-4 py-3">Категория</th>
                         <th class="px-4 py-3">Расположение</th>
                         <th class="px-4 py-3 text-right">Всего</th>
+                        <th class="px-4 py-3 text-right">Минимум</th>
+                        <th class="px-4 py-3 text-right">Не хватает</th>
                         <th class="px-4 py-3 text-right">Действия</th>
                     </tr>
                     </thead>
@@ -287,12 +340,18 @@ function resetFilters(): void {
                     <tr
                         v-for="product in props.products.data"
                         :key="product.id"
-                        class="align-top hover:bg-gray-50"
+                        class="align-top transition hover:bg-gray-50"
+                        :class="
+                                Number(product.stock_deficit) > 0
+                                    ? 'bg-red-50/50'
+                                    : ''
+                            "
                     >
                         <td class="px-4 py-4">
                             <div class="font-medium text-gray-900">
                                 {{ product.name }}
                             </div>
+
                             <div class="mt-1 text-xs text-gray-500">
                                 Артикул: {{ product.sku || '—' }}
                             </div>
@@ -315,8 +374,18 @@ function resetFilters(): void {
                                         <span class="font-semibold">
                                             {{ location.code }}
                                         </span>
+
+                                        <span
+                                            v-if="location.rack_code"
+                                            class="text-gray-500"
+                                        >
+                                            ({{ location.rack_code }})
+                                        </span>
+
                                         <span class="text-gray-500">
-                                            · {{ location.quantity }} шт.
+                                            ·
+                                            {{ formatNumber(location.quantity) }}
+                                            {{ product.unit }}
                                         </span>
                                     </span>
                             </div>
@@ -333,12 +402,47 @@ function resetFilters(): void {
                                 <span
                                     class="inline-flex min-w-12 justify-center rounded-lg px-2.5 py-1 font-semibold"
                                     :class="
-                                        product.stock_quantity > 0
+                                        Number(product.stock_quantity) > 0
                                             ? 'bg-green-50 text-green-700'
                                             : 'bg-gray-100 text-gray-500'
                                     "
                                 >
-                                    {{ product.stock_quantity }}
+                                    {{ formatNumber(product.stock_quantity) }}
+                                    {{ product.unit }}
+                                </span>
+                        </td>
+
+                        <td class="px-4 py-4 text-right">
+                                <span
+                                    v-if="product.minimum_stock !== null"
+                                    class="text-gray-700"
+                                >
+                                    {{ formatNumber(product.minimum_stock) }}
+                                    {{ product.unit }}
+                                </span>
+
+                            <span
+                                v-else
+                                class="text-gray-400"
+                            >
+                                    Не задан
+                                </span>
+                        </td>
+
+                        <td class="px-4 py-4 text-right">
+                                <span
+                                    v-if="Number(product.stock_deficit) > 0"
+                                    class="inline-flex min-w-16 justify-center rounded-lg bg-red-100 px-2.5 py-1 font-semibold text-red-700"
+                                >
+                                    {{ formatNumber(product.stock_deficit) }}
+                                    {{ product.unit }}
+                                </span>
+
+                            <span
+                                v-else
+                                class="text-gray-400"
+                            >
+                                    —
                                 </span>
                         </td>
 
@@ -354,12 +458,13 @@ function resetFilters(): void {
 
                     <tr v-if="props.products.data.length === 0">
                         <td
-                            colspan="5"
+                            colspan="7"
                             class="px-4 py-12 text-center"
                         >
                             <p class="font-medium text-gray-900">
                                 Товары не найдены
                             </p>
+
                             <p class="mt-1 text-sm text-gray-500">
                                 Измените параметры поиска или сбросьте фильтры.
                             </p>
@@ -370,7 +475,9 @@ function resetFilters(): void {
             </div>
 
             <!-- Пагинация -->
-            <div class="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <p class="text-sm text-gray-500">
                     Показано {{ props.products.from ?? 0 }}–{{ props.products.to ?? 0 }}
                     из {{ props.products.total }}
@@ -390,7 +497,7 @@ function resetFilters(): void {
                                     ? 'border-gray-900 bg-gray-900 text-white'
                                     : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
                             "
-                            @click="router.visit(link.url)"
+                            @click="goToPage(link.url)"
                             v-html="link.label"
                         />
 

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\DB;
 
 class Product extends Model
 {
@@ -17,6 +18,7 @@ class Product extends Model
         'product_type_id',
         'name',
         'sku',
+        'minimum_stock',
         'angle',
         'description',
         'is_active',
@@ -25,6 +27,7 @@ class Product extends Model
     protected $casts = [
         'angle' => 'integer',
         'is_active' => 'boolean',
+        'minimum_stock' => 'decimal:3',
     ];
 
     public function category(): BelongsTo
@@ -64,9 +67,22 @@ class Product extends Model
         return $this->hasMany(StockMovement::class);
     }
 
-    public function getTotalQuantityAttribute(): int
+    public function getTotalQuantityAttribute(): string
     {
-        return (int) $this->locations()
-            ->sum('product_location.quantity');
+        $quantity = DB::table('product_location')
+            ->where('product_id', $this->getKey())
+            ->sum('quantity');
+
+        return (string) ($quantity ?? '0');
+    }
+
+    public function manufacturer(): BelongsTo
+    {
+        return $this->belongsTo(Manufacturer::class);
+    }
+
+    public function country(): BelongsTo
+    {
+        return $this->belongsTo(Country::class);
     }
 }

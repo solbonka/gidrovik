@@ -79,28 +79,44 @@ class RackController extends Controller
 
     public function destroy(Rack $rack): RedirectResponse
     {
-        $locationIds = $rack->locations()->pluck('id');
+        return DB::transaction(function () use ($rack): RedirectResponse {
+            $lockedRack = Rack::query()
+                ->whereKey($rack->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $hasStock = DB::table('product_location')
-            ->whereIn('location_id', $locationIds)
-            ->where('quantity', '>', 0)
-            ->exists();
+            $locationIds = $lockedRack->locations()
+                ->lockForUpdate()
+                ->pluck('id');
 
-        $hasHistory = StockMovement::query()
-            ->whereIn('from_location_id', $locationIds)
-            ->orWhereIn('to_location_id', $locationIds)
-            ->exists();
+            $hasStock = DB::table('product_location')
+                ->whereIn('location_id', $locationIds)
+                ->where('quantity', '>', 0)
+                ->exists();
 
-        if ($hasStock || $hasHistory) {
-            return back()->withErrors([
-                'rack' => $hasStock
-                    ? 'Нельзя удалить стеллаж: в его ячейках есть остатки товара.'
-                    : 'Нельзя удалить стеллаж: его ячейки присутствуют в истории складских движений.',
-            ]);
-        }
+            if ($hasStock) {
+                return back()->withErrors([
+                    'rack' => 'Нельзя удалить стеллаж: в его ячейках есть остатки товара.',
+                ]);
+            }
 
-        $rack->delete();
+            $hasHistory = StockMovement::query()
+                ->where(function ($query) use ($locationIds): void {
+                    $query
+                        ->whereIn('from_location_id', $locationIds)
+                        ->orWhereIn('to_location_id', $locationIds);
+                })
+                ->exists();
 
-        return back()->with('success', 'Стеллаж успешно удалён.');
+            if ($hasHistory) {
+                return back()->withErrors([
+                    'rack' => 'Нельзя удалить стеллаж: его ячейки присутствуют в истории складских движений.',
+                ]);
+            }
+
+            $lockedRack->delete();
+
+            return back()->with('success', 'Стеллаж успешно удалён.');
+        });
     }
 }

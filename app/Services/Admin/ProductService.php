@@ -15,6 +15,7 @@ class ProductService
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
                 'sku' => $data['sku'],
+                'minimum_stock' => $data['minimum_stock'] ?? null,
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
@@ -22,12 +23,12 @@ class ProductService
 
             $this->syncCharacteristics(
                 $product,
-                $data['characteristics'] ?? []
+                $data['characteristics'] ?? [],
             );
 
             $this->syncConnections(
                 $product,
-                $data['connections'] ?? []
+                $data['connections'] ?? [],
             );
 
             return $product;
@@ -42,6 +43,7 @@ class ProductService
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
                 'sku' => $data['sku'],
+                'minimum_stock' => $data['minimum_stock'] ?? null,
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
@@ -52,12 +54,12 @@ class ProductService
 
             $this->syncCharacteristics(
                 $product,
-                $data['characteristics'] ?? []
+                $data['characteristics'] ?? [],
             );
 
             $this->syncConnections(
                 $product,
-                $data['connections'] ?? []
+                $data['connections'] ?? [],
             );
 
             return $product->fresh();
@@ -66,7 +68,7 @@ class ProductService
 
     private function syncCharacteristics(
         Product $product,
-        array $characteristics
+        array $characteristics,
     ): void {
         foreach ($characteristics as $characteristicId => $value) {
             if ($value === null || $value === '') {
@@ -82,7 +84,7 @@ class ProductService
 
     private function syncConnections(
         Product $product,
-        array $connections
+        array $connections,
     ): void {
         foreach ($connections as $connection) {
             $hasValue = filled($connection['standard_id'] ?? null)

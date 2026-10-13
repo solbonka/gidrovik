@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Rules\ValidStockQuantity;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreStockReturnRequest extends FormRequest
@@ -26,9 +27,7 @@ class StoreStockReturnRequest extends FormRequest
             ],
             'quantity' => [
                 'required',
-                'integer',
-                'min:1',
-                'max:2147483647',
+                new ValidStockQuantity(),
             ],
             'comment' => [
                 'required',

@@ -43,6 +43,12 @@ class UpdateProductRequest extends FormRequest
                 Rule::unique('products', 'sku')->ignore($product),
             ],
 
+            'minimum_stock' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
             'angle' => [
                 'nullable',
                 'integer',

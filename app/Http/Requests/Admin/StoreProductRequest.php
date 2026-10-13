@@ -96,6 +96,11 @@ class StoreProductRequest extends FormRequest
                 'integer',
                 'exists:threads,id',
             ],
+            'minimum_stock' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
         ];
     }
 

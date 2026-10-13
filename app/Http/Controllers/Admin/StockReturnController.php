@@ -50,7 +50,7 @@ class StockReturnController extends Controller
         $this->stockMovementService->returnStock(
             productId: (int) $validated['product_id'],
             locationId: (int) $validated['location_id'],
-            quantity: (int) $validated['quantity'],
+            quantity: (string) $validated['quantity'],
             comment: $validated['comment'],
             userId: $request->user()?->id,
         );

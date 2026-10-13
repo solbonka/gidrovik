@@ -11,10 +11,23 @@ use Illuminate\Validation\ValidationException;
 
 class StockMovementService
 {
+    private const MAX_QUANTITY = '999999999.999';
+
+    private const INTEGER_UNITS = [
+        'шт.',
+        'упаковка',
+        'комплект',
+    ];
+
+    private const DECIMAL_UNITS = [
+        'м',
+        'л',
+    ];
+
     public function receipt(
         int $productId,
         int $locationId,
-        int $quantity,
+        string|int|float $quantity,
         ?string $comment,
         ?int $userId,
     ): StockMovement {
@@ -25,51 +38,50 @@ class StockMovementService
             $comment,
             $userId,
         ): StockMovement {
-            /*
-             * Блокируем товар. Все будущие операции с остатками
-             * должны соблюдать тот же порядок блокировок.
-             */
             $product = Product::query()
                 ->whereKey($productId)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $quantity = $this->normalizeQuantity(
+                $quantity,
+                $product->unit,
+            );
 
             $location = Location::query()
                 ->whereKey($locationId)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($quantity < 1) {
-                throw ValidationException::withMessages([
-                    'quantity' => 'Количество должно быть больше нуля.',
-                ]);
-            }
-
-            /*
-             * Не создаём остаток для несуществующей пары вслепую:
-             * блокировка товара сериализует складские операции
-             * по одному товару, если все операции используют этот сервис.
-             */
             $stock = DB::table('product_location')
                 ->where('product_id', $product->id)
                 ->where('location_id', $location->id)
                 ->lockForUpdate()
                 ->first();
 
+            $currentQuantity = (string) ($stock->quantity ?? '0');
+
+            $this->assertMaximumQuantity(
+                bcadd($currentQuantity, $quantity, 3),
+                'quantity',
+            );
+
+            $now = now();
+
             if ($stock === null) {
                 DB::table('product_location')->insert([
                     'product_id' => $product->id,
                     'location_id' => $location->id,
                     'quantity' => $quantity,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
             } else {
                 DB::table('product_location')
                     ->where('product_id', $product->id)
                     ->where('location_id', $location->id)
                     ->increment('quantity', $quantity, [
-                        'updated_at' => now(),
+                        'updated_at' => $now,
                     ]);
             }
 
@@ -89,19 +101,13 @@ class StockMovementService
         int $productId,
         int $fromLocationId,
         int $toLocationId,
-        int $quantity,
+        string|int|float $quantity,
         ?string $comment,
         ?int $userId,
     ): StockMovement {
         if ($fromLocationId === $toLocationId) {
             throw ValidationException::withMessages([
                 'to_location_id' => 'Исходная и целевая ячейки должны отличаться.',
-            ]);
-        }
-
-        if ($quantity < 1) {
-            throw ValidationException::withMessages([
-                'quantity' => 'Количество должно быть больше нуля.',
             ]);
         }
 
@@ -118,10 +124,11 @@ class StockMovementService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            /*
-             * Всегда блокируем ячейки в порядке возрастания ID,
-             * чтобы уменьшить риск взаимных блокировок.
-             */
+            $quantity = $this->normalizeQuantity(
+                $quantity,
+                $product->unit,
+            );
+
             $locations = Location::query()
                 ->whereIn('id', [$fromLocationId, $toLocationId])
                 ->orderBy('id')
@@ -130,8 +137,8 @@ class StockMovementService
                 ->keyBy('id');
 
             if (
-                !$locations->has($fromLocationId)
-                || !$locations->has($toLocationId)
+                ! $locations->has($fromLocationId)
+                || ! $locations->has($toLocationId)
             ) {
                 throw ValidationException::withMessages([
                     'location_id' => 'Одна из выбранных ячеек не существует.',
@@ -144,16 +151,29 @@ class StockMovementService
                 ->lockForUpdate()
                 ->first();
 
-            $availableQuantity = (int) ($sourceStock->quantity ?? 0);
+            $availableQuantity = (string) ($sourceStock->quantity ?? '0');
 
-            if ($availableQuantity < $quantity) {
+            if (bccomp($availableQuantity, $quantity, 3) < 0) {
                 throw ValidationException::withMessages([
                     'quantity' => sprintf(
-                        'Недостаточно товара в исходной ячейке. Доступно: %d.',
-                        $availableQuantity,
+                        'Недостаточно товара в исходной ячейке. Доступно: %s.',
+                        $this->formatQuantity($availableQuantity),
                     ),
                 ]);
             }
+
+            $destinationStock = DB::table('product_location')
+                ->where('product_id', $product->id)
+                ->where('location_id', $toLocationId)
+                ->lockForUpdate()
+                ->first();
+
+            $destinationQuantity = (string) ($destinationStock->quantity ?? '0');
+
+            $this->assertMaximumQuantity(
+                bcadd($destinationQuantity, $quantity, 3),
+                'quantity',
+            );
 
             $now = now();
 
@@ -163,12 +183,6 @@ class StockMovementService
                 ->decrement('quantity', $quantity, [
                     'updated_at' => $now,
                 ]);
-
-            $destinationStock = DB::table('product_location')
-                ->where('product_id', $product->id)
-                ->where('location_id', $toLocationId)
-                ->lockForUpdate()
-                ->first();
 
             if ($destinationStock === null) {
                 DB::table('product_location')->insert([
@@ -202,16 +216,10 @@ class StockMovementService
     public function writeOff(
         int $productId,
         int $locationId,
-        int $quantity,
+        string|int|float $quantity,
         string $comment,
         ?int $userId,
     ): StockMovement {
-        if ($quantity < 1) {
-            throw ValidationException::withMessages([
-                'quantity' => 'Количество должно быть больше нуля.',
-            ]);
-        }
-
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -224,38 +232,42 @@ class StockMovementService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            Location::query()
+            $quantity = $this->normalizeQuantity(
+                $quantity,
+                $product->unit,
+            );
+
+            $location = Location::query()
                 ->whereKey($locationId)
                 ->lockForUpdate()
                 ->firstOrFail();
 
             $stock = DB::table('product_location')
                 ->where('product_id', $product->id)
-                ->where('location_id', $locationId)
+                ->where('location_id', $location->id)
                 ->lockForUpdate()
                 ->first();
 
-            $availableQuantity = (int) ($stock->quantity ?? 0);
+            $currentQuantity = (string) ($stock->quantity ?? '0');
 
-            if ($availableQuantity < $quantity) {
+            if (bccomp($currentQuantity, $quantity, 3) < 0) {
                 throw ValidationException::withMessages([
-                    'quantity' => sprintf(
-                        'Недостаточно товара для списания. Доступно: %d.',
-                        $availableQuantity,
-                    ),
+                    'quantity' => 'Недостаточно товара в выбранной ячейке.',
                 ]);
             }
 
+            $now = now();
+
             DB::table('product_location')
                 ->where('product_id', $product->id)
-                ->where('location_id', $locationId)
+                ->where('location_id', $location->id)
                 ->decrement('quantity', $quantity, [
-                    'updated_at' => now(),
+                    'updated_at' => $now,
                 ]);
 
             return StockMovement::query()->create([
                 'product_id' => $product->id,
-                'from_location_id' => $locationId,
+                'from_location_id' => $location->id,
                 'to_location_id' => null,
                 'quantity' => $quantity,
                 'type' => StockMovementType::WRITE_OFF,
@@ -268,16 +280,10 @@ class StockMovementService
     public function returnStock(
         int $productId,
         int $locationId,
-        int $quantity,
-        string $comment,
+        string|int|float $quantity,
+        ?string $comment,
         ?int $userId,
     ): StockMovement {
-        if ($quantity < 1) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'quantity' => 'Количество должно быть больше нуля.',
-            ]);
-        }
-
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -285,50 +291,51 @@ class StockMovementService
             $comment,
             $userId,
         ): StockMovement {
-            // Сначала блокируем товар: это сериализует складские
-            // операции над одним товаром при использовании того же порядка блокировок.
             $product = Product::query()
                 ->whereKey($productId)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $quantity = $this->normalizeQuantity(
+                $quantity,
+                $product->unit,
+            );
 
             $location = Location::query()
                 ->whereKey($locationId)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            // Блокируем существующую запись остатка, если она есть.
             $stock = DB::table('product_location')
                 ->where('product_id', $product->id)
                 ->where('location_id', $location->id)
                 ->lockForUpdate()
                 ->first();
 
-            $currentQuantity = (int) ($stock->quantity ?? 0);
-            $newQuantity = $currentQuantity + $quantity;
+            $currentQuantity = (string) ($stock->quantity ?? '0');
 
-            if ($newQuantity > 2147483647) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'quantity' => 'Итоговый остаток превышает допустимое значение.',
-                ]);
-            }
+            $this->assertMaximumQuantity(
+                bcadd($currentQuantity, $quantity, 3),
+                'quantity',
+            );
 
-            if ($stock !== null) {
-                DB::table('product_location')
-                    ->where('product_id', $product->id)
-                    ->where('location_id', $location->id)
-                    ->update([
-                        'quantity' => $newQuantity,
-                        'updated_at' => now(),
-                    ]);
-            } else {
+            $now = now();
+
+            if ($stock === null) {
                 DB::table('product_location')->insert([
                     'product_id' => $product->id,
                     'location_id' => $location->id,
                     'quantity' => $quantity,
-                    'created_at' => now(),
-                    'updated_at' => now(),
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
+            } else {
+                DB::table('product_location')
+                    ->where('product_id', $product->id)
+                    ->where('location_id', $location->id)
+                    ->increment('quantity', $quantity, [
+                        'updated_at' => $now,
+                    ]);
             }
 
             return StockMovement::query()->create([
@@ -346,16 +353,10 @@ class StockMovementService
     public function inventory(
         int $productId,
         int $locationId,
-        int $actualQuantity,
-        string $comment,
+        string|int|float $actualQuantity,
+        ?string $comment,
         ?int $userId,
     ): ?StockMovement {
-        if ($actualQuantity < 0 || $actualQuantity > 2147483647) {
-            throw ValidationException::withMessages([
-                'actual_quantity' => 'Укажите допустимое фактическое количество.',
-            ]);
-        }
-
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -363,12 +364,16 @@ class StockMovementService
             $comment,
             $userId,
         ): ?StockMovement {
-            // Блокируем товар, чтобы складские операции над ним
-            // выполнялись последовательно.
             $product = Product::query()
                 ->whereKey($productId)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $actualQuantity = $this->normalizeQuantity(
+                $actualQuantity,
+                $product->unit,
+                allowZero: true,
+            );
 
             $location = Location::query()
                 ->whereKey($locationId)
@@ -381,60 +386,129 @@ class StockMovementService
                 ->lockForUpdate()
                 ->first();
 
-            $currentQuantity = (int) ($stock->quantity ?? 0);
+            $currentQuantity = (string) ($stock->quantity ?? '0');
 
-            // Расхождений нет — остаток и журнал не меняем.
-            if ($currentQuantity === $actualQuantity) {
+            if (bccomp($currentQuantity, $actualQuantity, 3) === 0) {
                 return null;
             }
 
-            $difference = abs($actualQuantity - $currentQuantity);
+            $difference = bccomp($actualQuantity, $currentQuantity, 3) < 0
+                ? bcsub($currentQuantity, $actualQuantity, 3)
+                : bcsub($actualQuantity, $currentQuantity, 3);
 
-            if ($difference > 2147483647) {
-                throw ValidationException::withMessages([
-                    'actual_quantity' => 'Разница превышает допустимое значение.',
+            $now = now();
+
+            if ($stock === null) {
+                DB::table('product_location')->insert([
+                    'product_id' => $product->id,
+                    'location_id' => $location->id,
+                    'quantity' => $actualQuantity,
+                    'created_at' => $now,
+                    'updated_at' => $now,
                 ]);
-            }
-
-            if ($stock !== null) {
+            } else {
                 DB::table('product_location')
                     ->where('product_id', $product->id)
                     ->where('location_id', $location->id)
                     ->update([
                         'quantity' => $actualQuantity,
-                        'updated_at' => now(),
+                        'updated_at' => $now,
                     ]);
-            } else {
-                // Если фактический остаток равен нулю, создаём запись
-                // движения, но не создаём ненужную запись остатка.
-                if ($actualQuantity > 0) {
-                    DB::table('product_location')->insert([
-                        'product_id' => $product->id,
-                        'location_id' => $location->id,
-                        'quantity' => $actualQuantity,
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
             }
 
-            $isIncrease = $actualQuantity > $currentQuantity;
+            $isShortage = bccomp($actualQuantity, $currentQuantity, 3) < 0;
+
+            $movementComment = trim(
+                ($comment ?? '')
+                . ' Инвентаризация: было '
+                . $this->formatQuantity($currentQuantity)
+                . ', стало '
+                . $this->formatQuantity($actualQuantity)
+                . '. '
+                . ($isShortage ? 'Недостача.' : 'Излишек.')
+            );
 
             return StockMovement::query()->create([
                 'product_id' => $product->id,
-                'from_location_id' => $isIncrease ? null : $location->id,
-                'to_location_id' => $isIncrease ? $location->id : null,
+                'from_location_id' => $isShortage ? $location->id : null,
+                'to_location_id' => $isShortage ? null : $location->id,
                 'quantity' => $difference,
                 'type' => StockMovementType::INVENTORY,
-                'comment' => sprintf(
-                    '%s Учётный остаток: %d; фактический остаток: %d. %s',
-                    $isIncrease ? 'Излишек.' : 'Недостача.',
-                    $currentQuantity,
-                    $actualQuantity,
-                    trim($comment),
-                ),
+                'comment' => $movementComment,
                 'user_id' => $userId,
             ]);
         }, attempts: 3);
+    }
+
+    private function normalizeQuantity(
+        string|int|float $quantity,
+        string $unit,
+        bool $allowZero = false,
+    ): string {
+        $value = trim((string) $quantity);
+
+        if (! preg_match('/^\d+(?:\.\d{1,3})?$/', $value)) {
+            throw ValidationException::withMessages([
+                $allowZero ? 'actual_quantity' : 'quantity' =>
+                    'Введите корректное количество максимум с тремя знаками после запятой.',
+            ]);
+        }
+
+        if (
+            ! in_array($unit, self::INTEGER_UNITS, true)
+            && ! in_array($unit, self::DECIMAL_UNITS, true)
+        ) {
+            throw ValidationException::withMessages([
+                $allowZero ? 'actual_quantity' : 'quantity' =>
+                    "Неподдерживаемая единица измерения: {$unit}.",
+            ]);
+        }
+
+        if (
+            in_array($unit, self::INTEGER_UNITS, true)
+            && str_contains($value, '.')
+        ) {
+            throw ValidationException::withMessages([
+                $allowZero ? 'actual_quantity' : 'quantity' =>
+                    "Для единицы измерения «{$unit}» допускаются только целые количества.",
+            ]);
+        }
+
+        if (
+            bccomp($value, '0', 3) < 0
+            || (! $allowZero && bccomp($value, '0', 3) === 0)
+        ) {
+            throw ValidationException::withMessages([
+                $allowZero ? 'actual_quantity' : 'quantity' =>
+                    $allowZero
+                        ? 'Фактическое количество не может быть отрицательным.'
+                        : 'Количество должно быть больше нуля.',
+            ]);
+        }
+
+        $normalized = bcadd($value, '0', 3);
+
+        $this->assertMaximumQuantity(
+            $normalized,
+            $allowZero ? 'actual_quantity' : 'quantity',
+        );
+
+        return $normalized;
+    }
+
+    private function assertMaximumQuantity(
+        string $quantity,
+        string $field,
+    ): void {
+        if (bccomp($quantity, self::MAX_QUANTITY, 3) > 0) {
+            throw ValidationException::withMessages([
+                $field => 'Количество превышает максимально допустимое значение 999999999.999.',
+            ]);
+        }
+    }
+
+    private function formatQuantity(string $quantity): string
+    {
+        return rtrim(rtrim($quantity, '0'), '.');
     }
 }

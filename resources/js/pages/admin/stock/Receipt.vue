@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed, watch } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 defineOptions({
@@ -10,6 +11,7 @@ interface ProductOption {
     id: number
     name: string
     sku: string | null
+    unit: string
 }
 
 interface RackOption {
@@ -30,24 +32,51 @@ interface Props {
     locations: LocationOption[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const form = useForm({
     product_id: '',
     location_id: '',
-    quantity: 1,
+    quantity: '1',
     comment: '',
 })
 
+const selectedProduct = computed(() =>
+    props.products.find(
+        (product) => String(product.id) === form.product_id,
+    ),
+)
+
+const isIntegerUnit = computed(() =>
+    ['шт.', 'упаковка', 'комплект'].includes(
+        selectedProduct.value?.unit ?? '',
+    ),
+)
+
+const quantityStep = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+const quantityMin = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+watch(
+    () => form.product_id,
+    () => {
+        form.clearErrors('quantity')
+    },
+)
+
 const submit = (): void => {
-    form.post('/admin/stock/return', {
+    form.post('/admin/stock/receipt', {
         preserveScroll: true,
     })
 }
 </script>
 
 <template>
-    <Head title="Возврат товара" />
+    <Head title="Приёмка товара" />
 
     <div class="mx-auto max-w-3xl space-y-6">
         <div>
@@ -59,11 +88,11 @@ const submit = (): void => {
             </Link>
 
             <h1 class="mt-3 text-2xl font-semibold text-gray-900">
-                Возврат товара
+                Приёмка товара
             </h1>
 
             <p class="mt-1 text-sm text-gray-500">
-                Возврат товара на склад с записью в историю движений.
+                Приёмка товара на склад с записью в историю движений.
             </p>
         </div>
 
@@ -99,6 +128,7 @@ const submit = (): void => {
                         <template v-if="product.sku">
                             — {{ product.sku }}
                         </template>
+                        ({{ product.unit || 'единица не указана' }})
                     </option>
                 </select>
 
@@ -162,19 +192,37 @@ const submit = (): void => {
                     class="mb-2 block text-sm font-medium text-gray-700"
                 >
                     Количество
+                    <template v-if="selectedProduct">
+                        ({{ selectedProduct.unit }})
+                    </template>
                 </label>
 
                 <input
                     id="quantity"
-                    v-model.number="form.quantity"
+                    v-model="form.quantity"
                     type="number"
-                    min="1"
-                    max="2147483647"
-                    step="1"
+                    inputmode="decimal"
+                    :min="quantityMin"
+                    max="999999999.999"
+                    :step="quantityStep"
                     required
                     class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
                     :class="{ 'border-red-500': form.errors.quantity }"
                 />
+
+                <p
+                    v-if="selectedProduct"
+                    class="mt-1 text-xs text-gray-500"
+                >
+                    <template v-if="isIntegerUnit">
+                        Для этой единицы измерения допускаются только целые
+                        количества.
+                    </template>
+                    <template v-else>
+                        Можно указать до трёх знаков после десятичного
+                        разделителя.
+                    </template>
+                </p>
 
                 <p
                     v-if="form.errors.quantity"
@@ -189,7 +237,7 @@ const submit = (): void => {
                     for="comment"
                     class="mb-2 block text-sm font-medium text-gray-700"
                 >
-                    Причина возврата
+                    Комментарий
                 </label>
 
                 <textarea
@@ -197,8 +245,7 @@ const submit = (): void => {
                     v-model="form.comment"
                     rows="3"
                     maxlength="5000"
-                    required
-                    placeholder="Например, возврат от покупателя или результат проверки качества"
+                    placeholder="Например, поступление от поставщика"
                     class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
                     :class="{ 'border-red-500': form.errors.comment }"
                 />
@@ -233,7 +280,7 @@ const submit = (): void => {
                     {{
                         form.processing
                             ? 'Сохранение...'
-                            : 'Оформить возврат'
+                            : 'Оформить поступление'
                     }}
                 </button>
             </div>

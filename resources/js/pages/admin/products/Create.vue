@@ -77,6 +77,7 @@ const form = useForm({
     product_type_id: null as number | null,
     name: '',
     sku: '',
+    minimum_stock: null as number | null,
     angle: null as number | null,
     description: '',
     is_active: true,
@@ -307,24 +308,55 @@ const submit = (): void => {
 
                     <div>
                         <label
-                            class="mb-2 block text-sm font-medium text-gray-700"
+                            for="sku"
+                            class="mb-1 block text-sm font-medium text-gray-700"
                         >
                             Артикул
                         </label>
 
                         <input
+                            id="sku"
                             v-model="form.sku"
                             type="text"
-                            class="w-full rounded-lg border-gray-300"
-                            placeholder="Например: BSP-90-12-G1/2"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 font-mono text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
                         />
 
-                        <div
+                        <p
                             v-if="form.errors.sku"
                             class="mt-1 text-sm text-red-600"
                         >
                             {{ form.errors.sku }}
-                        </div>
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            for="minimum_stock"
+                            class="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Минимальный остаток
+                        </label>
+
+                        <input
+                            id="minimum_stock"
+                            v-model.number="form.minimum_stock"
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                            placeholder="Например: 10"
+                        />
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Оставьте пустым, если контроль минимального остатка не нужен.
+                        </p>
+
+                        <p
+                            v-if="form.errors.minimum_stock"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.minimum_stock }}
+                        </p>
                     </div>
 
                     <div v-if="isFitting">
@@ -339,7 +371,7 @@ const submit = (): void => {
                             class="w-full rounded-lg border-gray-300"
                         >
                             <option :value="null">
-                                Без угла
+                                0°
                             </option>
 
                             <option :value="45">

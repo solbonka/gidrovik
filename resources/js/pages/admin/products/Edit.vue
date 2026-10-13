@@ -70,6 +70,7 @@ interface Product {
     product_type_id: number | null;
     name: string;
     sku: string;
+    minimum_stock: number | null
     angle: number | null;
     description: string | null;
     is_active: boolean;
@@ -113,6 +114,7 @@ const form = useForm({
     product_type_id: props.product.product_type_id,
     name: props.product.name,
     sku: props.product.sku,
+    minimum_stock: props.product.minimum_stock,
     angle: props.product.angle,
     description: props.product.description ?? '',
     is_active: props.product.is_active,
@@ -299,6 +301,36 @@ const submit = (): void => {
                             class="mt-1 text-sm text-red-600"
                         >
                             {{ form.errors.sku }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            for="minimum_stock"
+                            class="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Минимальный остаток
+                        </label>
+
+                        <input
+                            id="minimum_stock"
+                            v-model.number="form.minimum_stock"
+                            type="number"
+                            min="0"
+                            step="0.001"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                            placeholder="Например: 10"
+                        />
+
+                        <p class="mt-1 text-xs text-gray-500">
+                            Оставьте пустым, если контроль минимального остатка не нужен.
+                        </p>
+
+                        <p
+                            v-if="form.errors.minimum_stock"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.minimum_stock }}
                         </p>
                     </div>
 

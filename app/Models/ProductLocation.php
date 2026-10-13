@@ -19,7 +19,7 @@ class ProductLocation extends Pivot
     ];
 
     protected $casts = [
-        'quantity' => 'integer',
+        'quantity' => 'decimal:3',
     ];
 
     public function product(): BelongsTo

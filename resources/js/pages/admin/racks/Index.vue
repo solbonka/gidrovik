@@ -241,35 +241,26 @@ const deleteLocation = (
                         :key="location.id"
                         class="group rounded-lg border border-gray-200 p-4 transition hover:border-gray-300"
                     >
-                        <div
-                            class="flex items-start justify-between gap-2"
-                        >
-                            <div>
-                                <div
-                                    class="font-semibold text-gray-900"
-                                >
-                                    {{ location.code }}
-                                </div>
-
-                                <div class="mt-1 text-xs text-gray-500">
-                                    Остаток:
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs text-gray-500">
+                                Остаток:
+                                <span class="tabular-nums text-gray-900">
                                     {{ location.stock_quantity ?? 0 }}
-                                </div>
-                            </div>
+                                </span>
+                            </span>
 
-                            <button
-                                type="button"
-                                class="text-xs text-red-500 opacity-0 transition group-hover:opacity-100 hover:text-red-700"
-                                title="Удалить ячейку"
-                                @click="
-                                    deleteLocation(
-                                        rack,
-                                        location,
-                                    )
-                                "
-                            >
-                                ×
-                            </button>
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm font-medium text-gray-700">{{ location.code }}</span>
+
+                                <button
+                                    type="button"
+                                    class="text-xs text-red-500 opacity-0 transition group-hover:opacity-100 hover:text-red-700"
+                                    title="Удалить ячейку"
+                                    @click="deleteLocation(rack, location)"
+                                >
+                                    ×
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>

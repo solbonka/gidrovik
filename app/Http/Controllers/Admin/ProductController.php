@@ -94,14 +94,20 @@ class ProductController extends Controller
             'locations.rack:id,code,name',
         ]);
 
-        $stockQuantity = $product->locations
-            ->sum(fn ($location) => (int) $location->pivot->quantity);
+        $stockQuantity = bcadd(
+            (string) DB::table('product_location')
+                ->where('product_id', $product->id)
+                ->sum('quantity'),
+            '0',
+            3,
+        );
 
         return Inertia::render('admin/products/Show', [
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,
                 'sku' => $product->sku,
+                'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,
                 'is_active' => $product->is_active,
@@ -175,7 +181,11 @@ class ProductController extends Controller
                             'name' => $location->rack->name,
                         ],
                         'number' => $location->number,
-                        'quantity' => (int) $location->pivot->quantity,
+                        'quantity' => bcadd(
+                            (string) $location->pivot->quantity,
+                            '0',
+                            3,
+                        ),
                     ])
                     ->values(),
             ],
@@ -220,6 +230,7 @@ class ProductController extends Controller
                 'product_type_id' => $product->product_type_id,
                 'name' => $product->name,
                 'sku' => $product->sku,
+                'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,
                 'is_active' => $product->is_active,
@@ -280,32 +291,39 @@ class ProductController extends Controller
 
     public function destroy(Product $product): RedirectResponse
     {
-        $hasStock = DB::table('product_location')
-            ->where('product_id', $product->id)
-            ->where('quantity', '>', 0)
-            ->exists();
+        return DB::transaction(function () use ($product): RedirectResponse {
+            $lockedProduct = Product::query()
+                ->whereKey($product->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($hasStock) {
-            return back()->with(
-                'error',
-                'Товар нельзя удалить: на складе есть остаток.'
-            );
-        }
+            $hasStock = DB::table('product_location')
+                ->where('product_id', $lockedProduct->id)
+                ->where('quantity', '>', 0)
+                ->exists();
 
-        $hasMovements = StockMovement::query()
-            ->where('product_id', $product->id)
-            ->exists();
+            if ($hasStock) {
+                return back()->with(
+                    'error',
+                    'Товар нельзя удалить: на складе есть остаток.',
+                );
+            }
 
-        if ($hasMovements) {
-            return back()->with(
-                'error',
-                'Товар нельзя удалить: по нему есть история складских движений.'
-            );
-        }
+            $hasMovements = StockMovement::query()
+                ->where('product_id', $lockedProduct->id)
+                ->exists();
 
-        $product->delete();
+            if ($hasMovements) {
+                return back()->with(
+                    'error',
+                    'Товар нельзя удалить: по нему есть история складских движений.',
+                );
+            }
 
-        return to_route('admin.products.index')
-            ->with('success', 'Товар успешно удалён.');
+            $lockedProduct->delete();
+
+            return to_route('admin.products.index')
+                ->with('success', 'Товар успешно удалён.');
+        });
     }
 }

@@ -16,6 +16,7 @@ class ProductConnection extends Model
         'standard_id',
         'diameter_id',
         'thread_id',
+        'end_type',
     ];
 
     protected $casts = [

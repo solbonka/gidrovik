@@ -18,7 +18,7 @@ class StockReceiptController extends Controller
         $products = Product::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'sku']);
+            ->get(['id', 'name', 'sku', 'unit']);
 
         $locations = Location::query()
             ->with('rack:id,code,name')
@@ -51,7 +51,7 @@ class StockReceiptController extends Controller
         $stockMovementService->receipt(
             productId: (int) $data['product_id'],
             locationId: (int) $data['location_id'],
-            quantity: (int) $data['quantity'],
+            quantity: (string) $data['quantity'],
             comment: $data['comment'] ?? null,
             userId: $request->user()?->id,
         );

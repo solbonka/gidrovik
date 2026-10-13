@@ -13,10 +13,18 @@ const props = defineProps<ToasterProps>()
   <Sonner
     :class="cn('toaster group', props.class)"
     :style="{
-      '--normal-bg': 'var(--popover)',
-      '--normal-text': 'var(--popover-foreground)',
-      '--normal-border': 'var(--border)',
-      '--border-radius': 'var(--radius)',
+        '--normal-bg': 'var(--popover)',
+        '--normal-text': 'var(--popover-foreground)',
+        '--normal-border': 'var(--border)',
+        '--border-radius': 'var(--radius)',
+
+        '--success-bg': '#f0fdf4',
+        '--success-text': '#166534',
+        '--success-border': '#86efac',
+
+        '--error-bg': '#fef2f2',
+        '--error-text': '#991b1b',
+        '--error-border': '#fca5a5',
     }"
     v-bind="props"
   >
@@ -42,3 +50,25 @@ const props = defineProps<ToasterProps>()
     </template>
   </Sonner>
 </template>
+
+<style>
+.toaster [data-sonner-toast][data-type='success'] {
+    background: #f0fdf4 !important;
+    border: 1px solid #86efac !important;
+    color: #166534 !important;
+}
+
+.toaster [data-sonner-toast][data-type='success'] svg {
+    color: #15803d !important;
+}
+
+.toaster [data-sonner-toast][data-type='error'] {
+    background: #fef2f2 !important;
+    border: 1px solid #fca5a5 !important;
+    color: #991b1b !important;
+}
+
+.toaster [data-sonner-toast][data-type='error'] svg {
+    color: #b91c1c !important;
+}
+</style>

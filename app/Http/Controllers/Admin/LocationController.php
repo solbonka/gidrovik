@@ -54,28 +54,46 @@ class LocationController extends Controller
         Rack $rack,
         Location $location,
     ): RedirectResponse {
-        abort_unless((int) $location->rack_id === (int) $rack->id, 404);
+        abort_unless(
+            (int) $location->rack_id === (int) $rack->id,
+            404,
+        );
 
-        $hasStock = DB::table('product_location')
-            ->where('location_id', $location->id)
-            ->where('quantity', '>', 0)
-            ->exists();
+        return DB::transaction(function () use ($rack, $location): RedirectResponse {
+            $lockedLocation = Location::query()
+                ->whereKey($location->id)
+                ->where('rack_id', $rack->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        $hasHistory = StockMovement::query()
-            ->where('from_location_id', $location->id)
-            ->orWhere('to_location_id', $location->id)
-            ->exists();
+            $hasStock = DB::table('product_location')
+                ->where('location_id', $lockedLocation->id)
+                ->where('quantity', '>', 0)
+                ->exists();
 
-        if ($hasStock || $hasHistory) {
-            return back()->withErrors([
-                'location' => $hasStock
-                    ? 'Нельзя удалить ячейку: в ней есть остатки товара.'
-                    : 'Нельзя удалить ячейку: она присутствует в истории складских движений.',
-            ]);
-        }
+            if ($hasStock) {
+                return back()->withErrors([
+                    'location' => 'Нельзя удалить ячейку: в ней есть остатки товара.',
+                ]);
+            }
 
-        $location->delete();
+            $hasHistory = StockMovement::query()
+                ->where(function ($query) use ($lockedLocation): void {
+                    $query
+                        ->where('from_location_id', $lockedLocation->id)
+                        ->orWhere('to_location_id', $lockedLocation->id);
+                })
+                ->exists();
 
-        return back()->with('success', 'Ячейка успешно удалена.');
+            if ($hasHistory) {
+                return back()->withErrors([
+                    'location' => 'Нельзя удалить ячейку: она присутствует в истории складских движений.',
+                ]);
+            }
+
+            $lockedLocation->delete();
+
+            return back()->with('success', 'Ячейка успешно удалена.');
+        });
     }
 }

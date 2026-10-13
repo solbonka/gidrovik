@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import { toast } from 'vue-sonner'
 import {
     create,
     destroy,
@@ -97,16 +98,39 @@ const resetFilters = (): void => {
     router.get('/admin/products')
 }
 
-const deleteProduct = (product: Product): void => {
-    if (
-        !window.confirm(
-            `Удалить товар «${product.name}»?\n\nЭто действие нельзя отменить.`,
-        )
-    ) {
+function deleteProduct(product: Product): void {
+    const confirmed = window.confirm(
+        `Удалить товар «${product.name}»? Это действие нельзя отменить.`,
+    )
+
+    if (!confirmed) {
         return
     }
 
-    router.delete(destroy(product.id).url)
+    router.delete(destroy(product.id).url, {
+        preserveScroll: true,
+
+        onSuccess: (page) => {
+            const flash = page.props.flash as {
+                success?: string | null
+                error?: string | null
+            }
+
+            if (flash.error) {
+                toast.error(flash.error)
+                return
+            }
+
+            if (flash.success) {
+                toast.success(flash.success)
+            }
+        },
+
+        onError: (errors) => {
+            console.error('Ошибка удаления:', errors)
+            toast.error('Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.')
+        },
+    })
 }
 </script>
 

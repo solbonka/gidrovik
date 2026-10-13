@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import AdminHeader from '@/components/admin/AdminHeader.vue'
 import AdminSidebar from '@/components/admin/AdminSidebar.vue'
+import { Toaster } from '@/components/ui/sonner'
 import { ref } from 'vue'
 
 const sidebarOpen = ref<boolean>(false)
@@ -24,5 +25,7 @@ const toggleSidebar = (): void => {
                 <slot />
             </main>
         </div>
+
+        <Toaster />
     </div>
 </template>

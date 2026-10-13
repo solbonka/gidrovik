@@ -18,6 +18,10 @@ class Location extends Model
         'number',
     ];
 
+    protected $appends = [
+        'code',
+    ];
+
     protected function code(): Attribute
     {
         return Attribute::get(
