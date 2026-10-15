@@ -57,6 +57,16 @@ interface Thread {
     name: string;
 }
 
+interface Manufacturer {
+    id: number;
+    name: string;
+}
+
+interface Country {
+    id: number;
+    name: string;
+}
+
 interface ProductConnection {
     position: number;
     standard_id: number | null;
@@ -74,6 +84,9 @@ interface Product {
     angle: number | null;
     description: string | null;
     is_active: boolean;
+    unit: string;
+    manufacturer_id: number | null;
+    country_id: number | null;
     characteristics: Record<string, string>;
     connections: ProductConnection[];
 }
@@ -84,6 +97,8 @@ interface Props {
     standards: Standard[];
     diameters: Diameter[];
     threads: Thread[];
+    manufacturers: Manufacturer[];
+    countries: Country[];
 }
 
 const props = defineProps<Props>();
@@ -109,6 +124,61 @@ const productTypes = computed<ProductType[]>(() => {
     return selectedCategory.value?.product_types ?? [];
 });
 
+const isFitting = computed<boolean>(() => {
+    if (!selectedCategory.value) {
+        return false
+    }
+
+    const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
+
+    return (
+        slug.includes('fitting') ||
+        slug.includes('фитинг') ||
+        slug.includes('фитин') ||
+        name.includes('фитинг') ||
+        name.includes('фитин')
+    )
+})
+
+const isAdapter = computed<boolean>(() => {
+    if (!selectedCategory.value) {
+        return false
+    }
+
+    const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
+
+    return (
+        slug.includes('adapter') ||
+        slug.includes('адаптер') ||
+        name.includes('адаптер')
+    )
+})
+
+const isCoupling = computed<boolean>(() => {
+    if (!selectedCategory.value) {
+        return false
+    }
+
+    const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
+
+    return (
+        slug.includes('hose') ||
+        slug.includes('coupling') ||
+        slug.includes('муфт') ||
+        name.includes('муфт')
+    )
+})
+
+const maxConnections = computed(() => {
+    if (isFitting.value) return 1
+    if (isAdapter.value) return 3
+    if (isCoupling.value) return 1
+    return 0
+})
+
 const form = useForm({
     category_id: props.product.category_id,
     product_type_id: props.product.product_type_id,
@@ -118,6 +188,9 @@ const form = useForm({
     angle: props.product.angle,
     description: props.product.description ?? '',
     is_active: props.product.is_active,
+    unit: props.product.unit ?? 'шт.',
+    manufacturer_id: props.product.manufacturer_id,
+    country_id: props.product.country_id,
     characteristics: {
         ...props.product.characteristics,
     } as Record<string, string>,
@@ -180,6 +253,9 @@ watch(
 );
 
 const showConnection = (index: number): void => {
+    if (form.connections.filter(c => c.standard_id || c.diameter_id || c.thread_id).length >= maxConnections.value) {
+        return
+    }
     visibleConnections[index] = true;
 };
 
@@ -203,7 +279,7 @@ const characteristicError = (
 };
 
 const submit = (): void => {
-    form.put(update(props.product.id).url);
+    form.put(update(props.product.id).url)
 };
 </script>
 
@@ -460,6 +536,102 @@ const submit = (): void => {
                         </p>
                     </div>
 
+                    <div>
+                        <label
+                            for="unit"
+                            class="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Единица измерения
+                        </label>
+
+                        <select
+                            id="unit"
+                            v-model="form.unit"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                        >
+                            <option value="шт.">шт.</option>
+                            <option value="упаковка">упаковка</option>
+                            <option value="комплект">комплект</option>
+                            <option value="м">м</option>
+                            <option value="л">л</option>
+                        </select>
+
+                        <p
+                            v-if="form.errors.unit"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.unit }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            for="manufacturer"
+                            class="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Производитель
+                        </label>
+
+                        <select
+                            id="manufacturer"
+                            v-model="form.manufacturer_id"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                        >
+                            <option :value="null">
+                                Не выбран
+                            </option>
+
+                            <option
+                                v-for="manufacturer in manufacturers"
+                                :key="manufacturer.id"
+                                :value="manufacturer.id"
+                            >
+                                {{ manufacturer.name }}
+                            </option>
+                        </select>
+
+                        <p
+                            v-if="form.errors.manufacturer_id"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.manufacturer_id }}
+                        </p>
+                    </div>
+
+                    <div>
+                        <label
+                            for="country"
+                            class="mb-1 block text-sm font-medium text-gray-700"
+                        >
+                            Страна
+                        </label>
+
+                        <select
+                            id="country"
+                            v-model="form.country_id"
+                            class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-900"
+                        >
+                            <option :value="null">
+                                Не выбрана
+                            </option>
+
+                            <option
+                                v-for="country in countries"
+                                :key="country.id"
+                                :value="country.id"
+                            >
+                                {{ country.name }}
+                            </option>
+                        </select>
+
+                        <p
+                            v-if="form.errors.country_id"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.country_id }}
+                        </p>
+                    </div>
+
                     <div class="md:col-span-2">
                         <label class="flex cursor-pointer items-center gap-3">
                             <input
@@ -596,6 +768,7 @@ const submit = (): void => {
 
             <!-- Подключения -->
             <section
+                v-if="isFitting || isAdapter || isCoupling"
                 class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             >
                 <div>
@@ -604,7 +777,13 @@ const submit = (): void => {
                     </h2>
 
                     <p class="mt-1 text-sm text-gray-500">
-                        Можно указать до трёх подключений.
+                        {{
+                            isFitting
+                                ? 'Одно подключение для фитинга.'
+                                : isCoupling
+                                  ? 'Укажите диаметр муфты.'
+                                  : `До ${maxConnections} подключений для адаптера.`
+                        }}
                     </p>
                 </div>
 
@@ -659,9 +838,14 @@ const submit = (): void => {
 
                         <div
                             v-if="visibleConnections[index]"
-                            class="mt-4 grid gap-4 md:grid-cols-3"
+                            class="mt-4 grid gap-4"
+                            :class="
+                                isCoupling
+                                    ? 'md:grid-cols-1'
+                                    : 'md:grid-cols-3'
+                            "
                         >
-                            <div>
+                            <div v-if="!isCoupling">
                                 <label
                                     class="mb-1 block text-sm font-medium text-gray-700"
                                 >
@@ -713,7 +897,7 @@ const submit = (): void => {
                                 </select>
                             </div>
 
-                            <div>
+                            <div v-if="!isCoupling">
                                 <label
                                     class="mb-1 block text-sm font-medium text-gray-700"
                                 >

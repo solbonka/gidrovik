@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Enums\UnitType;
 use App\Models\Category;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -10,7 +11,7 @@ class UpdateProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     public function rules(): array
@@ -103,6 +104,25 @@ class UpdateProductRequest extends FormRequest
                 'nullable',
                 'integer',
                 'exists:threads,id',
+            ],
+
+            'unit' => [
+                'nullable',
+                'string',
+                'max:20',
+                'in:' . implode(',', UnitType::getAll()),
+            ],
+
+            'manufacturer_id' => [
+                'nullable',
+                'integer',
+                'exists:manufacturers,id',
+            ],
+
+            'country_id' => [
+                'nullable',
+                'integer',
+                'exists:countries,id',
             ],
         ];
     }

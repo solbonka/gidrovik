@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import ProductSelect from '@/components/admin/ProductSelect.vue'
+import LocationSelect from '@/components/admin/LocationSelect.vue'
 
 defineOptions({ layout: AdminLayout })
 
@@ -8,6 +12,10 @@ interface ProductOption {
     id: number
     name: string
     sku: string
+    unit: string
+    stock_quantity?: number
+    minimum_stock?: number | null
+    characteristics?: string
 }
 
 interface LocationOption {
@@ -19,20 +27,55 @@ interface LocationOption {
 interface Props {
     products: ProductOption[]
     locations: LocationOption[]
+    categories?: {
+        id: number
+        name: string
+    }[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const form = useForm({
     product_id: '',
     location_id: '',
-    quantity: 1,
+    quantity: '1',
     comment: '',
 })
+
+const selectedProduct = computed(() =>
+    props.products.find(
+        (product) => String(product.id) === form.product_id,
+    ),
+)
+
+const isIntegerUnit = computed(() =>
+    ['шт.', 'упаковка', 'комплект'].includes(
+        selectedProduct.value?.unit ?? '',
+    ),
+)
+
+const quantityStep = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+const quantityMin = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+watch(
+    () => form.product_id,
+    () => {
+        form.clearErrors('quantity')
+    },
+)
 
 const submit = (): void => {
     form.post('/admin/stock/write-off', {
         preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Списание товара успешно оформлено.')
+            form.reset()
+        },
     })
 }
 </script>
@@ -40,7 +83,7 @@ const submit = (): void => {
 <template>
     <Head title="Списание товара" />
 
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <div>
             <Link
                 href="/admin/stock/movements"
@@ -49,7 +92,7 @@ const submit = (): void => {
                 ← Журнал движений
             </Link>
 
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900">
+            <h1 class="mt-3 text-xl font-semibold text-gray-900 sm:text-2xl">
                 Списание товара
             </h1>
 
@@ -59,7 +102,7 @@ const submit = (): void => {
         </div>
 
         <form
-            class="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            class="space-y-4 sm:space-y-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
             @submit.prevent="submit"
         >
             <div>
@@ -67,21 +110,13 @@ const submit = (): void => {
                     Товар
                 </label>
 
-                <select
-                    id="product_id"
-                    v-model="form.product_id"
-                    required
-                    class="w-full rounded-lg border-gray-300"
-                >
-                    <option value="" disabled>Выберите товар</option>
-                    <option
-                        v-for="product in products"
-                        :key="product.id"
-                        :value="String(product.id)"
-                    >
-                        {{ product.name }} — {{ product.sku }}
-                    </option>
-                </select>
+                <ProductSelect
+                    :products="products"
+                    :categories="categories"
+                    :model-value="form.product_id"
+                    :show-stock-quantity="true"
+                    @update:model-value="form.product_id = $event !== null ? String($event) : ''"
+                />
 
                 <p v-if="form.errors.product_id" class="mt-1 text-sm text-red-600">
                     {{ form.errors.product_id }}
@@ -93,22 +128,11 @@ const submit = (): void => {
                     Ячейка
                 </label>
 
-                <select
-                    id="location_id"
-                    v-model="form.location_id"
-                    required
-                    class="w-full rounded-lg border-gray-300"
-                >
-                    <option value="" disabled>Выберите ячейку</option>
-                    <option
-                        v-for="location in locations"
-                        :key="location.id"
-                        :value="String(location.id)"
-                    >
-                        {{ location.code }}
-                        {{ location.rack_name ? `— ${location.rack_name}` : '' }}
-                    </option>
-                </select>
+                <LocationSelect
+                    :locations="locations"
+                    :model-value="form.location_id"
+                    @update:model-value="form.location_id = $event"
+                />
 
                 <p v-if="form.errors.location_id" class="mt-1 text-sm text-red-600">
                     {{ form.errors.location_id }}
@@ -118,17 +142,36 @@ const submit = (): void => {
             <div>
                 <label for="quantity" class="mb-2 block text-sm font-medium">
                     Количество
+                    <template v-if="selectedProduct">
+                        ({{ selectedProduct.unit }})
+                    </template>
                 </label>
 
                 <input
                     id="quantity"
-                    v-model.number="form.quantity"
+                    v-model="form.quantity"
                     type="number"
-                    min="1"
-                    step="1"
+                    inputmode="decimal"
+                    :min="quantityMin"
+                    max="999999999.999"
+                    :step="quantityStep"
                     required
-                    class="w-full rounded-lg border-gray-300"
+                    class="w-full rounded-lg border-gray-300 text-sm"
                 />
+
+                <p
+                    v-if="selectedProduct"
+                    class="mt-1 text-xs text-gray-500"
+                >
+                    <template v-if="isIntegerUnit">
+                        Для этой единицы измерения допускаются только целые
+                        количества.
+                    </template>
+                    <template v-else>
+                        Можно указать до трёх знаков после десятичного
+                        разделителя.
+                    </template>
+                </p>
 
                 <p v-if="form.errors.quantity" class="mt-1 text-sm text-red-600">
                     {{ form.errors.quantity }}
@@ -147,7 +190,7 @@ const submit = (): void => {
                     maxlength="5000"
                     required
                     placeholder="Например, брак или повреждение"
-                    class="w-full rounded-lg border-gray-300"
+                    class="w-full rounded-lg border-gray-300 text-sm"
                 />
 
                 <p v-if="form.errors.comment" class="mt-1 text-sm text-red-600">
@@ -155,10 +198,10 @@ const submit = (): void => {
                 </p>
             </div>
 
-            <div class="flex justify-end gap-3 border-t border-gray-100 pt-5">
+            <div class="flex flex-col sm:flex-row justify-end gap-3 border-t border-gray-100 pt-4 sm:pt-5">
                 <Link
                     href="/admin/stock/movements"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm"
+                    class="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm text-center"
                 >
                     Отмена
                 </Link>
@@ -166,7 +209,7 @@ const submit = (): void => {
                 <button
                     type="submit"
                     :disabled="form.processing || !products.length || !locations.length"
-                    class="rounded-lg bg-red-700 px-5 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50"
+                    class="w-full sm:w-auto rounded-lg bg-red-700 px-5 py-2 text-sm font-medium text-white hover:bg-red-800 disabled:opacity-50"
                 >
                     {{ form.processing ? 'Сохранение...' : 'Оформить списание' }}
                 </button>

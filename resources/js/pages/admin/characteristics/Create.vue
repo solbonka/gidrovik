@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     index,
@@ -19,7 +20,11 @@ const form = useForm({
 })
 
 const submit = (): void => {
-    form.post(store.url())
+    form.post(store.url(), {
+        onSuccess: () => {
+            toast.success('Характеристика успешно создана.')
+        },
+    })
 }
 </script>
 

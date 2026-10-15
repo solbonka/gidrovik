@@ -41,9 +41,8 @@ class StockBalanceController extends Controller
                         ->with('rack:id,code,name');
                 },
             ])
-            ->withSum('locations as stock_quantity', 'product_location.quantity')
             ->addSelect([
-                'current_stock' => DB::table('product_location as pl')
+                'stock_quantity' => DB::table('product_location as pl')
                     ->selectRaw('COALESCE(SUM(pl.quantity), 0)')
                     ->whereColumn('pl.product_id', 'products.id'),
             ])
@@ -68,6 +67,7 @@ class StockBalanceController extends Controller
             ]);
 
         if ($search !== '') {
+            $search = addcslashes($search, '%_');
             $productsQuery->where(function (Builder $query) use ($search): void {
                 $query
                     ->where('products.name', 'ilike', "%{$search}%")
@@ -158,18 +158,30 @@ class StockBalanceController extends Controller
                     'sku' => $product->sku,
                     'category' => $product->category?->name,
                     'unit' => $product->unit,
-                    'stock_quantity' => bcadd(
-                        (string) ($product->stock_quantity ?? '0'),
-                        '0',
-                        3,
+                    'stock_quantity' => rtrim(
+                        rtrim(
+                            bcadd(
+                                (string) ($product->stock_quantity ?? '0'),
+                                '0',
+                                3,
+                            ),
+                            '0'
+                        ),
+                        '.'
                     ),
                     'minimum_stock' => $product->minimum_stock !== null
                         ? (string) $product->minimum_stock
                         : null,
-                    'stock_deficit' => bcadd(
-                        (string) ($product->stock_deficit ?? '0'),
-                        '0',
-                        3,
+                    'stock_deficit' => rtrim(
+                        rtrim(
+                            bcadd(
+                                (string) ($product->stock_deficit ?? '0'),
+                                '0',
+                                3,
+                            ),
+                            '0'
+                        ),
+                        '.'
                     ),
                     'locations' => $locations,
                 ];

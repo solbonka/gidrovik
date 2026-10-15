@@ -22,10 +22,30 @@ class StockInventoryController extends Controller
 
     public function create(): Response
     {
-        $products = Product::query()
+        $categories = \App\Models\Category::query()
             ->where('is_active', true)
             ->orderBy('name')
-            ->get(['id', 'name', 'sku']);
+            ->get(['id', 'name']);
+
+        $products = Product::query()
+            ->where('is_active', true)
+            ->with(['characteristicValues.characteristic:id,name'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku', 'category_id']);
+
+        $products = $products->map(function (Product $product) {
+            $characteristics = $product->characteristicValues->map(function ($cv) {
+                return $cv->characteristic->name . ': ' . $cv->value;
+            })->implode(', ');
+
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'characteristics' => $characteristics,
+                'category_id' => $product->category_id,
+            ];
+        });
 
         $locations = Location::query()
             ->with('rack:id,code,name')
@@ -46,6 +66,7 @@ class StockInventoryController extends Controller
         return Inertia::render('admin/stock/Inventory', [
             'products' => $products,
             'locations' => $locations,
+            'categories' => $categories,
         ]);
     }
 

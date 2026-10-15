@@ -31,7 +31,10 @@ class ProductController extends Controller
             ->when(
                 $request->filled('search'),
                 fn ($query) => $query->where(function ($query) use ($request) {
-                    $search = $request->string('search')->trim()->toString();
+                    $search = addcslashes(
+                        $request->string('search')->trim()->toString(),
+                        '%_'
+                    );
 
                     $query
                         ->where('name', 'like', "%{$search}%")
@@ -92,14 +95,22 @@ class ProductController extends Controller
             'connections.diameter:id,value,unit',
             'connections.thread:id,system,designation,name',
             'locations.rack:id,code,name',
+            'manufacturer:id,name',
+            'country:id,name',
         ]);
 
-        $stockQuantity = bcadd(
-            (string) DB::table('product_location')
-                ->where('product_id', $product->id)
-                ->sum('quantity'),
-            '0',
-            3,
+        $stockQuantity = rtrim(
+            rtrim(
+                bcadd(
+                    (string) DB::table('product_location')
+                        ->where('product_id', $product->id)
+                        ->sum('quantity'),
+                    '0',
+                    3,
+                ),
+                '0'
+            ),
+            '.'
         );
 
         return Inertia::render('admin/products/Show', [
@@ -111,6 +122,15 @@ class ProductController extends Controller
                 'angle' => $product->angle,
                 'description' => $product->description,
                 'is_active' => $product->is_active,
+                'unit' => $product->unit,
+                'manufacturer' => $product->manufacturer ? [
+                    'id' => $product->manufacturer->id,
+                    'name' => $product->manufacturer->name,
+                ] : null,
+                'country' => $product->country ? [
+                    'id' => $product->country->id,
+                    'name' => $product->country->name,
+                ] : null,
 
                 'category' => $product->category
                     ? [
@@ -181,10 +201,16 @@ class ProductController extends Controller
                             'name' => $location->rack->name,
                         ],
                         'number' => $location->number,
-                        'quantity' => bcadd(
-                            (string) $location->pivot->quantity,
-                            '0',
-                            3,
+                        'quantity' => rtrim(
+                            rtrim(
+                                bcadd(
+                                    (string) $location->pivot->quantity,
+                                    '0',
+                                    3,
+                                ),
+                                '0'
+                            ),
+                            '.'
                         ),
                     ])
                     ->values(),
@@ -234,6 +260,9 @@ class ProductController extends Controller
                 'angle' => $product->angle,
                 'description' => $product->description,
                 'is_active' => $product->is_active,
+                'unit' => $product->unit,
+                'manufacturer_id' => $product->manufacturer_id,
+                'country_id' => $product->country_id,
 
                 'characteristics' => $product->characteristicValues
                     ->mapWithKeys(fn ($item) => [
@@ -272,6 +301,15 @@ class ProductController extends Controller
                     'designation',
                     'name',
                 ]),
+
+            'manufacturers' => \App\Models\Manufacturer::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+
+            'countries' => \App\Models\Country::query()
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 

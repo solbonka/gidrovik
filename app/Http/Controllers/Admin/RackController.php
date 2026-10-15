@@ -5,9 +5,12 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreRackRequest;
 use App\Http\Requests\Admin\UpdateRackRequest;
+use App\Models\Location;
+use App\Models\Product;
 use App\Models\Rack;
 use App\Models\StockMovement;
 use App\Services\Admin\RackService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -24,23 +27,99 @@ class RackController extends Controller
     {
         $racks = Rack::query()
             ->with([
-                'locations' => fn ($query) => $query
-                    ->withCount([
-                        'incomingMovements',
-                        'outgoingMovements',
-                    ])
-                    ->withSum(
-                        'products as stock_quantity',
-                        'product_location.quantity',
-                    )
-                    ->orderBy('number'),
+                'locations' => function ($query) {
+                    $query
+                        ->withCount([
+                            'incomingMovements',
+                            'outgoingMovements',
+                        ])
+                        ->orderBy('number');
+                },
             ])
             ->withCount('locations')
             ->orderBy('code')
             ->get();
 
+        // Get all location IDs for batch query
+        $locationIds = $racks->pluck('locations.*.id')->flatten()->filter();
+
+        // Batch load stock quantities
+        $locationQuantities = [];
+        if ($locationIds->isNotEmpty()) {
+            $locationQuantities = DB::table('product_location')
+                ->select('location_id', DB::raw('SUM(quantity) as total'))
+                ->whereIn('location_id', $locationIds)
+                ->groupBy('location_id')
+                ->pluck('total', 'location_id')
+                ->map(function ($value) {
+                    return rtrim(rtrim(bcadd((string) $value, '0', 3), '0'), '.');
+                });
+        }
+
+        $racks = $racks->map(function ($rack) use ($locationQuantities) {
+            $rackCode = $rack->code;
+            return [
+                'id' => $rack->id,
+                'code' => $rack->code,
+                'name' => $rack->name,
+                'locations_count' => $rack->locations_count,
+                'locations' => $rack->locations->map(function ($location) use ($locationQuantities, $rackCode) {
+                    return [
+                        'id' => $location->id,
+                        'number' => $location->number,
+                        'code' => "{$rackCode}-{$location->number}",
+                        'incoming_movements_count' => $location->incoming_movements_count,
+                        'outgoing_movements_count' => $location->outgoing_movements_count,
+                        'stock_quantity' => $locationQuantities[$location->id] ?? '0',
+                    ];
+                }),
+            ];
+        });
+
+        // Get categories
+        $categories = \App\Models\Category::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        // Get all products for operations
+        $allProducts = Product::query()
+            ->where('is_active', true)
+            ->with(['characteristicValues.characteristic:id,name'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku', 'unit', 'category_id'])
+            ->map(function ($product) {
+                $characteristics = $product->characteristicValues->map(function ($cv) {
+                    return $cv->characteristic->name . ': ' . $cv->value;
+                })->implode(', ');
+
+                return [
+                    'id' => $product->id,
+                    'name' => $product->name,
+                    'sku' => $product->sku,
+                    'unit' => $product->unit,
+                    'characteristics' => $characteristics,
+                    'category_id' => $product->category_id,
+                ];
+            });
+
+        // Get all locations for transfer operations
+        $allLocations = Location::query()
+            ->with('rack:id,code,name')
+            ->orderBy('rack_id')
+            ->orderBy('number')
+            ->get()
+            ->map(fn ($location) => [
+                'id' => $location->id,
+                'code' => $location->code,
+                'rack_name' => $location->rack->name,
+            ]);
+
         return Inertia::render('admin/racks/Index', [
             'racks' => $racks,
+            'allProducts' => $allProducts,
+            'allLocations' => $allLocations,
+            'categories' => $categories,
         ]);
     }
 
@@ -118,5 +197,30 @@ class RackController extends Controller
 
             return back()->with('success', 'Стеллаж успешно удалён.');
         });
+    }
+
+    public function getLocationProducts(Location $location): JsonResponse
+    {
+        $products = DB::table('product_location')
+            ->join('products', 'product_location.product_id', '=', 'products.id')
+            ->where('product_location.location_id', $location->id)
+            ->where('product_location.quantity', '>', 0)
+            ->select([
+                'products.id',
+                'products.name',
+                'products.sku',
+                'product_location.quantity',
+            ])
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'sku' => $item->sku,
+                    'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
+                ];
+            });
+
+        return response()->json($products);
     }
 }

@@ -2,6 +2,10 @@
 import { Link } from '@inertiajs/vue3'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
+defineOptions({
+    layout: AdminLayout,
+})
+
 interface StockByUnit {
     unit: string
     quantity: string
@@ -136,8 +140,7 @@ function movementLocation(movement: Movement): string {
 </script>
 
 <template>
-    <AdminLayout>
-        <div class="space-y-8">
+    <div class="space-y-8">
             <header>
                 <h1 class="text-2xl font-bold text-gray-900">
                     Обзор склада
@@ -365,5 +368,4 @@ function movementLocation(movement: Movement): string {
                 </div>
             </section>
         </div>
-    </AdminLayout>
 </template>

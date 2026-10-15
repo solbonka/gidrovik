@@ -42,6 +42,13 @@ class ProductCreateController
                 ->orderBy('system')
                 ->orderBy('designation')
                 ->get(['id', 'system', 'designation', 'name']),
+            'manufacturers' => \App\Models\Manufacturer::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'countries' => \App\Models\Country::query()
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 

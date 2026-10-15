@@ -18,6 +18,8 @@ import {
     History,
     Grid2X2,
     X,
+    Building2,
+    Globe,
 } from '@lucide/vue'
 
 interface Props {
@@ -51,6 +53,16 @@ const navigationGroups: NavigationGroup[] = [
                 name: 'Обзор склада',
                 href: '/admin',
                 icon: LayoutDashboard,
+            },
+        ],
+    },
+    {
+        title: 'Хранение',
+        items: [
+            {
+                name: 'Стеллажи и ячейки',
+                href: '/admin/racks',
+                icon: Grid2X2,
             },
         ],
     },
@@ -97,6 +109,16 @@ const navigationGroups: NavigationGroup[] = [
                 href: '/admin/threads',
                 icon: Waypoints,
             },
+            {
+                name: 'Производители',
+                href: '/admin/manufacturers',
+                icon: Building2,
+            },
+            {
+                name: 'Страны',
+                href: '/admin/countries',
+                icon: Globe,
+            },
         ],
     },
     {
@@ -139,16 +161,6 @@ const navigationGroups: NavigationGroup[] = [
             },
         ],
     },
-    {
-        title: 'Хранение',
-        items: [
-            {
-                name: 'Стеллажи и ячейки',
-                href: '/admin/racks',
-                icon: Grid2X2,
-            },
-        ],
-    },
 ]
 
 function isActive(item: NavigationItem): boolean {
@@ -184,7 +196,7 @@ function isActive(item: NavigationItem): boolean {
             :class="open ? 'translate-x-0' : '-translate-x-full'"
         >
             <div
-                class="flex h-16 shrink-0 items-center border-b border-gray-200 px-6"
+                class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-6"
             >
                 <Link
                     href="/admin"
@@ -197,7 +209,7 @@ function isActive(item: NavigationItem): boolean {
                 <button
                     type="button"
                     aria-label="Закрыть меню"
-                    class="ml-auto text-gray-500 transition hover:text-gray-900 lg:hidden"
+                    class="text-gray-500 transition hover:text-gray-900 lg:hidden"
                     @click="emit('close')"
                 >
                     <X :size="20" />

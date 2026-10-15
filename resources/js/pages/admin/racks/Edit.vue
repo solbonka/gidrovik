@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { index, update } from '@/routes/admin/racks'
 
@@ -31,7 +32,11 @@ const form = useForm({
 })
 
 const submit = (): void => {
-    form.put(update(props.rack.id).url)
+    form.put(update(props.rack.id).url, {
+        onSuccess: () => {
+            toast.success('Стеллаж успешно обновлён.')
+        },
+    })
 }
 </script>
 

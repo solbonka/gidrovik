@@ -77,6 +77,9 @@ interface Product {
     angle: number | null;
     description: string | null;
     is_active: boolean;
+    unit: string;
+    manufacturer: { id: number; name: string } | null;
+    country: { id: number; name: string } | null;
     category: Category | null;
     product_type: ProductType | null;
     stock_quantity: number;
@@ -241,6 +244,27 @@ const connectionTitle = (connection: Connection): string => {
                             {{ product.angle }}°
                         </div>
                     </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500">Единица измерения</div>
+                        <div class="mt-1 font-medium text-gray-900">
+                            {{ product.unit }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500">Производитель</div>
+                        <div class="mt-1 font-medium text-gray-900">
+                            {{ product.manufacturer?.name ?? '—' }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="text-sm text-gray-500">Страна</div>
+                        <div class="mt-1 font-medium text-gray-900">
+                            {{ product.country?.name ?? '—' }}
+                        </div>
+                    </div>
                 </div>
 
                 <div
@@ -271,7 +295,7 @@ const connectionTitle = (connection: Connection): string => {
                     </div>
 
                     <div class="mt-1 text-sm text-gray-500">
-                        единиц на складе
+                        {{ product.unit }} на складе
                     </div>
                 </div>
 

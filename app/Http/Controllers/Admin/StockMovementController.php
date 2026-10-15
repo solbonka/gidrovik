@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\StockMovementType;
 use App\Http\Controllers\Controller;
 use App\Models\StockMovement;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -41,6 +42,7 @@ class StockMovementController extends Controller
             ->when(
                 $search !== '',
                 function ($query) use ($search): void {
+                    $search = addcslashes($search, '%_');
                     $query->whereHas(
                         'product',
                         fn ($productQuery) => $productQuery->where(
@@ -95,5 +97,13 @@ class StockMovementController extends Controller
                 ])
                 ->values(),
         ]);
+    }
+
+    public function destroy(StockMovement $movement): RedirectResponse
+    {
+        $movement->delete();
+
+        return to_route('admin.stock.movements.index')
+            ->with('success', 'Запись удалена из журнала.');
     }
 }

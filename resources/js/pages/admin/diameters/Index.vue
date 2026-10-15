@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     create,
@@ -46,7 +47,11 @@ const deleteDiameter = (diameter: Diameter): void => {
         return
     }
 
-    router.delete(destroy(diameter.id))
+    router.delete(destroy(diameter.id), {
+        onSuccess: () => {
+            toast.success('Диаметр удалён.')
+        },
+    })
 }
 </script>
 

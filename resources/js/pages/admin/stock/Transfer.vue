@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed, watch } from 'vue'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import ProductSelect from '@/components/admin/ProductSelect.vue'
+import LocationSelect from '@/components/admin/LocationSelect.vue'
 
 defineOptions({
     layout: AdminLayout,
@@ -10,6 +14,10 @@ interface ProductOption {
     id: number
     name: string
     sku: string
+    unit: string
+    stock_quantity?: number
+    minimum_stock?: number | null
+    characteristics?: string
 }
 
 interface RackOption {
@@ -26,21 +34,56 @@ interface LocationOption {
 interface Props {
     products: ProductOption[]
     locations: LocationOption[]
+    categories?: {
+        id: number
+        name: string
+    }[]
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const form = useForm({
     product_id: '',
     from_location_id: '',
     to_location_id: '',
-    quantity: 1,
+    quantity: '1',
     comment: '',
 })
+
+const selectedProduct = computed(() =>
+    props.products.find(
+        (product) => String(product.id) === form.product_id,
+    ),
+)
+
+const isIntegerUnit = computed(() =>
+    ['шт.', 'упаковка', 'комплект'].includes(
+        selectedProduct.value?.unit ?? '',
+    ),
+)
+
+const quantityStep = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+const quantityMin = computed(() =>
+    isIntegerUnit.value ? '1' : '0.001',
+)
+
+watch(
+    () => form.product_id,
+    () => {
+        form.clearErrors('quantity')
+    },
+)
 
 const submit = (): void => {
     form.post('/admin/stock/transfer', {
         preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Товар успешно перемещён.')
+            form.reset()
+        },
     })
 }
 </script>
@@ -48,7 +91,7 @@ const submit = (): void => {
 <template>
     <Head title="Перемещение товара" />
 
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <div>
             <Link
                 href="/admin/products"
@@ -57,7 +100,7 @@ const submit = (): void => {
                 ← К списку товаров
             </Link>
 
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900">
+            <h1 class="mt-3 text-xl font-semibold text-gray-900 sm:text-2xl">
                 Перемещение товара
             </h1>
 
@@ -67,7 +110,7 @@ const submit = (): void => {
         </div>
 
         <form
-            class="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            class="space-y-4 sm:space-y-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
             @submit.prevent="submit"
         >
             <div>
@@ -78,24 +121,13 @@ const submit = (): void => {
                     Товар
                 </label>
 
-                <select
-                    id="product_id"
-                    v-model="form.product_id"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                >
-                    <option value="" disabled>
-                        Выберите товар
-                    </option>
-
-                    <option
-                        v-for="product in products"
-                        :key="product.id"
-                        :value="String(product.id)"
-                    >
-                        {{ product.name }} — {{ product.sku }}
-                    </option>
-                </select>
+                <ProductSelect
+                    :products="products"
+                    :categories="categories"
+                    :model-value="form.product_id"
+                    :show-stock-quantity="true"
+                    @update:model-value="form.product_id = $event !== null ? String($event) : ''"
+                />
 
                 <p
                     v-if="form.errors.product_id"
@@ -113,27 +145,11 @@ const submit = (): void => {
                     Откуда переместить
                 </label>
 
-                <select
-                    id="from_location_id"
-                    v-model="form.from_location_id"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                >
-                    <option value="" disabled>
-                        Исходная ячейка
-                    </option>
-
-                    <option
-                        v-for="location in locations"
-                        :key="location.id"
-                        :value="String(location.id)"
-                    >
-                        {{ location.code }}
-                        <template v-if="location.rack.name">
-                            — {{ location.rack.name }}
-                        </template>
-                    </option>
-                </select>
+                <LocationSelect
+                    :locations="locations"
+                    :model-value="form.from_location_id"
+                    @update:model-value="form.from_location_id = $event"
+                />
 
                 <p
                     v-if="form.errors.from_location_id"
@@ -151,28 +167,11 @@ const submit = (): void => {
                     Куда переместить
                 </label>
 
-                <select
-                    id="to_location_id"
-                    v-model="form.to_location_id"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                >
-                    <option value="" disabled>
-                        Целевая ячейка
-                    </option>
-
-                    <option
-                        v-for="location in locations"
-                        :key="location.id"
-                        :value="String(location.id)"
-                        :disabled="form.from_location_id === String(location.id)"
-                    >
-                        {{ location.code }}
-                        <template v-if="location.rack.name">
-                            — {{ location.rack.name }}
-                        </template>
-                    </option>
-                </select>
+                <LocationSelect
+                    :locations="locations"
+                    :model-value="form.to_location_id"
+                    @update:model-value="form.to_location_id = $event"
+                />
 
                 <p
                     v-if="form.errors.to_location_id"
@@ -188,17 +187,36 @@ const submit = (): void => {
                     class="mb-2 block text-sm font-medium text-gray-700"
                 >
                     Количество
+                    <template v-if="selectedProduct">
+                        ({{ selectedProduct.unit }})
+                    </template>
                 </label>
 
                 <input
                     id="quantity"
-                    v-model.number="form.quantity"
+                    v-model="form.quantity"
                     type="number"
-                    min="1"
-                    step="1"
+                    inputmode="decimal"
+                    :min="quantityMin"
+                    max="999999999.999"
+                    :step="quantityStep"
                     required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
                 />
+
+                <p
+                    v-if="selectedProduct"
+                    class="mt-1 text-xs text-gray-500"
+                >
+                    <template v-if="isIntegerUnit">
+                        Для этой единицы измерения допускаются только целые
+                        количества.
+                    </template>
+                    <template v-else>
+                        Можно указать до трёх знаков после десятичного
+                        разделителя.
+                    </template>
+                </p>
 
                 <p
                     v-if="form.errors.quantity"
@@ -222,7 +240,7 @@ const submit = (): void => {
                     rows="3"
                     maxlength="5000"
                     placeholder="Причина перемещения"
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
+                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
                 />
 
                 <p
@@ -240,10 +258,10 @@ const submit = (): void => {
                 Сначала создайте ячейки хранения.
             </div>
 
-            <div class="flex items-center justify-end gap-3 border-t border-gray-100 pt-5">
+            <div class="flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-gray-100 pt-4 sm:pt-5">
                 <Link
                     href="/admin/products"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    class="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"
                 >
                     Отмена
                 </Link>
@@ -255,7 +273,7 @@ const submit = (): void => {
                         || products.length === 0
                         || locations.length < 2
                     "
-                    class="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="w-full sm:w-auto rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {{
                         form.processing

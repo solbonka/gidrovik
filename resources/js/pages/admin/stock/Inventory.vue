@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import ProductSelect from '@/components/admin/ProductSelect.vue'
+import LocationSelect from '@/components/admin/LocationSelect.vue'
 
 defineOptions({
     layout: AdminLayout,
@@ -11,6 +14,7 @@ interface ProductOption {
     id: number
     name: string
     sku: string | null
+    characteristics?: string
 }
 
 interface RackOption {
@@ -29,6 +33,10 @@ interface LocationOption {
 interface Props {
     products: ProductOption[]
     locations: LocationOption[]
+    categories?: {
+        id: number
+        name: string
+    }[]
 }
 
 interface CurrentStockResponse {
@@ -144,6 +152,11 @@ const submit = (): void => {
 
     form.post('/admin/stock/inventory', {
         preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Инвентаризация успешно завершена.')
+            form.reset()
+            currentQuantity.value = null
+        },
     })
 }
 </script>
@@ -151,7 +164,7 @@ const submit = (): void => {
 <template>
     <Head title="Инвентаризация" />
 
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-3xl space-y-4 sm:space-y-6">
         <div>
             <Link
                 href="/admin/stock/movements"
@@ -160,7 +173,7 @@ const submit = (): void => {
                 ← К журналу складских операций
             </Link>
 
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900">
+            <h1 class="mt-3 text-xl font-semibold text-gray-900 sm:text-2xl">
                 Инвентаризация
             </h1>
 
@@ -170,7 +183,7 @@ const submit = (): void => {
         </div>
 
         <form
-            class="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            class="space-y-4 sm:space-y-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
             @submit.prevent="submit"
         >
             <div>
@@ -181,28 +194,12 @@ const submit = (): void => {
                     Товар
                 </label>
 
-                <select
-                    id="product_id"
-                    v-model="form.product_id"
-                    required
-                    class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.product_id }"
-                >
-                    <option value="" disabled>
-                        Выберите товар
-                    </option>
-
-                    <option
-                        v-for="product in props.products"
-                        :key="product.id"
-                        :value="String(product.id)"
-                    >
-                        {{ product.name }}
-                        <template v-if="product.sku">
-                            — {{ product.sku }}
-                        </template>
-                    </option>
-                </select>
+                <ProductSelect
+                    :products="props.products"
+                    :categories="categories"
+                    :model-value="form.product_id"
+                    @update:model-value="form.product_id = $event !== null ? String($event) : ''"
+                />
 
                 <p
                     v-if="form.errors.product_id"
@@ -220,28 +217,11 @@ const submit = (): void => {
                     Ячейка хранения
                 </label>
 
-                <select
-                    id="location_id"
-                    v-model="form.location_id"
-                    required
-                    class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.location_id }"
-                >
-                    <option value="" disabled>
-                        Выберите ячейку
-                    </option>
-
-                    <option
-                        v-for="location in props.locations"
-                        :key="location.id"
-                        :value="String(location.id)"
-                    >
-                        {{ location.code }}
-                        <template v-if="location.rack?.name">
-                            — {{ location.rack.name }}
-                        </template>
-                    </option>
-                </select>
+                <LocationSelect
+                    :locations="props.locations"
+                    :model-value="form.location_id"
+                    @update:model-value="form.location_id = $event"
+                />
 
                 <p
                     v-if="form.errors.location_id"
@@ -258,13 +238,13 @@ const submit = (): void => {
                 </p>
             </div>
 
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4">
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-3 sm:p-4">
                 <div class="flex items-center justify-between gap-4">
                     <span class="text-sm font-medium text-gray-600">
                         Текущий остаток
                     </span>
 
-                    <span class="text-lg font-semibold text-gray-900">
+                    <span class="text-base sm:text-lg font-semibold text-gray-900">
                         <template v-if="loadingQuantity">
                             Загрузка…
                         </template>
@@ -320,7 +300,7 @@ const submit = (): void => {
             </div>
 
             <div
-                class="flex items-center justify-between gap-4 rounded-lg border border-gray-200 px-4 py-3"
+                class="flex items-center justify-between gap-4 rounded-lg border border-gray-200 px-3 sm:px-4 py-3"
             >
                 <span class="text-sm font-medium text-gray-700">
                     Расхождение
@@ -362,11 +342,11 @@ const submit = (): void => {
             </div>
 
             <div
-                class="flex items-center justify-end gap-3 border-t border-gray-100 pt-5"
+                class="flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-gray-100 pt-4 sm:pt-5"
             >
                 <Link
                     href="/admin/stock/movements"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    class="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 text-center"
                 >
                     Отмена
                 </Link>
@@ -380,7 +360,7 @@ const submit = (): void => {
                         || props.products.length === 0
                         || props.locations.length === 0
                     "
-                    class="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="w-full sm:w-auto rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                     {{
                         form.processing

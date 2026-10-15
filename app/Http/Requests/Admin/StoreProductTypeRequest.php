@@ -10,7 +10,7 @@ class StoreProductTypeRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return auth()->check();
     }
 
     protected function prepareForValidation(): void

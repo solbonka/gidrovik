@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     create,
@@ -50,7 +51,11 @@ const deleteStandard = (standard: Standard): void => {
         return
     }
 
-    router.delete(destroy(standard.id))
+    router.delete(destroy(standard.id), {
+        onSuccess: () => {
+            toast.success('Стандарт удалён.')
+        },
+    })
 }
 </script>
 

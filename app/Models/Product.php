@@ -22,12 +22,16 @@ class Product extends Model
         'angle',
         'description',
         'is_active',
+        'unit',
+        'manufacturer_id',
+        'country_id',
     ];
 
     protected $casts = [
         'angle' => 'integer',
         'is_active' => 'boolean',
         'minimum_stock' => 'decimal:3',
+        'unit' => 'string',
     ];
 
     public function category(): BelongsTo

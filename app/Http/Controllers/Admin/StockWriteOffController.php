@@ -15,12 +15,43 @@ class StockWriteOffController extends Controller
 {
     public function create(): Response
     {
-        return Inertia::render('admin/stock/WriteOff', [
-            'products' => Product::query()
-                ->where('is_active', true)
-                ->orderBy('name')
-                ->get(['id', 'name', 'sku']),
+        $categories = \App\Models\Category::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name']);
 
+        $products = Product::query()
+            ->where('is_active', true)
+            ->with(['characteristicValues.characteristic:id,name'])
+            ->orderBy('name')
+            ->get(['id', 'name', 'sku', 'unit', 'minimum_stock', 'category_id']);
+
+        $stockQuantities = \DB::table('product_location')
+            ->select('product_id', \DB::raw('SUM(quantity) as total_quantity'))
+            ->where('quantity', '>', 0)
+            ->groupBy('product_id')
+            ->pluck('total_quantity', 'product_id');
+
+        $products = $products->map(function (Product $product) use ($stockQuantities) {
+            $characteristics = $product->characteristicValues->map(function ($cv) {
+                return $cv->characteristic->name . ': ' . $cv->value;
+            })->implode(', ');
+
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'unit' => $product->unit,
+                'minimum_stock' => $product->minimum_stock,
+                'stock_quantity' => $stockQuantities->get($product->id, 0),
+                'characteristics' => $characteristics,
+                'category_id' => $product->category_id,
+            ];
+        });
+
+        return Inertia::render('admin/stock/WriteOff', [
+            'products' => $products,
+            'categories' => $categories,
             'locations' => Location::query()
                 ->with('rack:id,code,name')
                 ->orderBy('rack_id')

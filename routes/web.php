@@ -75,6 +75,13 @@ Route::middleware('auth')
                 ]);
         });
 
+        Route::get("/locations", [LocationController::class, "getLocationsWithProduct"])->name("admin.locations.with-product");
+
+        Route::get('/locations/{location}/products', [
+            RackController::class,
+            'getLocationProducts',
+        ])->name('locations.products');
+
         Route::get('/stock/receipt', [
             StockReceiptController::class,
             'create',

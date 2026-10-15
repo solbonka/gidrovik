@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
-import { computed, watch } from 'vue'
+import { computed, ref } from 'vue'
+import { Plus, Trash2, Package } from '@lucide/vue'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import ProductSelect from '@/components/admin/ProductSelect.vue'
+import LocationSelect from '@/components/admin/LocationSelect.vue'
 
 defineOptions({
     layout: AdminLayout,
@@ -12,6 +16,9 @@ interface ProductOption {
     name: string
     sku: string | null
     unit: string
+    stock_quantity?: number
+    minimum_stock?: number | null
+    characteristics?: string
 }
 
 interface RackOption {
@@ -27,243 +34,287 @@ interface LocationOption {
     rack: RackOption | null
 }
 
+interface ReceiptItem {
+    product_id: string
+    location_id: string
+    quantity: string
+    comment: string
+}
+
 interface Props {
     products: ProductOption[]
     locations: LocationOption[]
+    categories?: {
+        id: number
+        name: string
+    }[]
 }
 
 const props = defineProps<Props>()
 
-const form = useForm({
-    product_id: '',
-    location_id: '',
-    quantity: '1',
-    comment: '',
-})
+const items = ref<ReceiptItem[]>([])
 
-const selectedProduct = computed(() =>
-    props.products.find(
-        (product) => String(product.id) === form.product_id,
-    ),
-)
+const selectedProduct = (productId: string) =>
+    props.products.find((product) => String(product.id) === productId)
 
-const isIntegerUnit = computed(() =>
+const isIntegerUnit = (productId: string) =>
     ['шт.', 'упаковка', 'комплект'].includes(
-        selectedProduct.value?.unit ?? '',
-    ),
-)
+        selectedProduct(productId)?.unit ?? '',
+    )
 
-const quantityStep = computed(() =>
-    isIntegerUnit.value ? '1' : '0.001',
-)
+const quantityStep = (productId: string) =>
+    isIntegerUnit(productId) ? '1' : '0.001'
 
-const quantityMin = computed(() =>
-    isIntegerUnit.value ? '1' : '0.001',
-)
+const quantityMin = (productId: string) =>
+    isIntegerUnit(productId) ? '1' : '0.001'
 
-watch(
-    () => form.product_id,
-    () => {
-        form.clearErrors('quantity')
-    },
-)
-
-const submit = (): void => {
-    form.post('/admin/stock/receipt', {
-        preserveScroll: true,
+const addItem = (): void => {
+    items.value.push({
+        product_id: '',
+        location_id: '',
+        quantity: '1',
+        comment: '',
     })
 }
+
+const removeItem = (index: number): void => {
+    items.value.splice(index, 1)
+}
+
+const form = useForm({
+    items: [] as ReceiptItem[],
+})
+
+const submit = (): void => {
+    if (items.value.length === 0) {
+        alert('Добавьте хотя бы один товар')
+        return
+    }
+
+    form.items = items.value
+    form.post('/admin/stock/receipt/batch', {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Поступление товара успешно оформлено.')
+            items.value = []
+            addItem()
+        },
+    })
+}
+
+// Add first item on mount
+addItem()
 </script>
 
 <template>
     <Head title="Приёмка товара" />
 
-    <div class="mx-auto max-w-3xl space-y-6">
+    <div class="mx-auto max-w-6xl space-y-4 sm:space-y-6">
         <div>
             <Link
-                href="/admin/products"
+                href="/admin/stock"
                 class="text-sm text-gray-500 hover:text-gray-900"
             >
-                ← К списку товаров
+                ← К складу
             </Link>
 
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900">
+            <h1 class="mt-3 text-xl font-semibold text-gray-900 sm:text-2xl">
                 Приёмка товара
             </h1>
 
             <p class="mt-1 text-sm text-gray-500">
-                Приёмка товара на склад с записью в историю движений.
+                Приёмка нескольких товаров на склад в одном документе.
             </p>
         </div>
 
         <form
-            class="space-y-6 rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+            class="space-y-4 sm:space-y-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
             @submit.prevent="submit"
         >
-            <div>
-                <label
-                    for="product_id"
-                    class="mb-2 block text-sm font-medium text-gray-700"
-                >
-                    Товар
-                </label>
+            <!-- Items -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between gap-2">
+                    <h2 class="text-base font-medium text-gray-900 sm:text-lg">
+                        Товары ({{ items.length }})
+                    </h2>
 
-                <select
-                    id="product_id"
-                    v-model="form.product_id"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.product_id }"
-                >
-                    <option value="" disabled>
-                        Выберите товар
-                    </option>
-
-                    <option
-                        v-for="product in products"
-                        :key="product.id"
-                        :value="String(product.id)"
+                    <button
+                        type="button"
+                        class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors sm:px-4"
+                        @click="addItem"
                     >
-                        {{ product.name }}
-                        <template v-if="product.sku">
-                            — {{ product.sku }}
-                        </template>
-                        ({{ product.unit || 'единица не указана' }})
-                    </option>
-                </select>
+                        <Plus :size="16" />
+                        <span class="hidden sm:inline">Добавить товар</span>
+                        <span class="sm:hidden">Добавить</span>
+                    </button>
+                </div>
 
-                <p
-                    v-if="form.errors.product_id"
-                    class="mt-1 text-sm text-red-600"
+                <div
+                    v-if="items.length === 0"
+                    class="rounded-lg border border-dashed border-gray-300 p-6 sm:p-8 text-center"
                 >
-                    {{ form.errors.product_id }}
-                </p>
-            </div>
+                    <Package :size="40" class="mx-auto text-gray-300 mb-4 sm:size-48" />
+                    <p class="text-sm text-gray-500">
+                        Список товаров пуст. Добавьте первый товар.
+                    </p>
+                </div>
 
-            <div>
-                <label
-                    for="location_id"
-                    class="mb-2 block text-sm font-medium text-gray-700"
+                <div
+                    v-for="(item, index) in items"
+                    :key="index"
+                    class="rounded-lg border border-gray-200 p-3 sm:p-4 space-y-3 sm:space-y-4"
                 >
-                    Ячейка назначения
-                </label>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-gray-700">
+                            Товар #{{ index + 1 }}
+                        </span>
 
-                <select
-                    id="location_id"
-                    v-model="form.location_id"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.location_id }"
-                >
-                    <option value="" disabled>
-                        Выберите ячейку
-                    </option>
+                        <button
+                            type="button"
+                            class="text-sm text-red-600 hover:text-red-700 transition-colors p-1"
+                            @click="removeItem(index)"
+                        >
+                            <Trash2 :size="16" />
+                        </button>
+                    </div>
 
-                    <option
-                        v-for="location in locations"
-                        :key="location.id"
-                        :value="String(location.id)"
-                    >
-                        {{ location.code }}
-                        <template v-if="location.rack?.name">
-                            — {{ location.rack.name }}
-                        </template>
-                    </option>
-                </select>
+                    <div class="grid gap-3 sm:gap-4 sm:grid-cols-2">
+                        <!-- Product -->
+                        <div class="sm:col-span-2">
+                            <label
+                                :for="`product_${index}`"
+                                class="mb-2 block text-sm font-medium text-gray-700"
+                            >
+                                Товар
+                            </label>
 
-                <p
-                    v-if="form.errors.location_id"
-                    class="mt-1 text-sm text-red-600"
-                >
-                    {{ form.errors.location_id }}
-                </p>
+                            <ProductSelect
+                                :products="products"
+                                :categories="categories"
+                                :model-value="item.product_id"
+                                :show-stock-quantity="true"
+                                @update:model-value="item.product_id = $event !== null ? String($event) : ''"
+                            />
 
-                <p
-                    v-if="locations.length === 0"
-                    class="mt-2 text-sm text-amber-700"
-                >
-                    Нет доступных ячеек. Сначала создайте стеллаж и ячейки хранения.
-                </p>
-            </div>
+                            <p
+                                v-if="form.errors[`items.${index}.product_id`]"
+                                class="mt-1 text-sm text-red-600"
+                            >
+                                {{ form.errors[`items.${index}.product_id`] }}
+                            </p>
+                        </div>
 
-            <div>
-                <label
-                    for="quantity"
-                    class="mb-2 block text-sm font-medium text-gray-700"
-                >
-                    Количество
-                    <template v-if="selectedProduct">
-                        ({{ selectedProduct.unit }})
-                    </template>
-                </label>
+                        <!-- Location -->
+                        <div class="sm:col-span-2">
+                            <label
+                                :for="`location_${index}`"
+                                class="mb-2 block text-sm font-medium text-gray-700"
+                            >
+                                Ячейка назначения
+                            </label>
 
-                <input
-                    id="quantity"
-                    v-model="form.quantity"
-                    type="number"
-                    inputmode="decimal"
-                    :min="quantityMin"
-                    max="999999999.999"
-                    :step="quantityStep"
-                    required
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.quantity }"
-                />
+                            <LocationSelect
+                                :locations="locations"
+                                :model-value="item.location_id"
+                                @update:model-value="item.location_id = $event"
+                            />
 
-                <p
-                    v-if="selectedProduct"
-                    class="mt-1 text-xs text-gray-500"
-                >
-                    <template v-if="isIntegerUnit">
-                        Для этой единицы измерения допускаются только целые
-                        количества.
-                    </template>
-                    <template v-else>
-                        Можно указать до трёх знаков после десятичного
-                        разделителя.
-                    </template>
-                </p>
+                            <p
+                                v-if="form.errors[`items.${index}.location_id`]"
+                                class="mt-1 text-sm text-red-600"
+                            >
+                                {{ form.errors[`items.${index}.location_id`] }}
+                            </p>
 
-                <p
-                    v-if="form.errors.quantity"
-                    class="mt-1 text-sm text-red-600"
-                >
-                    {{ form.errors.quantity }}
-                </p>
-            </div>
+                            <p
+                                v-if="locations.length === 0"
+                                class="mt-2 text-sm text-amber-700"
+                            >
+                                Нет доступных ячеек. Сначала создайте стеллаж и ячейки хранения.
+                            </p>
+                        </div>
 
-            <div>
-                <label
-                    for="comment"
-                    class="mb-2 block text-sm font-medium text-gray-700"
-                >
-                    Комментарий
-                </label>
+                        <!-- Quantity -->
+                        <div>
+                            <label
+                                :for="`quantity_${index}`"
+                                class="mb-2 block text-sm font-medium text-gray-700"
+                            >
+                                Количество
+                                <template v-if="selectedProduct(item.product_id)">
+                                    ({{ selectedProduct(item.product_id).unit }})
+                                </template>
+                            </label>
 
-                <textarea
-                    id="comment"
-                    v-model="form.comment"
-                    rows="3"
-                    maxlength="5000"
-                    placeholder="Например, поступление от поставщика"
-                    class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                    :class="{ 'border-red-500': form.errors.comment }"
-                />
+                            <input
+                                :id="`quantity_${index}`"
+                                v-model="item.quantity"
+                                type="number"
+                                inputmode="decimal"
+                                :min="quantityMin(item.product_id)"
+                                max="999999999.999"
+                                :step="quantityStep(item.product_id)"
+                                required
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
+                                :class="{ 'border-red-500': form.errors[`items.${index}.quantity`] }"
+                            />
 
-                <p
-                    v-if="form.errors.comment"
-                    class="mt-1 text-sm text-red-600"
-                >
-                    {{ form.errors.comment }}
-                </p>
+                            <p
+                                v-if="selectedProduct(item.product_id)"
+                                class="mt-1 text-xs text-gray-500"
+                            >
+                                <template v-if="isIntegerUnit(item.product_id)">
+                                    Для этой единицы измерения допускаются только целые количества.
+                                </template>
+                                <template v-else>
+                                    Можно указать до трёх знаков после десятичного разделителя.
+                                </template>
+                            </p>
+
+                            <p
+                                v-if="form.errors[`items.${index}.quantity`]"
+                                class="mt-1 text-sm text-red-600"
+                            >
+                                {{ form.errors[`items.${index}.quantity`] }}
+                            </p>
+                        </div>
+
+                        <!-- Comment -->
+                        <div>
+                            <label
+                                :for="`comment_${index}`"
+                                class="mb-2 block text-sm font-medium text-gray-700"
+                            >
+                                Комментарий
+                            </label>
+
+                            <textarea
+                                :id="`comment_${index}`"
+                                v-model="item.comment"
+                                rows="2"
+                                maxlength="5000"
+                                placeholder="Например, поступление от поставщика"
+                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
+                                :class="{ 'border-red-500': form.errors[`items.${index}.comment`] }"
+                            />
+
+                            <p
+                                v-if="form.errors[`items.${index}.comment`]"
+                                class="mt-1 text-sm text-red-600"
+                            >
+                                {{ form.errors[`items.${index}.comment`] }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div
-                class="flex items-center justify-end gap-3 border-t border-gray-100 pt-5"
+                class="flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-gray-100 pt-4 sm:pt-5"
             >
                 <Link
-                    href="/admin/products"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    href="/admin/stock"
+                    class="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors text-center"
                 >
                     Отмена
                 </Link>
@@ -272,10 +323,10 @@ const submit = (): void => {
                     type="submit"
                     :disabled="
                         form.processing
-                        || products.length === 0
+                        || items.length === 0
                         || locations.length === 0
                     "
-                    class="rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="w-full sm:w-auto rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
                 >
                     {{
                         form.processing

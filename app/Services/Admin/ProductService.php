@@ -19,6 +19,9 @@ class ProductService
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
+                'unit' => $data['unit'] ?? 'шт.',
+                'manufacturer_id' => $data['manufacturer_id'] ?? null,
+                'country_id' => $data['country_id'] ?? null,
             ]);
 
             $this->syncCharacteristics(
@@ -47,6 +50,9 @@ class ProductService
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
+                'unit' => $data['unit'] ?? 'шт.',
+                'manufacturer_id' => $data['manufacturer_id'] ?? null,
+                'country_id' => $data['country_id'] ?? null,
             ]);
 
             $product->characteristicValues()->delete();
@@ -86,21 +92,53 @@ class ProductService
         Product $product,
         array $connections,
     ): void {
-        foreach ($connections as $connection) {
-            $hasValue = filled($connection['standard_id'] ?? null)
-                || filled($connection['diameter_id'] ?? null)
-                || filled($connection['thread_id'] ?? null);
+        $isCoupling = $this->isCouplingCategory($product);
 
-            if (!$hasValue) {
+        foreach ($connections as $connection) {
+            $standardId = $connection['standard_id'] ?? null;
+            $diameterId = $connection['diameter_id'] ?? null;
+            $threadId = $connection['thread_id'] ?? null;
+
+            /*
+             * Для муфт из подключения значим только диаметр.
+             * Стандарт и резьба принудительно сбрасываем.
+             */
+            if ($isCoupling) {
+                $standardId = null;
+                $threadId = null;
+            }
+
+            $hasValue = filled($standardId)
+                || filled($diameterId)
+                || filled($threadId);
+
+            if (! $hasValue) {
                 continue;
             }
 
             $product->connections()->create([
                 'position' => $connection['position'],
-                'standard_id' => $connection['standard_id'] ?? null,
-                'diameter_id' => $connection['diameter_id'] ?? null,
-                'thread_id' => $connection['thread_id'] ?? null,
+                'standard_id' => $standardId,
+                'diameter_id' => $diameterId,
+                'thread_id' => $threadId,
             ]);
         }
+    }
+
+    private function isCouplingCategory(Product $product): bool
+    {
+        $category = $product->category;
+
+        if (! $category) {
+            return false;
+        }
+
+        $slug = mb_strtolower($category->slug);
+        $name = mb_strtolower($category->name);
+
+        return str_contains($slug, 'hose')
+            || str_contains($slug, 'coupling')
+            || str_contains($slug, 'муфт')
+            || str_contains($name, 'муфт');
     }
 }

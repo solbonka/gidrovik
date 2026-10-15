@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     index,
@@ -34,7 +35,11 @@ const form = useForm({
 })
 
 const submit = (): void => {
-    form.put(update(props.characteristic.id).url)
+    form.put(update(props.characteristic.id).url, {
+        onSuccess: () => {
+            toast.success('Характеристика успешно обновлена.')
+        },
+    })
 }
 </script>
 

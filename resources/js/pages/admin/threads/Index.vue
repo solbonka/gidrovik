@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     create,
@@ -44,8 +45,7 @@ defineProps<Props>()
 
 const systemLabels: Record<string, string> = {
     metric: 'Метрическая',
-    bsp: 'BSP',
-    npt: 'NPT',
+    inch: 'Дюймовая',
 }
 
 const systemLabel = (system: string): string => {
@@ -61,7 +61,11 @@ const deleteThread = (thread: Thread): void => {
         return
     }
 
-    router.delete(destroy(thread.id))
+    router.delete(destroy(thread.id), {
+        onSuccess: () => {
+            toast.success('Резьба удалена.')
+        },
+    })
 }
 </script>
 

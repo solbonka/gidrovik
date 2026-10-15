@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { index, update } from '@/routes/admin/threads'
 
@@ -29,7 +30,11 @@ const form = useForm({
 })
 
 const submit = (): void => {
-    form.put(update(props.thread.id).url)
+    form.put(update(props.thread.id).url, {
+        onSuccess: () => {
+            toast.success('Резьба успешно обновлена.')
+        },
+    })
 }
 </script>
 
@@ -72,12 +77,8 @@ const submit = (): void => {
                             Метрическая
                         </option>
 
-                        <option value="bsp">
-                            BSP
-                        </option>
-
-                        <option value="npt">
-                            NPT
+                        <option value="inch">
+                            Дюймовая
                         </option>
 
                         <option value="other">

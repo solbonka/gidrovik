@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import {
     create,
@@ -59,7 +60,11 @@ const remove = (characteristic: Characteristic): void => {
         return
     }
 
-    router.delete(destroy(characteristic.id).url)
+    router.delete(destroy(characteristic.id).url, {
+        onSuccess: () => {
+            toast.success('Характеристика удалена.')
+        },
+    })
 }
 </script>
 

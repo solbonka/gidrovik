@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { create, destroy, edit } from '@/routes/admin/product-types'
 
@@ -52,7 +53,11 @@ const remove = (productType: ProductType): void => {
         return
     }
 
-    router.delete(destroy(productType.id).url)
+    router.delete(destroy(productType.id).url, {
+        onSuccess: () => {
+            toast.success('Тип товара удалён.')
+        },
+    })
 }
 </script>
 

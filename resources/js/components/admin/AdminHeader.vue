@@ -2,6 +2,7 @@
 import { Link, usePage } from '@inertiajs/vue3'
 import { dashboard } from '@/routes/admin'
 import { logout as logoutRoute } from '@/routes'
+import { Menu } from '@lucide/vue'
 
 interface Props {
     title?: string
@@ -50,28 +51,17 @@ const submitLogout = (): void => {
                     type="button"
                     class="rounded-lg p-2 text-gray-600 hover:bg-gray-100 lg:hidden"
                     @click="emit('toggle-sidebar')"
+                    aria-label="Открыть меню"
                 >
-                    <svg
-                        class="h-6 w-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            stroke-width="2"
-                            d="M4 6h16M4 12h16M4 18h16"
-                        />
-                    </svg>
+                    <Menu :size="20" />
                 </button>
 
-                <h1 class="text-lg font-semibold text-gray-900">
+                <h1 class="text-base font-semibold text-gray-900 sm:text-lg">
                     {{ title }}
                 </h1>
             </div>
 
-            <div class="flex items-center gap-4">
+            <div class="flex items-center gap-2 sm:gap-4">
                 <div class="hidden text-right sm:block">
                     <div class="text-sm font-medium text-gray-900">
                         {{ page.props.auth?.user?.name ?? 'Пользователь' }}
@@ -94,7 +84,8 @@ const submitLogout = (): void => {
                     class="rounded-lg px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                     @click="submitLogout"
                 >
-                    Выйти
+                    <span class="hidden sm:inline">Выйти</span>
+                    <span class="sm:hidden">↪</span>
                 </button>
             </div>
         </div>

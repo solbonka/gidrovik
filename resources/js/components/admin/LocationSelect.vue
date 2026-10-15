@@ -1,0 +1,115 @@
+<script setup lang="ts">
+import { ref, computed } from 'vue'
+import { Search, Check } from '@lucide/vue'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+
+interface RackOption {
+    id: number
+    code: string
+    name: string | null
+}
+
+interface LocationOption {
+    id: number
+    number: number
+    code: string
+    rack: RackOption | null
+}
+
+interface Props {
+    locations: LocationOption[]
+    modelValue: string
+}
+
+const props = defineProps<Props>()
+
+const emit = defineEmits<{
+    'update:modelValue': [value: string]
+}>()
+
+const searchQuery = ref('')
+const open = ref(false)
+
+const filteredLocations = computed(() => {
+    if (!searchQuery.value) return props.locations.slice(0, 50)
+    const query = searchQuery.value.toLowerCase()
+    return props.locations.filter(
+        (location) =>
+            location.code.toLowerCase().includes(query) ||
+            (location.rack?.name && location.rack.name.toLowerCase().includes(query)),
+    )
+})
+
+const selectedLocation = computed(() =>
+    props.locations.find((location) => String(location.id) === props.modelValue),
+)
+
+const handleSelect = (value: string): void => {
+    emit('update:modelValue', value)
+    open.value = false
+    searchQuery.value = ''
+}
+</script>
+
+<template>
+    <Select
+        :model-value="modelValue"
+        @update:model-value="handleSelect"
+        :open="open"
+        @update:open="open = $event"
+    >
+        <SelectTrigger class="w-full">
+            <SelectValue :placeholder="selectedLocation ? selectedLocation.code : 'Выберите ячейку'" />
+        </SelectTrigger>
+
+        <SelectContent class="max-h-96">
+            <div class="px-3 py-2 border-b">
+                <div class="relative">
+                    <Search :size="14" class="absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                        v-model="searchQuery"
+                        type="search"
+                        placeholder="Поиск..."
+                        class="w-full rounded-md border border-gray-200 pl-8 pr-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-gray-500"
+                        @click.stop
+                    />
+                </div>
+            </div>
+
+            <div class="max-h-72 overflow-y-auto">
+                <SelectItem
+                    v-for="location in filteredLocations"
+                    :key="location.id"
+                    :value="String(location.id)"
+                >
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex flex-col">
+                            <span class="font-medium">{{ location.code }}</span>
+                            <span v-if="location.rack?.name" class="text-xs text-gray-500">
+                                {{ location.rack.name }}
+                            </span>
+                        </div>
+                    </div>
+                    <Check
+                        v-if="String(location.id) === modelValue"
+                        :size="14"
+                        class="ml-2 text-gray-900"
+                    />
+                </SelectItem>
+
+                <div
+                    v-if="filteredLocations.length === 0"
+                    class="px-3 py-4 text-sm text-gray-500 text-center"
+                >
+                    Ячейки не найдены
+                </div>
+            </div>
+        </SelectContent>
+    </Select>
+</template>

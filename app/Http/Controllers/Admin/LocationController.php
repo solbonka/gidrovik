@@ -9,7 +9,9 @@ use App\Models\Location;
 use App\Models\Rack;
 use App\Models\StockMovement;
 use App\Services\Admin\LocationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class LocationController extends Controller
@@ -23,15 +25,9 @@ class LocationController extends Controller
         StoreLocationRequest $request,
         Rack $rack,
     ): RedirectResponse {
-        $this->locationService->create(
-            $rack,
-            $request->validated(),
-        );
+        $this->locationService->create($rack, $request->validated());
 
-        return back()->with(
-            'success',
-            'Ячейка успешно создана.',
-        );
+        return back()->with('success', 'Ячейка успешно создана.');
     }
 
     public function update(
@@ -39,25 +35,14 @@ class LocationController extends Controller
         Rack $rack,
         Location $location,
     ): RedirectResponse {
-        $this->locationService->update(
-            $location,
-            $request->validated(),
-        );
+        $this->locationService->update($location, $request->validated());
 
-        return back()->with(
-            'success',
-            'Ячейка успешно обновлена.',
-        );
+        return back()->with('success', 'Ячейка успешно обновлена.');
     }
 
-    public function destroy(
-        Rack $rack,
-        Location $location,
-    ): RedirectResponse {
-        abort_unless(
-            (int) $location->rack_id === (int) $rack->id,
-            404,
-        );
+    public function destroy(Rack $rack, Location $location): RedirectResponse
+    {
+        abort_unless((int) $location->rack_id === (int) $rack->id, 404);
 
         return DB::transaction(function () use ($rack, $location): RedirectResponse {
             $lockedLocation = Location::query()
@@ -95,5 +80,42 @@ class LocationController extends Controller
 
             return back()->with('success', 'Ячейка успешно удалена.');
         });
+    }
+
+    public function getLocationsWithProduct(Request $request): JsonResponse
+    {
+        $productId = $request->integer('product_id');
+
+        abort_if($productId <= 0, 404);
+
+        $locations = Location::query()
+            ->join('product_location', 'locations.id', '=', 'product_location.location_id')
+            ->where('product_location.product_id', $productId)
+            ->select([
+                'locations.id',
+                'locations.rack_id', // Required for eager-loading the rack relation.
+                'locations.number',
+                'product_location.quantity',
+            ])
+            ->with([
+                'rack' => function ($query): void {
+                    $query->select('id', 'code');
+                },
+            ])
+            ->orderBy('locations.rack_id')
+            ->orderBy('locations.number')
+            ->get()
+            ->map(function (Location $location): array {
+                return [
+                    'id' => $location->id,
+                    'number' => $location->number,
+                    'code' => $location->rack
+                        ? $location->rack->code . '-' . $location->number
+                        : 'Ячейка №' . $location->number,
+                    'quantity' => $location->quantity,
+                ];
+            });
+
+        return response()->json(['locations' => $locations]);
     }
 }

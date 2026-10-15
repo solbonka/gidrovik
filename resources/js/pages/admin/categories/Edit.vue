@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { index, update } from '@/routes/admin/categories';
 
@@ -25,7 +26,11 @@ const form = useForm({
 });
 
 const submit = (): void => {
-    form.put(update.url(props.category.id));
+    form.put(update.url(props.category.id), {
+        onSuccess: () => {
+            toast.success('Категория успешно обновлена.');
+        },
+    });
 };
 </script>
 

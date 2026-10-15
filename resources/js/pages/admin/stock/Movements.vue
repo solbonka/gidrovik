@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 defineOptions({ layout: AdminLayout })
@@ -109,6 +110,16 @@ const locationSummary = (movement: Movement): string => {
     }
 
     return '—'
+}
+
+const deleteMovement = (movement: Movement): void => {
+    if (confirm('Вы уверены, что хотите удалить эту запись из журнала?')) {
+        router.delete(`/admin/stock/movements/${movement.id}`, {
+            onSuccess: () => {
+                toast.success('Запись удалена из журнала.')
+            },
+        })
+    }
 }
 </script>
 
@@ -242,6 +253,7 @@ const locationSummary = (movement: Movement): string => {
                         <th class="px-5 py-3">Количество</th>
                         <th class="px-5 py-3">Пользователь</th>
                         <th class="px-5 py-3">Комментарий</th>
+                        <th class="px-5 py-3"></th>
                     </tr>
                     </thead>
 
@@ -290,11 +302,21 @@ const locationSummary = (movement: Movement): string => {
                                     {{ movement.comment ?? '—' }}
                                 </span>
                         </td>
+
+                        <td class="px-5 py-4">
+                            <button
+                                type="button"
+                                class="text-sm font-medium text-red-600 hover:text-red-900"
+                                @click="deleteMovement(movement)"
+                            >
+                                Удалить
+                            </button>
+                        </td>
                     </tr>
 
                     <tr v-if="movements.data.length === 0">
                         <td
-                            colspan="7"
+                            colspan="8"
                             class="px-5 py-12 text-center text-gray-500"
                         >
                             Движения по заданным условиям не найдены.

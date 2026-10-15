@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
+import { Package, Search, X } from '@lucide/vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { toast } from 'vue-sonner'
+import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
 import {
     create,
     destroy,
@@ -75,6 +77,13 @@ const productTypeId = ref(
     props.filters.product_type_id?.toString() ?? '',
 )
 
+const deleteDialog = ref({
+    open: false,
+    id: null as number | null,
+    name: '',
+    loading: false,
+})
+
 const submitFilters = (): void => {
     router.get(
         '/admin/products',
@@ -98,16 +107,16 @@ const resetFilters = (): void => {
     router.get('/admin/products')
 }
 
-function deleteProduct(product: Product): void {
-    const confirmed = window.confirm(
-        `Удалить товар «${product.name}»? Это действие нельзя отменить.`,
-    )
+const openDeleteDialog = (product: Product): void => {
+    deleteDialog.value.id = product.id
+    deleteDialog.value.name = product.name
+    deleteDialog.value.open = true
+}
 
-    if (!confirmed) {
-        return
-    }
-
-    router.delete(destroy(product.id).url, {
+const confirmDelete = (): void => {
+    if (deleteDialog.value.id === null) return
+    deleteDialog.value.loading = true
+    router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
 
         onSuccess: (page) => {
@@ -130,6 +139,11 @@ function deleteProduct(product: Product): void {
             console.error('Ошибка удаления:', errors)
             toast.error('Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.')
         },
+
+        onFinish: () => {
+            deleteDialog.value.loading = false
+            deleteDialog.value.open = false
+        },
     })
 }
 </script>
@@ -151,8 +165,9 @@ function deleteProduct(product: Product): void {
 
             <Link
                 :href="create().url"
-                class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
             >
+                <Package :size="16" />
                 Добавить товар
             </Link>
         </div>
@@ -161,7 +176,7 @@ function deleteProduct(product: Product): void {
             class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
         >
             <div class="grid gap-4 lg:grid-cols-4">
-                <div class="lg:col-span-2">
+                <div class="lg:col-span-2 relative">
                     <label
                         for="search"
                         class="mb-2 block text-sm font-medium text-gray-700"
@@ -169,14 +184,28 @@ function deleteProduct(product: Product): void {
                         Поиск
                     </label>
 
-                    <input
-                        id="search"
-                        v-model="search"
-                        type="search"
-                        placeholder="Название или артикул..."
-                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
-                        @keyup.enter="submitFilters"
-                    />
+                    <div class="relative">
+                        <Search
+                            :size="16"
+                            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                        />
+                        <input
+                            id="search"
+                            v-model="search"
+                            type="search"
+                            placeholder="Название или артикул..."
+                            class="w-full rounded-lg border-gray-300 pl-10 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
+                            @keyup.enter="submitFilters"
+                        />
+                        <button
+                            v-if="search"
+                            type="button"
+                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                            @click="search = ''; submitFilters()"
+                        >
+                            <X :size="16" />
+                        </button>
+                    </div>
                 </div>
 
                 <div>
@@ -190,7 +219,7 @@ function deleteProduct(product: Product): void {
                     <select
                         id="category"
                         v-model="categoryId"
-                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
+                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
                         @change="submitFilters"
                     >
                         <option value="">
@@ -218,7 +247,7 @@ function deleteProduct(product: Product): void {
                     <select
                         id="product-type"
                         v-model="productTypeId"
-                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500"
+                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
                         @change="submitFilters"
                     >
                         <option value="">
@@ -239,7 +268,7 @@ function deleteProduct(product: Product): void {
             <div class="mt-4 flex justify-between">
                 <button
                     type="button"
-                    class="text-sm text-gray-500 hover:text-gray-900"
+                    class="text-sm text-gray-500 hover:text-gray-900 transition-colors"
                     @click="resetFilters"
                 >
                     Сбросить фильтры
@@ -247,7 +276,7 @@ function deleteProduct(product: Product): void {
 
                 <button
                     type="button"
-                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
                     @click="submitFilters"
                 >
                     Найти
@@ -298,7 +327,7 @@ function deleteProduct(product: Product): void {
                     <tr
                         v-for="product in products.data"
                         :key="product.id"
-                        class="hover:bg-gray-50"
+                        class="hover:bg-gray-50 transition-colors"
                     >
                         <td class="px-6 py-4">
                             <div class="font-medium text-gray-900">
@@ -307,7 +336,7 @@ function deleteProduct(product: Product): void {
                         </td>
 
                         <td class="px-6 py-4">
-                                <span class="font-mono text-sm text-gray-600">
+                                <span class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700">
                                     {{ product.sku }}
                                 </span>
                         </td>
@@ -335,13 +364,21 @@ function deleteProduct(product: Product): void {
 
                         <td class="px-6 py-4">
                                 <span
-                                    class="inline-flex rounded-full px-2.5 py-1 text-xs font-medium"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
                                     :class="
                                         product.is_active
                                             ? 'bg-green-100 text-green-700'
                                             : 'bg-gray-100 text-gray-600'
                                     "
                                 >
+                                    <span
+                                        class="h-1.5 w-1.5 rounded-full"
+                                        :class="
+                                            product.is_active
+                                                ? 'bg-green-600'
+                                                : 'bg-gray-400'
+                                        "
+                                    />
                                     {{
                                         product.is_active
                                             ? 'Активен'
@@ -354,22 +391,22 @@ function deleteProduct(product: Product): void {
                             <div class="flex items-center justify-end gap-3">
                                 <Link
                                     :href="show(product.id).url"
-                                    class="text-sm font-medium text-gray-600 hover:text-gray-900"
+                                    class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                                 >
                                     Просмотр
                                 </Link>
 
                                 <Link
                                     :href="edit(product.id).url"
-                                    class="text-sm font-medium text-gray-600 hover:text-gray-900"
+                                    class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
                                 >
                                     Изменить
                                 </Link>
 
                                 <button
                                     type="button"
-                                    class="text-sm font-medium text-red-600 hover:text-red-800"
-                                    @click="deleteProduct(product)"
+                                    class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                                    @click="openDeleteDialog(product)"
                                 >
                                     Удалить
                                 </button>
@@ -380,9 +417,18 @@ function deleteProduct(product: Product): void {
                     <tr v-if="products.data.length === 0">
                         <td
                             colspan="7"
-                            class="px-6 py-12 text-center text-gray-500"
+                            class="px-6 py-12 text-center"
                         >
-                            Товары не найдены.
+                            <Package :size="48" class="mx-auto text-gray-300 mb-4" />
+                            <p class="text-sm text-gray-500">
+                                Товары не найдены.
+                            </p>
+                            <Link
+                                :href="create().url"
+                                class="mt-4 inline-block text-sm font-medium text-gray-900 hover:text-gray-700"
+                            >
+                                Добавить первый товар
+                            </Link>
                         </td>
                     </tr>
                     </tbody>
@@ -406,7 +452,7 @@ function deleteProduct(product: Product): void {
                         <Link
                             v-if="link.url"
                             :href="link.url"
-                            class="rounded-md px-3 py-1.5 text-sm"
+                            class="rounded-md px-3 py-1.5 text-sm transition-colors"
                             :class="
                                 link.active
                                     ? 'bg-gray-900 text-white'
@@ -424,5 +470,15 @@ function deleteProduct(product: Product): void {
                 </div>
             </div>
         </div>
+
+        <ConfirmDeleteDialog
+            :open="deleteDialog.open"
+            title="Удаление товара"
+            description="Вы уверены, что хотите удалить товар"
+            :item-name="deleteDialog.name"
+            :loading="deleteDialog.loading"
+            @confirm="confirmDelete"
+            @cancel="deleteDialog.open = false"
+        />
     </div>
 </template>

@@ -54,6 +54,16 @@ interface Thread {
     name: string
 }
 
+interface Manufacturer {
+    id: number
+    name: string
+}
+
+interface Country {
+    id: number
+    name: string
+}
+
 interface ConnectionForm {
     position: number
     standard_id: number | null
@@ -66,6 +76,8 @@ interface Props {
     standards: Standard[]
     diameters: Diameter[]
     threads: Thread[]
+    manufacturers: Manufacturer[]
+    countries: Country[]
 }
 
 const props = defineProps<Props>()
@@ -81,6 +93,9 @@ const form = useForm({
     angle: null as number | null,
     description: '',
     is_active: true,
+    unit: 'шт.' as string,
+    manufacturer_id: null as number | null,
+    country_id: null as number | null,
     characteristics: {} as Record<number, string>,
     connections: [] as ConnectionForm[],
 })
@@ -111,12 +126,53 @@ const isFitting = computed<boolean>(() => {
     }
 
     const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
 
     return (
         slug.includes('fitting') ||
         slug.includes('фитинг') ||
-        slug.includes('фитин')
+        slug.includes('фитин') ||
+        name.includes('фитинг') ||
+        name.includes('фитин')
     )
+})
+
+const isAdapter = computed<boolean>(() => {
+    if (!selectedCategory.value) {
+        return false
+    }
+
+    const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
+
+    return (
+        slug.includes('adapter') ||
+        slug.includes('адаптер') ||
+        name.includes('адаптер')
+    )
+})
+
+const isCoupling = computed<boolean>(() => {
+    if (!selectedCategory.value) {
+        return false
+    }
+
+    const slug = selectedCategory.value.slug.toLowerCase()
+    const name = selectedCategory.value.name.toLowerCase()
+
+    return (
+        slug.includes('hose') ||
+        slug.includes('coupling') ||
+        slug.includes('муфт') ||
+        name.includes('муфт')
+    )
+})
+
+const maxConnections = computed(() => {
+    if (isFitting.value) return 1
+    if (isAdapter.value) return 3
+    if (isCoupling.value) return 1
+    return 0
 })
 
 const resetCharacteristics = (): void => {
@@ -158,7 +214,7 @@ const characteristicError = (id: number): string | undefined => {
 }
 
 const addConnection = (): void => {
-    if (form.connections.length >= 3) {
+    if (form.connections.length >= maxConnections.value) {
         return
     }
 
@@ -405,6 +461,96 @@ const submit = (): void => {
                             {{ form.errors.description }}
                         </div>
                     </div>
+
+                    <div>
+                        <label
+                            class="mb-2 block text-sm font-medium text-gray-700"
+                        >
+                            Единица измерения
+                        </label>
+
+                        <select
+                            v-model="form.unit"
+                            class="w-full rounded-lg border-gray-300"
+                        >
+                            <option value="шт.">шт.</option>
+                            <option value="упаковка">упаковка</option>
+                            <option value="комплект">комплект</option>
+                            <option value="м">м</option>
+                            <option value="л">л</option>
+                        </select>
+
+                        <div
+                            v-if="form.errors.unit"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.unit }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            class="mb-2 block text-sm font-medium text-gray-700"
+                        >
+                            Производитель
+                        </label>
+
+                        <select
+                            v-model="form.manufacturer_id"
+                            class="w-full rounded-lg border-gray-300"
+                        >
+                            <option :value="null">
+                                Не выбран
+                            </option>
+
+                            <option
+                                v-for="manufacturer in manufacturers"
+                                :key="manufacturer.id"
+                                :value="manufacturer.id"
+                            >
+                                {{ manufacturer.name }}
+                            </option>
+                        </select>
+
+                        <div
+                            v-if="form.errors.manufacturer_id"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.manufacturer_id }}
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            class="mb-2 block text-sm font-medium text-gray-700"
+                        >
+                            Страна
+                        </label>
+
+                        <select
+                            v-model="form.country_id"
+                            class="w-full rounded-lg border-gray-300"
+                        >
+                            <option :value="null">
+                                Не выбрана
+                            </option>
+
+                            <option
+                                v-for="country in countries"
+                                :key="country.id"
+                                :value="country.id"
+                            >
+                                {{ country.name }}
+                            </option>
+                        </select>
+
+                        <div
+                            v-if="form.errors.country_id"
+                            class="mt-1 text-sm text-red-600"
+                        >
+                            {{ form.errors.country_id }}
+                        </div>
+                    </div>
                 </div>
             </section>
 
@@ -461,16 +607,34 @@ const submit = (): void => {
                             </span>
                         </label>
 
+                        <template v-if="characteristic.type === 'boolean'">
+                            <label
+                                class="flex items-center gap-3 rounded-lg border border-gray-300 px-3 py-2"
+                            >
+                                <input
+                                    v-model="
+                                        form.characteristics[characteristic.id]
+                                    "
+                                    type="checkbox"
+                                    :true-value="'1'"
+                                    :false-value="'0'"
+                                    class="h-4 w-4 rounded border-gray-300"
+                                />
+
+                                <span class="text-sm text-gray-700">Да</span>
+                            </label>
+                        </template>
+
                         <input
+                            v-else
                             v-model="
                                 form.characteristics[characteristic.id]
                             "
                             :type="
-                                characteristic.type === 'integer'
+                                characteristic.type === 'integer' ||
+                                characteristic.type === 'decimal'
                                     ? 'number'
-                                    : characteristic.type === 'decimal'
-                                      ? 'number'
-                                      : 'text'
+                                    : 'text'
                             "
                             :step="
                                 characteristic.type === 'decimal'
@@ -500,7 +664,7 @@ const submit = (): void => {
 
             <!-- Подключения -->
             <section
-                v-if="isFitting"
+                v-if="isFitting || isAdapter || isCoupling"
                 class="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
             >
                 <div class="mb-5 flex items-center justify-between">
@@ -510,12 +674,18 @@ const submit = (): void => {
                         </h2>
 
                         <p class="mt-1 text-sm text-gray-500">
-                            До трёх сторон подключения для фитинга.
+                            {{
+                                isFitting
+                                    ? 'Одно подключение для фитинга.'
+                                    : isCoupling
+                                      ? 'Укажите диаметр муфты.'
+                                      : `До ${maxConnections} подключений для адаптера.`
+                            }}
                         </p>
                     </div>
 
                     <button
-                        v-if="form.connections.length < 3"
+                        v-if="form.connections.length < maxConnections"
                         type="button"
                         class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
                         @click="addConnection"
@@ -547,8 +717,15 @@ const submit = (): void => {
                             </button>
                         </div>
 
-                        <div class="grid gap-4 md:grid-cols-3">
-                            <div>
+                        <div
+                            class="grid gap-4"
+                            :class="
+                                isCoupling
+                                    ? 'md:grid-cols-1'
+                                    : 'md:grid-cols-3'
+                            "
+                        >
+                            <div v-if="!isCoupling">
                                 <label
                                     class="mb-2 block text-sm font-medium text-gray-700"
                                 >
@@ -600,7 +777,7 @@ const submit = (): void => {
                                 </select>
                             </div>
 
-                            <div>
+                            <div v-if="!isCoupling">
                                 <label
                                     class="mb-2 block text-sm font-medium text-gray-700"
                                 >

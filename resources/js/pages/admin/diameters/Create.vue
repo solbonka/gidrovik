@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, useForm } from '@inertiajs/vue3'
+import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { index, store } from '@/routes/admin/diameters'
 
@@ -14,7 +15,11 @@ const form = useForm({
 })
 
 const submit = (): void => {
-    form.post(store().url)
+    form.post(store().url, {
+        onSuccess: () => {
+            toast.success('Диаметр успешно создан.')
+        },
+    })
 }
 </script>
 

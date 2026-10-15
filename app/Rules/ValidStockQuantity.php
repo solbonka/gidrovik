@@ -9,7 +9,7 @@ use Illuminate\Contracts\Validation\ValidationRule;
 class ValidStockQuantity implements ValidationRule
 {
     public function __construct(
-        private readonly string $productField = 'product_id',
+        private readonly ?string $productField = null,
         private readonly bool $allowZero = false,
     ) {}
 
@@ -44,7 +44,9 @@ class ValidStockQuantity implements ValidationRule
             return;
         }
 
-        $productId = request()->input($this->productField);
+        // Автоматически определяем путь к product_id на основе атрибута
+        $productField = $this->productField ?? str_replace('quantity', 'product_id', $attribute);
+        $productId = request()->input($productField);
 
         if (! is_numeric($productId)) {
             $fail('Необходимо выбрать товар.');
