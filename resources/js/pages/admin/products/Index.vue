@@ -1,9 +1,38 @@
+
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
-import { Package, Search, X } from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
+import {
+    Package,
+    Search,
+    X,
+    Plus,
+    Eye,
+    Pencil,
+    Trash2,
+    ChevronLeft,
+    ChevronRight,
+    SlidersHorizontal,
+    Boxes,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select'
+import {
+    Card,
+    CardContent,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card'
+import AdminLayout from '@/layouts/AdminLayout.vue'
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
 import {
     create,
@@ -70,12 +99,8 @@ interface Props {
 const props = defineProps<Props>()
 
 const search = ref(props.filters.search)
-const categoryId = ref(
-    props.filters.category_id?.toString() ?? '',
-)
-const productTypeId = ref(
-    props.filters.product_type_id?.toString() ?? '',
-)
+const categoryId = ref(props.filters.category_id?.toString() ?? '')
+const productTypeId = ref(props.filters.product_type_id?.toString() ?? '')
 
 const deleteDialog = ref({
     open: false,
@@ -89,8 +114,14 @@ const submitFilters = (): void => {
         '/admin/products',
         {
             search: search.value || undefined,
-            category_id: categoryId.value || undefined,
-            product_type_id: productTypeId.value || undefined,
+            category_id:
+                categoryId.value && categoryId.value !== 'all'
+                    ? categoryId.value
+                    : undefined,
+            product_type_id:
+                productTypeId.value && productTypeId.value !== 'all'
+                    ? productTypeId.value
+                    : undefined,
         },
         {
             preserveState: true,
@@ -101,8 +132,8 @@ const submitFilters = (): void => {
 
 const resetFilters = (): void => {
     search.value = ''
-    categoryId.value = ''
-    productTypeId.value = ''
+    categoryId.value = 'all'
+    productTypeId.value = 'all'
 
     router.get('/admin/products')
 }
@@ -115,7 +146,9 @@ const openDeleteDialog = (product: Product): void => {
 
 const confirmDelete = (): void => {
     if (deleteDialog.value.id === null) return
+
     deleteDialog.value.loading = true
+
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
 
@@ -137,7 +170,9 @@ const confirmDelete = (): void => {
 
         onError: (errors) => {
             console.error('Ошибка удаления:', errors)
-            toast.error('Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.')
+            toast.error(
+                'Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.',
+            )
         },
 
         onFinish: () => {
@@ -151,282 +186,352 @@ const confirmDelete = (): void => {
 <template>
     <Head title="Товары" />
 
-    <div class="space-y-6">
-        <div class="flex items-center justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900">
-                    Товары
-                </h1>
+    <div class="space-y-8">
+        <!-- Заголовок -->
+        <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+            <div class="flex items-center gap-3">
+                <div
+                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg"
+                >
+                    <Package :size="24" />
+                </div>
 
-                <p class="mt-1 text-sm text-gray-500">
-                    Каталог товаров и их складские остатки.
-                </p>
+                <div>
+                    <h1
+                        class="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent"
+                    >
+                        Товары
+                    </h1>
+
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Каталог товаров и их складские остатки.
+                    </p>
+                </div>
             </div>
 
             <Link
                 :href="create().url"
-                class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-                <Package :size="16" />
+                <Plus :size="18" />
                 Добавить товар
             </Link>
-        </div>
+        </header>
 
-        <div
-            class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+        <!-- Фильтры -->
+        <Card
+            class="overflow-hidden rounded-2xl border-border/50 bg-gradient-to-br from-white to-muted/20 shadow-sm"
         >
-            <div class="grid gap-4 lg:grid-cols-4">
-                <div class="lg:col-span-2 relative">
-                    <label
-                        for="search"
-                        class="mb-2 block text-sm font-medium text-gray-700"
+            <CardHeader class="border-b border-border/50 px-6 py-5">
+                <CardTitle class="flex items-center gap-3 text-base">
+                    <span
+                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
                     >
-                        Поиск
-                    </label>
+                        <SlidersHorizontal :size="20" />
+                    </span>
+                    Фильтры товаров
+                </CardTitle>
+            </CardHeader>
 
-                    <div class="relative">
-                        <Search
-                            :size="16"
-                            class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                        />
-                        <input
-                            id="search"
-                            v-model="search"
-                            type="search"
-                            placeholder="Название или артикул..."
-                            class="w-full rounded-lg border-gray-300 pl-10 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
-                            @keyup.enter="submitFilters"
-                        />
-                        <button
-                            v-if="search"
-                            type="button"
-                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                            @click="search = ''; submitFilters()"
+            <CardContent class="p-6">
+                <div class="grid gap-5 lg:grid-cols-4">
+                    <div class="lg:col-span-2">
+                        <Label for="search" class="font-semibold text-foreground">
+                            Поиск
+                        </Label>
+
+                        <div class="relative mt-2">
+                            <Search
+                                :size="17"
+                                class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                            />
+
+                            <Input
+                                id="search"
+                                v-model="search"
+                                type="search"
+                                placeholder="Название или артикул..."
+                                class="h-11 rounded-xl border-border bg-background pl-10 pr-10 transition-all focus-visible:border-primary/50 focus-visible:ring-primary/20"
+                                @keyup.enter="submitFilters"
+                            />
+
+                            <Button
+                                v-if="search"
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                class="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                @click="search = ''; submitFilters()"
+                            >
+                                <X :size="16" />
+                                <span class="sr-only">Очистить поиск</span>
+                            </Button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <Label for="category" class="font-semibold text-foreground">
+                            Категория
+                        </Label>
+
+                        <Select
+                            v-model="categoryId"
+                            @update:model-value="submitFilters"
                         >
-                            <X :size="16" />
-                        </button>
+                            <SelectTrigger
+                                id="category"
+                                class="mt-2 h-11 rounded-xl border-border bg-background focus:ring-primary/20"
+                            >
+                                <SelectValue placeholder="Все категории" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    Все категории
+                                </SelectItem>
+
+                                <SelectItem
+                                    v-for="category in categories"
+                                    :key="category.id"
+                                    :value="category.id.toString()"
+                                >
+                                    {{ category.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div>
+                        <Label for="product-type" class="font-semibold text-foreground">
+                            Тип товара
+                        </Label>
+
+                        <Select
+                            v-model="productTypeId"
+                            @update:model-value="submitFilters"
+                        >
+                            <SelectTrigger
+                                id="product-type"
+                                class="mt-2 h-11 rounded-xl border-border bg-background focus:ring-primary/20"
+                            >
+                                <SelectValue placeholder="Все типы" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="all">
+                                    Все типы
+                                </SelectItem>
+
+                                <SelectItem
+                                    v-for="productType in productTypes"
+                                    :key="productType.id"
+                                    :value="productType.id.toString()"
+                                >
+                                    {{ productType.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
                 </div>
 
-                <div>
-                    <label
-                        for="category"
-                        class="mb-2 block text-sm font-medium text-gray-700"
+                <div class="mt-5 flex flex-wrap gap-3">
+                    <Button
+                        type="button"
+                        class="gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 shadow-sm transition-all hover:from-primary/90 hover:to-indigo-600/90"
+                        @click="submitFilters"
                     >
-                        Категория
-                    </label>
+                        <Search :size="16" />
+                        Применить
+                    </Button>
 
-                    <select
-                        id="category"
-                        v-model="categoryId"
-                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
-                        @change="submitFilters"
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="gap-2 rounded-xl border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10"
+                        @click="resetFilters"
                     >
-                        <option value="">
-                            Все категории
-                        </option>
-
-                        <option
-                            v-for="category in categories"
-                            :key="category.id"
-                            :value="category.id"
-                        >
-                            {{ category.name }}
-                        </option>
-                    </select>
+                        <X :size="16" />
+                        Сбросить
+                    </Button>
                 </div>
+            </CardContent>
+        </Card>
 
-                <div>
-                    <label
-                        for="product-type"
-                        class="mb-2 block text-sm font-medium text-gray-700"
-                    >
-                        Тип товара
-                    </label>
-
-                    <select
-                        id="product-type"
-                        v-model="productTypeId"
-                        class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 transition-colors"
-                        @change="submitFilters"
-                    >
-                        <option value="">
-                            Все типы
-                        </option>
-
-                        <option
-                            v-for="productType in productTypes"
-                            :key="productType.id"
-                            :value="productType.id"
-                        >
-                            {{ productType.name }}
-                        </option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="mt-4 flex justify-between">
-                <button
-                    type="button"
-                    class="text-sm text-gray-500 hover:text-gray-900 transition-colors"
-                    @click="resetFilters"
-                >
-                    Сбросить фильтры
-                </button>
-
-                <button
-                    type="button"
-                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
-                    @click="submitFilters"
-                >
-                    Найти
-                </button>
-            </div>
-        </div>
-
-        <div
-            class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+        <!-- Таблица товаров -->
+        <Card
+            class="overflow-hidden rounded-2xl border-border/50 bg-gradient-to-br from-white to-muted/20 shadow-sm"
         >
+            <div
+                class="flex flex-wrap items-center justify-between gap-3 border-b border-border/50 bg-white/50 px-6 py-5"
+            >
+                <div>
+                    <h2 class="font-semibold text-foreground">
+                        Список товаров
+                    </h2>
+
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Всего товаров: {{ products.total }}
+                    </p>
+                </div>
+
+                <div
+                    class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary/5 to-indigo-500/5 px-3 py-2 text-sm font-medium text-primary"
+                >
+                    <Boxes :size="17" />
+                    Каталог склада
+                </div>
+            </div>
+
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500"
-                    >
+                    <thead class="bg-muted/30">
                     <tr>
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Товар
                         </th>
-
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Артикул
                         </th>
-
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Категория
                         </th>
-
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Тип
                         </th>
-
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Остаток
                         </th>
-
-                        <th class="px-6 py-3">
+                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Статус
                         </th>
-
-                        <th class="px-6 py-3 text-right">
+                        <th class="whitespace-nowrap px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                             Действия
                         </th>
                     </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-gray-200">
+                    <tbody class="divide-y divide-border/50">
                     <tr
                         v-for="product in products.data"
                         :key="product.id"
-                        class="hover:bg-gray-50 transition-colors"
+                        class="transition-colors hover:bg-primary/[0.03]"
                     >
                         <td class="px-6 py-4">
-                            <div class="font-medium text-gray-900">
+                            <div class="font-semibold text-foreground">
                                 {{ product.name }}
                             </div>
                         </td>
 
-                        <td class="px-6 py-4">
-                                <span class="inline-flex items-center rounded bg-gray-100 px-2 py-0.5 font-mono text-xs text-gray-700">
+                        <td class="whitespace-nowrap px-6 py-4">
+                                <span
+                                    class="inline-flex items-center rounded-lg border border-primary/10 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-2.5 py-1 font-mono text-xs font-medium text-primary"
+                                >
                                     {{ product.sku }}
                                 </span>
                         </td>
 
-                        <td class="px-6 py-4 text-gray-600">
+                        <td class="px-6 py-4 text-muted-foreground">
                             {{ product.category.name }}
                         </td>
 
-                        <td class="px-6 py-4 text-gray-600">
+                        <td class="px-6 py-4 text-muted-foreground">
                             {{ product.product_type?.name ?? '—' }}
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td class="whitespace-nowrap px-6 py-4">
                                 <span
-                                    class="font-medium"
+                                    class="font-semibold"
                                     :class="
                                         Number(product.stock_quantity ?? 0) > 0
-                                            ? 'text-gray-900'
-                                            : 'text-gray-400'
+                                            ? 'text-foreground'
+                                            : 'text-muted-foreground/60'
                                     "
                                 >
                                     {{ product.stock_quantity ?? 0 }}
                                 </span>
                         </td>
 
-                        <td class="px-6 py-4">
+                        <td class="whitespace-nowrap px-6 py-4">
                                 <span
-                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                                    class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
                                     :class="
                                         product.is_active
-                                            ? 'bg-green-100 text-green-700'
-                                            : 'bg-gray-100 text-gray-600'
+                                            ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                                            : 'border-border bg-muted text-muted-foreground'
                                     "
                                 >
                                     <span
                                         class="h-1.5 w-1.5 rounded-full"
                                         :class="
                                             product.is_active
-                                                ? 'bg-green-600'
-                                                : 'bg-gray-400'
+                                                ? 'bg-emerald-500'
+                                                : 'bg-muted-foreground/50'
                                         "
                                     />
-                                    {{
-                                        product.is_active
-                                            ? 'Активен'
-                                            : 'Неактивен'
-                                    }}
+                                    {{ product.is_active ? 'Активен' : 'Неактивен' }}
                                 </span>
                         </td>
 
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-3">
-                                <Link
-                                    :href="show(product.id).url"
-                                    class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                        <td class="whitespace-nowrap px-6 py-4 text-right">
+                            <div class="flex items-center justify-end gap-1">
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    as-child
+                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                                 >
-                                    Просмотр
-                                </Link>
+                                    <Link :href="show(product.id).url">
+                                        <Eye :size="17" />
+                                        <span class="sr-only">Просмотр</span>
+                                    </Link>
+                                </Button>
 
-                                <Link
-                                    :href="edit(product.id).url"
-                                    class="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    as-child
+                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
                                 >
-                                    Изменить
-                                </Link>
+                                    <Link :href="edit(product.id).url">
+                                        <Pencil :size="17" />
+                                        <span class="sr-only">Изменить</span>
+                                    </Link>
+                                </Button>
 
-                                <button
-                                    type="button"
-                                    class="text-sm font-medium text-red-600 hover:text-red-700 transition-colors"
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
                                     @click="openDeleteDialog(product)"
                                 >
-                                    Удалить
-                                </button>
+                                    <Trash2 :size="17" />
+                                    <span class="sr-only">Удалить</span>
+                                </Button>
                             </div>
                         </td>
                     </tr>
 
                     <tr v-if="products.data.length === 0">
-                        <td
-                            colspan="7"
-                            class="px-6 py-12 text-center"
-                        >
-                            <Package :size="48" class="mx-auto text-gray-300 mb-4" />
-                            <p class="text-sm text-gray-500">
-                                Товары не найдены.
+                        <td colspan="7" class="px-6 py-16 text-center">
+                            <div
+                                class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
+                            >
+                                <Package :size="30" />
+                            </div>
+
+                            <p class="font-semibold text-foreground">
+                                Товары не найдены
                             </p>
+
+                            <p class="mt-1 text-sm text-muted-foreground">
+                                Измените параметры фильтров или добавьте новый товар.
+                            </p>
+
                             <Link
                                 :href="create().url"
-                                class="mt-4 inline-block text-sm font-medium text-gray-900 hover:text-gray-700"
+                                class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-primary/90 hover:to-indigo-600/90"
                             >
+                                <Plus :size="16" />
                                 Добавить первый товар
                             </Link>
                         </td>
@@ -435,41 +540,102 @@ const confirmDelete = (): void => {
                 </table>
             </div>
 
-            <div
-                v-if="products.last_page > 1"
-                class="flex items-center justify-between border-t border-gray-200 px-6 py-4"
-            >
-                <div class="text-sm text-gray-500">
-                    Показано {{ products.from }}–{{ products.to }}
-                    из {{ products.total }}
-                </div>
 
-                <div class="flex gap-1">
+            <!-- Пагинация -->
+            <div
+                v-if="products.links.length > 3"
+                class="flex flex-col gap-4 border-t border-gray-100 px-4 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800"
+            >
+                <!-- Информация о товарах -->
+                <p class="text-sm text-gray-500 dark:text-gray-400">
+                    <template v-if="products.total > 0">
+                        Показано
+                        <span class="font-semibold text-gray-900 dark:text-gray-100">
+                {{ products.from }}–{{ products.to }}
+            </span>
+                        из
+                        <span class="font-semibold text-gray-900 dark:text-gray-100">
+                {{ products.total }}
+            </span>
+                        товаров
+                    </template>
+
+                    <template v-else>
+                        Товары не найдены
+                    </template>
+                </p>
+
+                <!-- Кнопки страниц -->
+                <nav
+                    v-if="products.total > 0"
+                    class="flex flex-wrap items-center justify-center gap-1"
+                    aria-label="Навигация по страницам товаров"
+                >
                     <template
                         v-for="(link, index) in products.links"
-                        :key="index"
+                        :key="`${index}-${link.label}`"
                     >
+                        <!-- Назад -->
                         <Link
-                            v-if="link.url"
+                            v-if="index === 0 && link.url"
                             :href="link.url"
-                            class="rounded-md px-3 py-1.5 text-sm transition-colors"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm font-medium text-gray-600 transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:text-gray-300"
+                        >
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </Link>
+
+                        <span
+                            v-else-if="index === 0"
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-gray-100 px-3 text-sm text-gray-300 dark:border-gray-800 dark:text-gray-600"
+                        >
+                <ChevronLeft class="h-4 w-4" />
+                <span>Назад</span>
+            </span>
+
+                        <!-- Номера страниц -->
+                        <Link
+                            v-else-if="index !== products.links.length - 1 && link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
                             :class="
-                                link.active
-                                    ? 'bg-gray-900 text-white'
-                                    : 'text-gray-600 hover:bg-gray-100'
-                            "
+                    link.active
+                        ? 'border-primary bg-gradient-to-r from-primary to-indigo-600 text-white shadow-sm'
+                        : 'border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:text-gray-300'
+                "
                             v-html="link.label"
                         />
 
                         <span
-                            v-else
-                            class="rounded-md px-3 py-1.5 text-sm text-gray-300"
+                            v-else-if="index !== products.links.length - 1"
+                            class="inline-flex h-9 min-w-9 items-center justify-center px-2 text-sm text-gray-400"
                             v-html="link.label"
                         />
+
+                        <!-- Далее -->
+                        <Link
+                            v-else-if="link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-gray-200 px-3 text-sm font-medium text-gray-600 transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:text-gray-300"
+                        >
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </Link>
+
+                        <span
+                            v-else
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-gray-100 px-3 text-sm text-gray-300 dark:border-gray-800 dark:text-gray-600"
+                        >
+                <span>Далее</span>
+                <ChevronRight class="h-4 w-4" />
+            </span>
                     </template>
-                </div>
+                </nav>
             </div>
-        </div>
+        </Card>
 
         <ConfirmDeleteDialog
             :open="deleteDialog.open"

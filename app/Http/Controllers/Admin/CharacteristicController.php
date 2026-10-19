@@ -9,6 +9,7 @@ use App\Models\Characteristic;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
+use App\Models\ProductCharacteristicValue;
 
 class CharacteristicController extends Controller
 {
@@ -61,18 +62,18 @@ class CharacteristicController extends Controller
     ): RedirectResponse {
         if ($characteristic->categories()->exists()) {
             return to_route('admin.characteristics.index')
-                ->with(
-                    'error',
-                    'Нельзя удалить характеристику, которая используется категориями.',
-                );
+                ->withErrors([
+                    'delete' => 'Нельзя удалить характеристику, которая назначена категориям. Сначала отвяжите её от категорий.',
+                ]);
         }
 
-        if ($characteristic->values()->exists()) {
+        if (ProductCharacteristicValue::query()
+            ->where('characteristic_id', $characteristic->id)
+            ->exists()) {
             return to_route('admin.characteristics.index')
-                ->with(
-                    'error',
-                    'Нельзя удалить характеристику, которая используется товарами.',
-                );
+                ->withErrors([
+                    'delete' => 'Нельзя удалить характеристику, которая используется товарами. Сначала удалите её значения у товаров.',
+                ]);
         }
 
         $characteristic->delete();

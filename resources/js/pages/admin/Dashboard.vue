@@ -1,6 +1,24 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import {
+    ArrowDownToLine,
+    ArrowLeftRight,
+    Boxes,
+    ClipboardCheck,
+    LayoutDashboard,
+    Package,
+    PackageMinus,
+    PackagePlus,
+    RotateCcw,
+    Tags,
+    History,
+    Grid2X2,
+    AlertTriangle,
+    ArrowRight,
+} from '@lucide/vue'
 
 defineOptions({
     layout: AdminLayout,
@@ -47,6 +65,7 @@ interface StatisticCard {
     key: Exclude<keyof Statistics, 'stock_by_unit'>
     title: string
     description: string
+    icon: typeof LayoutDashboard
 }
 
 const statisticCards: StatisticCard[] = [
@@ -54,26 +73,31 @@ const statisticCards: StatisticCard[] = [
         key: 'products',
         title: 'Товары',
         description: 'Активных товаров',
+        icon: Package,
     },
     {
         key: 'categories',
         title: 'Категории',
         description: 'Активных категорий',
+        icon: Tags,
     },
     {
         key: 'racks',
         title: 'Стеллажи',
         description: 'Всего стеллажей',
+        icon: Grid2X2,
     },
     {
         key: 'locations',
         title: 'Места хранения',
         description: 'Всего мест',
+        icon: Boxes,
     },
     {
         key: 'products_with_stock',
         title: 'Товары на складе',
         description: 'Позиций с ненулевым остатком',
+        icon: Boxes,
     },
 ]
 
@@ -82,37 +106,37 @@ const quickActions = [
         title: 'Добавить товар',
         description: 'Создать товар в каталоге',
         href: '/admin/products/create',
-        icon: '+',
+        icon: PackagePlus,
     },
     {
         title: 'Приход товара',
         description: 'Поступление на склад',
         href: '/admin/stock/receipt',
-        icon: '↓',
+        icon: ArrowDownToLine,
     },
     {
         title: 'Перемещение',
         description: 'Переместить между ячейками',
         href: '/admin/stock/transfer',
-        icon: '↔',
+        icon: ArrowLeftRight,
     },
     {
         title: 'Списание',
         description: 'Списать товар с остатка',
         href: '/admin/stock/write-off',
-        icon: '−',
+        icon: PackageMinus,
     },
     {
         title: 'Возврат',
         description: 'Оформить возврат товара',
         href: '/admin/stock/return',
-        icon: '↶',
+        icon: RotateCcw,
     },
     {
         title: 'Инвентаризация',
         description: 'Сверить фактический остаток',
         href: '/admin/stock/inventory',
-        icon: '✓',
+        icon: ClipboardCheck,
     },
 ]
 
@@ -141,128 +165,159 @@ function movementLocation(movement: Movement): string {
 
 <template>
     <div class="space-y-8">
-            <header>
-                <h1 class="text-2xl font-bold text-gray-900">
-                    Обзор склада
-                </h1>
-
-                <p class="mt-1 text-sm text-gray-500">
-                    Основные показатели, операции и последние движения товара.
-                </p>
+            <header class="mb-8">
+                <div class="flex items-center gap-3 mb-2">
+                    <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg">
+                        <LayoutDashboard :size="24" />
+                    </div>
+                    <div>
+                        <h1 class="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                            Обзор склада
+                        </h1>
+                        <p class="text-sm text-muted-foreground mt-1">
+                            Основные показатели, операции и последние движения товара.
+                        </p>
+                    </div>
+                </div>
             </header>
 
             <section>
-                <div class="mb-4 flex items-center justify-between gap-4">
-                    <h2 class="text-lg font-semibold text-gray-900">
+                <div class="mb-6 flex items-center justify-between gap-4">
+                    <h2 class="text-xl font-semibold text-foreground">
                         Показатели склада
                     </h2>
 
                     <Link
                         href="/admin/stock"
-                        class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                        Все остатки →
+                        Все остатки
+                        <ArrowRight :size="16" />
                     </Link>
                 </div>
 
-                <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                     <div
                         v-for="card in statisticCards"
                         :key="card.key"
-                        class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                        class="group relative overflow-hidden rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-6 shadow-sm hover:shadow-md transition-all duration-300"
                     >
-                        <p class="text-sm font-medium text-gray-500">
-                            {{ card.title }}
-                        </p>
+                        <div class="absolute top-0 right-0 h-32 w-32 bg-gradient-to-br from-primary/5 to-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/2 group-hover:scale-110 transition-transform duration-500" />
+                        <div class="relative">
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary mb-4">
+                                <component :is="card.icon" :size="20" />
+                            </div>
+                            <p class="text-sm font-medium text-muted-foreground">
+                                {{ card.title }}
+                            </p>
 
-                        <p class="mt-2 text-3xl font-bold text-gray-900">
-                            {{ formatNumber(statistics[card.key]) }}
-                        </p>
+                            <p class="mt-2 text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+                                {{ formatNumber(statistics[card.key]) }}
+                            </p>
 
-                        <p class="mt-1 text-xs text-gray-400">
-                            {{ card.description }}
-                        </p>
+                            <p class="mt-1 text-xs text-muted-foreground/70">
+                                {{ card.description }}
+                            </p>
+                        </div>
                     </div>
                 </div>
+
                 <div
-                    class="mt-4 rounded-xl border border-gray-200 bg-white p-5 shadow-sm"
+                    class="mt-6 rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-6 shadow-sm"
                 >
-                    <h3 class="text-sm font-semibold text-gray-900">
+                    <h3 class="text-sm font-semibold text-foreground mb-4">
                         Остатки по единицам измерения
                     </h3>
 
                     <div
                         v-if="statistics.stock_by_unit.length === 0"
-                        class="mt-3 text-sm text-gray-500"
+                        class="rounded-xl bg-muted/30 p-8 text-center"
                     >
-                        На складе пока нет учтённых остатков.
+                        <div class="flex h-12 w-12 items-center justify-center rounded-full bg-muted/50 mx-auto mb-3">
+                            <Package :size="24" class="text-muted-foreground/50" />
+                        </div>
+                        <p class="text-sm text-muted-foreground">
+                            На складе пока нет учтённых остатков.
+                        </p>
                     </div>
 
-                    <div v-else class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div v-else class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
                         <div
                             v-for="stock in statistics.stock_by_unit"
                             :key="stock.unit"
-                            class="rounded-lg bg-gray-50 p-4"
+                            class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 p-4 hover:from-muted/60 hover:to-muted/40 transition-all duration-300"
                         >
-                            <p class="text-sm text-gray-500">
+                            <div class="absolute top-0 right-0 h-16 w-16 bg-gradient-to-br from-primary/5 to-indigo-500/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                            <p class="text-sm font-medium text-muted-foreground relative">
                                 {{ stock.unit }}
                             </p>
 
-                            <p class="mt-1 text-2xl font-bold text-gray-900">
+                            <p class="mt-2 text-2xl font-bold text-foreground relative">
                                 {{ formatNumber(stock.quantity) }}
                             </p>
                         </div>
                     </div>
                 </div>
             </section>
-            <Link
-                href="/admin/stock?stock=below_minimum"
-                class="group flex items-center justify-between gap-4 rounded-xl border border-red-200 bg-red-50 p-5 shadow-sm transition hover:border-red-300 hover:bg-red-100"
-            >
-                <div>
-                    <h3 class="font-semibold text-red-800">
-                        Товары ниже минимального остатка
-                    </h3>
 
-                    <p class="mt-1 text-sm text-red-600">
+            <Link
+                v-if="statistics.products_below_minimum > 0"
+                href="/admin/stock?stock=below_minimum"
+                class="group relative overflow-hidden flex items-center justify-between gap-4 rounded-2xl border border-red-200/50 bg-gradient-to-r from-red-50 to-orange-50 p-6 shadow-sm hover:shadow-md transition-all duration-300"
+            >
+                <div class="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div class="relative">
+                    <div class="flex items-center gap-2 mb-1">
+                        <AlertTriangle :size="20" class="text-red-600" />
+                        <h3 class="font-semibold text-red-800">
+                            Товары ниже минимального остатка
+                        </h3>
+                    </div>
+
+                    <p class="text-sm text-red-600/80">
                         Товары, требующие пополнения
                     </p>
 
                     <span
-                        class="mt-3 inline-block text-sm font-medium text-red-700 group-hover:underline"
+                        class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 group-hover:underline"
                     >
-                        Посмотреть товары →
+                        Посмотреть товары
+                        <ArrowRight :size="16" />
                     </span>
                 </div>
 
-                <div class="shrink-0 text-3xl font-bold text-red-800">
-                    {{ formatNumber(statistics.products_below_minimum) }}
+                <div class="relative shrink-0 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg">
+                    <span class="text-2xl font-bold">
+                        {{ formatNumber(statistics.products_below_minimum) }}
+                    </span>
                 </div>
             </Link>
+
             <section>
-                <h2 class="mb-4 text-lg font-semibold text-gray-900">
+                <h2 class="mb-6 text-xl font-semibold text-foreground">
                     Быстрые действия
                 </h2>
 
-                <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     <Link
                         v-for="action in quickActions"
                         :key="action.href"
                         :href="action.href"
-                        class="group flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50/50"
+                        class="group relative overflow-hidden flex items-start gap-4 rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-5 shadow-sm hover:shadow-md hover:border-primary/20 transition-all duration-300"
                     >
+                        <div class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                         <span
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-xl font-semibold text-indigo-700 transition group-hover:bg-indigo-200"
+                            class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary transition group-hover:scale-110 group-hover:from-primary/20 group-hover:to-indigo-500/20 duration-300"
                         >
-                            {{ action.icon }}
+                            <component :is="action.icon" :size="22" />
                         </span>
 
-                        <span>
-                            <span class="block font-semibold text-gray-900">
+                        <span class="relative">
+                            <span class="block font-semibold text-foreground group-hover:text-primary transition-colors">
                                 {{ action.title }}
                             </span>
 
-                            <span class="mt-1 block text-sm text-gray-500">
+                            <span class="mt-1 block text-sm text-muted-foreground">
                                 {{ action.description }}
                             </span>
                         </span>
@@ -270,96 +325,100 @@ function movementLocation(movement: Movement): string {
                 </div>
             </section>
 
-            <section class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 px-5 py-4">
+            <section class="overflow-hidden rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 shadow-sm">
+                <div class="flex flex-wrap items-center justify-between gap-3 border-b border-border/10 px-6 py-5 bg-white/50">
                     <div>
-                        <h2 class="text-lg font-semibold text-gray-900">
+                        <h2 class="text-lg font-semibold text-foreground">
                             Последние движения
                         </h2>
 
-                        <p class="mt-1 text-sm text-gray-500">
+                        <p class="mt-1 text-sm text-muted-foreground">
                             Последние операции с товарами на складе.
                         </p>
                     </div>
 
                     <Link
                         href="/admin/stock/movements"
-                        class="text-sm font-medium text-indigo-600 hover:text-indigo-800"
+                        class="inline-flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 transition-colors"
                     >
-                        Вся история →
+                        Вся история
+                        <ArrowRight :size="16" />
                     </Link>
                 </div>
 
                 <div
                     v-if="movements.length === 0"
-                    class="px-5 py-12 text-center"
+                    class="px-6 py-16 text-center"
                 >
-                    <p class="font-medium text-gray-700">
+                    <div class="flex h-16 w-16 items-center justify-center rounded-full bg-muted/50 mx-auto mb-4">
+                        <History :size="32" class="text-muted-foreground/50" />
+                    </div>
+                    <p class="font-medium text-foreground">
                         Движений пока нет
                     </p>
 
-                    <p class="mt-1 text-sm text-gray-500">
-                        После первой складской операции она появится здесь.
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        После первой складской опер��ции она появится здесь.
                     </p>
                 </div>
 
                 <div v-else class="overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
+                    <table class="min-w-full divide-y divide-border/10">
+                        <thead class="bg-muted/30">
                         <tr>
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Дата
                             </th>
 
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Товар
                             </th>
 
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Операция
                             </th>
 
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Количество
                             </th>
 
-                            <th class="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <th class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                                 Размещение
                             </th>
                         </tr>
                         </thead>
 
-                        <tbody class="divide-y divide-gray-100">
+                        <tbody class="divide-y divide-border/10">
                         <tr
                             v-for="movement in movements"
                             :key="movement.id"
-                            class="hover:bg-gray-50"
+                            class="hover:bg-muted/30 transition-colors"
                         >
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-500">
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                                 {{ movement.created_at ?? '—' }}
                             </td>
 
-                            <td class="px-5 py-4">
-                                <div class="font-medium text-gray-900">
+                            <td class="px-6 py-4">
+                                <div class="font-medium text-foreground">
                                     {{ movement.product_name }}
                                 </div>
 
-                                <div class="mt-1 text-xs text-gray-500">
+                                <div class="mt-1 text-xs text-muted-foreground">
                                     Артикул: {{ movement.sku || '—' }}
                                 </div>
                             </td>
 
-                            <td class="whitespace-nowrap px-5 py-4">
-                                    <span class="inline-flex rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700">
+                            <td class="whitespace-nowrap px-6 py-4">
+                                    <span class="inline-flex rounded-full bg-gradient-to-r from-primary/10 to-indigo-500/10 px-3 py-1.5 text-xs font-medium text-primary border border-primary/20">
                                         {{ movement.type_label }}
                                     </span>
                             </td>
 
-                            <td class="whitespace-nowrap px-5 py-4 text-sm font-semibold text-gray-900">
+                            <td class="whitespace-nowrap px-6 py-4 text-sm font-semibold text-foreground">
                                 {{ formatNumber(movement.quantity) }}
                             </td>
 
-                            <td class="whitespace-nowrap px-5 py-4 text-sm text-gray-600">
+                            <td class="whitespace-nowrap px-6 py-4 text-sm text-muted-foreground">
                                 {{ movementLocation(movement) }}
                             </td>
                         </tr>

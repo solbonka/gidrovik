@@ -1,6 +1,15 @@
+
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
+import { Head, Link, useForm } from '@inertiajs/vue3'
 import { toast } from 'vue-sonner'
+import {
+    ArrowLeft,
+    Check,
+    Grid2X2,
+    Info,
+    LoaderCircle,
+    Package,
+} from '@lucide/vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import { index, update } from '@/routes/admin/racks'
 
@@ -43,115 +52,198 @@ const submit = (): void => {
 <template>
     <Head :title="`Стеллаж ${rack.code}`" />
 
-    <div class="mx-auto max-w-2xl">
-        <div class="mb-6">
-            <a
+    <div class="mx-auto max-w-3xl space-y-8">
+        <!-- Заголовок -->
+        <header>
+            <Link
                 :href="index().url"
-                class="text-sm text-gray-500 hover:text-gray-900"
+                class="mb-5 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
             >
-                ← Назад к стеллажам
-            </a>
+                <ArrowLeft :size="16" />
+                Назад к стеллажам
+            </Link>
 
-            <h1 class="mt-3 text-2xl font-semibold text-gray-900">
-                Редактирование стеллажа
-            </h1>
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg"
+                >
+                    <Grid2X2 :size="26" />
+                </div>
+
+                <div>
+                    <h1
+                        class="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent"
+                    >
+                        Редактирование стеллажа
+                    </h1>
+
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Изменение параметров стеллажа {{ rack.code }}.
+                    </p>
+                </div>
+            </div>
+        </header>
+
+        <!-- Информация о ячейках -->
+        <div
+            class="flex items-start gap-3 rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/5 to-indigo-500/5 p-4"
+        >
+            <div
+                class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
+            >
+                <Info :size="20" />
+            </div>
+
+            <div>
+                <p class="text-sm font-semibold text-foreground">
+                    Ячейки стеллажа
+                </p>
+
+                <p class="mt-1 text-sm leading-relaxed text-muted-foreground">
+                    Сейчас создано:
+                    <span class="font-semibold text-foreground">
+                        {{ rack.locations.length }}
+                    </span>
+                    {{ rack.locations.length === 1 ? 'ячейка' : rack.locations.length >= 2 && rack.locations.length <= 4 ? 'ячейки' : 'ячеек' }}.
+                </p>
+
+                <p class="mt-1 text-xs text-muted-foreground">
+                    Управление ячейками доступно отдельно на странице стеллажей.
+                </p>
+            </div>
         </div>
 
+        <!-- Форма -->
         <form
-            class="space-y-6 rounded-xl border border-gray-200 bg-white p-6"
+            class="overflow-hidden rounded-2xl border border-border/50 bg-gradient-to-br from-white to-muted/20 shadow-sm"
             @submit.prevent="submit"
         >
-            <div>
-                <label
-                    for="code"
-                    class="mb-2 block text-sm font-medium text-gray-700"
-                >
-                    Код стеллажа
-                </label>
+            <div class="border-b border-border/50 px-6 py-5">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
+                    >
+                        <Package :size="20" />
+                    </div>
 
-                <input
-                    id="code"
-                    v-model="form.code"
-                    type="text"
-                    maxlength="10"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
-                    :class="{
-                        'border-red-500': form.errors.code,
-                    }"
-                />
+                    <div>
+                        <h2 class="font-semibold text-foreground">
+                            Основные сведения
+                        </h2>
 
-                <p
-                    v-if="form.errors.code"
-                    class="mt-1 text-sm text-red-600"
-                >
-                    {{ form.errors.code }}
-                </p>
+                        <p class="mt-1 text-sm text-muted-foreground">
+                            Измените код или название стеллажа.
+                        </p>
+                    </div>
+                </div>
             </div>
 
-            <div>
-                <label
-                    for="name"
-                    class="mb-2 block text-sm font-medium text-gray-700"
-                >
-                    Название
-                </label>
+            <div class="space-y-6 p-6">
+                <!-- Код -->
+                <div>
+                    <label
+                        for="code"
+                        class="mb-2 block text-sm font-semibold text-foreground"
+                    >
+                        Код стеллажа
+                        <span class="text-red-500">*</span>
+                    </label>
 
-                <input
-                    id="name"
-                    v-model="form.name"
-                    type="text"
-                    maxlength="255"
-                    class="w-full rounded-lg border border-gray-300 px-3 py-2 outline-none focus:border-gray-500 focus:ring-1 focus:ring-gray-500"
-                    :class="{
-                        'border-red-500': form.errors.name,
-                    }"
-                />
+                    <input
+                        id="code"
+                        v-model="form.code"
+                        type="text"
+                        maxlength="10"
+                        autocomplete="off"
+                        placeholder="Например, A"
+                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                        :class="{
+                            'border-red-500 focus:border-red-500 focus:ring-red-500/10':
+                                form.errors.code,
+                        }"
+                    />
 
-                <p
-                    v-if="form.errors.name"
-                    class="mt-1 text-sm text-red-600"
-                >
-                    {{ form.errors.name }}
-                </p>
+                    <p
+                        v-if="form.errors.code"
+                        class="mt-2 text-sm text-red-600"
+                    >
+                        {{ form.errors.code }}
+                    </p>
+
+                    <p
+                        v-else
+                        class="mt-2 text-xs text-muted-foreground"
+                    >
+                        Короткое обозначение для идентификации стеллажа.
+                    </p>
+                </div>
+
+                <!-- Название -->
+                <div>
+                    <label
+                        for="name"
+                        class="mb-2 block text-sm font-semibold text-foreground"
+                    >
+                        Название
+                        <span class="text-red-500">*</span>
+                    </label>
+
+                    <input
+                        id="name"
+                        v-model="form.name"
+                        type="text"
+                        maxlength="255"
+                        autocomplete="off"
+                        placeholder="Например, Стеллаж A"
+                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                        :class="{
+                            'border-red-500 focus:border-red-500 focus:ring-red-500/10':
+                                form.errors.name,
+                        }"
+                    />
+
+                    <p
+                        v-if="form.errors.name"
+                        class="mt-2 text-sm text-red-600"
+                    >
+                        {{ form.errors.name }}
+                    </p>
+
+                    <p
+                        v-else
+                        class="mt-2 text-xs text-muted-foreground"
+                    >
+                        Понятное название для отображения в складской системе.
+                    </p>
+                </div>
             </div>
 
+            <!-- Кнопки -->
             <div
-                class="rounded-lg border border-gray-200 bg-gray-50 p-4"
+                class="flex flex-col-reverse gap-3 border-t border-border/50 bg-muted/20 px-6 py-5 sm:flex-row sm:justify-end"
             >
-                <div class="text-sm font-medium text-gray-700">
-                    Ячейки
-                </div>
-
-                <div class="mt-2 text-sm text-gray-500">
-                    Сейчас создано:
-                    <strong>{{ rack.locations.length }}</strong>
-                    ячеек.
-                </div>
-
-                <p class="mt-2 text-xs text-gray-500">
-                    Ячейки управляются отдельно на странице
-                    стеллажей.
-                </p>
-            </div>
-
-            <div class="flex justify-end gap-3">
-                <a
+                <Link
                     :href="index().url"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
                 >
+                    <ArrowLeft :size="16" />
                     Отмена
-                </a>
+                </Link>
 
                 <button
                     type="submit"
                     :disabled="form.processing"
-                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50"
                 >
-                    {{
-                        form.processing
-                            ? 'Сохранение...'
-                            : 'Сохранить'
-                    }}
+                    <LoaderCircle
+                        v-if="form.processing"
+                        :size="18"
+                        class="animate-spin"
+                    />
+
+                    <Check v-else :size="18" />
+
+                    {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
                 </button>
             </div>
         </form>

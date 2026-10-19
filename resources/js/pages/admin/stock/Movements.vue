@@ -2,7 +2,24 @@
 import { Head, Link, router } from '@inertiajs/vue3'
 import { ref } from 'vue'
 import { toast } from 'vue-sonner'
+import {
+    ArrowLeft,
+    ArrowRight,
+    ArrowUpDown,
+    Box,
+    ChevronLeft,
+    ChevronRight,
+    FileText,
+    Filter,
+    Package,
+    Plus,
+    RotateCcw,
+    Search,
+    Trash2,
+    X,
+} from '@lucide/vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
+import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
 
 defineOptions({ layout: AdminLayout })
 
@@ -112,99 +129,149 @@ const locationSummary = (movement: Movement): string => {
     return '—'
 }
 
-const deleteMovement = (movement: Movement): void => {
-    if (confirm('Вы уверены, что хотите удалить эту запись из журнала?')) {
-        router.delete(`/admin/stock/movements/${movement.id}`, {
-            onSuccess: () => {
-                toast.success('Запись удалена из журнала.')
-            },
-        })
-    }
+const deleteDialogOpen = ref(false)
+const deletingItemId = ref<number | null>(null)
+const deleting = ref(false)
+
+const openDeleteDialog = (id: number): void => {
+    deletingItemId.value = id
+    deleteDialogOpen.value = true
+}
+
+const closeDeleteDialog = (): void => {
+    if (deleting.value) return
+
+    deleteDialogOpen.value = false
+    deletingItemId.value = null
+}
+
+const confirmDelete = (): void => {
+    if (deletingItemId.value === null || deleting.value) return
+
+    deleting.value = true
+
+    router.delete(`/admin/stock/movements/${deletingItemId.value}`, {
+        preserveScroll: true,
+        onSuccess: () => {
+            toast.success('Запись удалена из журнала.')
+            deleteDialogOpen.value = false
+            deletingItemId.value = null
+        },
+        onFinish: () => {
+            deleting.value = false
+        },
+    })
 }
 </script>
 
 <template>
     <Head title="Журнал складских движений" />
 
-    <div class="space-y-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900">
-                    Журнал складских движений
-                </h1>
+    <div class="space-y-6 p-4 sm:p-6">
+        <!-- Заголовок -->
+        <div
+            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
+        >
+            <div
+                class="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl"
+            />
+            <div
+                class="pointer-events-none absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
+            />
 
-                <p class="mt-1 text-sm text-gray-500">
-                    История поступлений, перемещений, списаний и других операций.
-                </p>
+            <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="mb-3 flex items-center gap-2 text-sm text-indigo-200">
+                        <ArrowUpDown class="h-4 w-4" />
+                        <span>Склад</span>
+                    </div>
 
-                <div
-                    v-if="filters.product_id"
-                    class="mt-3 flex flex-wrap items-center gap-2"
-                >
-                    <span
-                        class="rounded-lg bg-blue-50 px-3 py-1.5 text-sm text-blue-700"
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                        Журнал складских движений
+                    </h1>
+
+                    <p class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base">
+                        История поступлений, перемещений, списаний и других операций.
+                    </p>
+
+                    <div
+                        v-if="filters.product_id"
+                        class="mt-3 flex flex-wrap items-center gap-2"
                     >
-                        Фильтр по товару №{{ filters.product_id }}
-                    </span>
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full bg-indigo-500/20 px-3 py-1.5 text-sm text-indigo-100"
+                        >
+                            <Filter class="h-3.5 w-3.5" />
+                            Фильтр по товару №{{ filters.product_id }}
+                        </span>
 
-                    <button
-                        type="button"
-                        class="text-sm font-medium text-gray-600 underline hover:text-gray-900"
-                        @click="clearProductFilter"
-                    >
-                        Показать все товары
-                    </button>
+                        <button
+                            type="button"
+                            class="text-sm font-medium text-indigo-200 underline hover:text-white"
+                            @click="clearProductFilter"
+                        >
+                            Показать все товары
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <div class="flex flex-wrap gap-2">
-                <Link
-                    href="/admin/stock/receipt"
-                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-                >
-                    Поступление
-                </Link>
+                <div class="flex flex-wrap gap-2">
+                    <Link
+                        href="/admin/stock/receipt"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-indigo-50 dark:bg-slate-900 dark:text-white dark:hover:bg-slate-800"
+                    >
+                        <Plus class="h-4 w-4" />
+                        Поступление
+                    </Link>
 
-                <Link
-                    href="/admin/stock/transfer"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                >
-                    Перемещение
-                </Link>
+                    <Link
+                        href="/admin/stock/transfer"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/20"
+                    >
+                        <Box class="h-4 w-4" />
+                        Перемещение
+                    </Link>
 
-                <Link
-                    href="/admin/stock/write-off"
-                    class="rounded-lg border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
-                >
-                    Списание
-                </Link>
+                    <Link
+                        href="/admin/stock/write-off"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/20"
+                    >
+                        <X class="h-4 w-4" />
+                        Списание
+                    </Link>
+                </div>
             </div>
         </div>
 
-        <div class="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-            <div class="grid gap-4 md:grid-cols-[2fr_1fr_auto]">
+        <!-- Фильтры -->
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div class="grid gap-4 p-5 md:grid-cols-[2fr_1fr_auto] sm:p-6">
                 <div>
                     <label
                         for="search"
-                        class="mb-2 block text-sm font-medium text-gray-700"
+                        class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                     >
                         Поиск по товару
                     </label>
 
-                    <input
-                        id="search"
-                        v-model="search"
-                        type="search"
-                        placeholder="Название или артикул"
-                        class="w-full rounded-lg border-gray-300"
-                        @keyup.enter="applyFilters"
-                    />
+                    <div class="relative">
+                        <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                        <input
+                            id="search"
+                            v-model="search"
+                            type="search"
+                            placeholder="Название или артикул"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                            @keyup.enter="applyFilters"
+                        />
+                    </div>
                 </div>
 
                 <div>
                     <label
                         for="type"
-                        class="mb-2 block text-sm font-medium text-gray-700"
+                        class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                     >
                         Тип операции
                     </label>
@@ -212,7 +279,7 @@ const deleteMovement = (movement: Movement): void => {
                     <select
                         id="type"
                         v-model="type"
-                        class="w-full rounded-lg border-gray-300"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
                         @change="applyFilters"
                     >
                         <option value="">Все операции</option>
@@ -230,74 +297,76 @@ const deleteMovement = (movement: Movement): void => {
                 <div class="flex items-end">
                     <button
                         type="button"
-                        class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
                         @click="applyFilters"
                     >
+                        <Filter class="h-4 w-4" />
                         Найти
                     </button>
                 </div>
             </div>
         </div>
 
-        <div class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
+        <!-- Таблица -->
+        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead
-                        class="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500"
+                        class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500 dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400"
                     >
                     <tr>
-                        <th class="px-5 py-3">Дата</th>
-                        <th class="px-5 py-3">Операция</th>
-                        <th class="px-5 py-3">Товар</th>
-                        <th class="px-5 py-3">Ячейки</th>
-                        <th class="px-5 py-3">Количество</th>
-                        <th class="px-5 py-3">Пользователь</th>
-                        <th class="px-5 py-3">Комментарий</th>
-                        <th class="px-5 py-3"></th>
+                        <th class="px-5 py-4">Дата</th>
+                        <th class="px-5 py-4">Операция</th>
+                        <th class="px-5 py-4">Товар</th>
+                        <th class="px-5 py-4">Ячейки</th>
+                        <th class="px-5 py-4">Количество</th>
+                        <th class="px-5 py-4">Пользователь</th>
+                        <th class="px-5 py-4">Комментарий</th>
+                        <th class="px-5 py-4"></th>
                     </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-gray-200">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     <tr
                         v-for="movement in movements.data"
                         :key="movement.id"
-                        class="hover:bg-gray-50"
+                        class="transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                     >
-                        <td class="whitespace-nowrap px-5 py-4 text-gray-600">
+                        <td class="whitespace-nowrap px-5 py-4 text-slate-600 dark:text-slate-400">
                             {{ movement.created_at ?? '—' }}
                         </td>
 
                         <td class="whitespace-nowrap px-5 py-4">
                                 <span
-                                    class="rounded-full bg-gray-100 px-2.5 py-1 text-xs font-medium text-gray-700"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                 >
                                     {{ movement.type_label }}
                                 </span>
                         </td>
 
                         <td class="px-5 py-4">
-                            <div class="font-medium text-gray-900">
+                            <div class="font-medium text-slate-900 dark:text-white">
                                 {{ movement.product.name }}
                             </div>
 
-                            <div class="mt-1 font-mono text-xs text-gray-500">
+                            <div class="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">
                                 {{ movement.product.sku }}
                             </div>
                         </td>
 
-                        <td class="whitespace-nowrap px-5 py-4 text-gray-600">
+                        <td class="whitespace-nowrap px-5 py-4 text-slate-600 dark:text-slate-400">
                             {{ locationSummary(movement) }}
                         </td>
 
-                        <td class="px-5 py-4 font-semibold text-gray-900">
+                        <td class="px-5 py-4 font-semibold text-slate-900 dark:text-white">
                             {{ movement.quantity }}
                         </td>
 
-                        <td class="px-5 py-4 text-gray-600">
+                        <td class="px-5 py-4 text-slate-600 dark:text-slate-400">
                             {{ movement.user ?? '—' }}
                         </td>
 
-                        <td class="max-w-xs px-5 py-4 text-gray-600">
+                        <td class="max-w-xs px-5 py-4 text-slate-600 dark:text-slate-400">
                                 <span class="line-clamp-2">
                                     {{ movement.comment ?? '—' }}
                                 </span>
@@ -306,10 +375,10 @@ const deleteMovement = (movement: Movement): void => {
                         <td class="px-5 py-4">
                             <button
                                 type="button"
-                                class="text-sm font-medium text-red-600 hover:text-red-900"
-                                @click="deleteMovement(movement)"
+                                class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                                @click="openDeleteDialog(movement.id)"
                             >
-                                Удалить
+                                <Trash2 class="h-4 w-4" />
                             </button>
                         </td>
                     </tr>
@@ -317,7 +386,7 @@ const deleteMovement = (movement: Movement): void => {
                     <tr v-if="movements.data.length === 0">
                         <td
                             colspan="8"
-                            class="px-5 py-12 text-center text-gray-500"
+                            class="px-5 py-12 text-center text-slate-500 dark:text-slate-400"
                         >
                             Движения по заданным условиям не найдены.
                         </td>
@@ -327,37 +396,91 @@ const deleteMovement = (movement: Movement): void => {
             </div>
 
             <div
-                v-if="movements.last_page > 1"
-                class="flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 px-5 py-4"
+                v-if="movements.links.length > 3"
+                class="flex flex-col gap-4 border-t border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
             >
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
                     Показано {{ movements.from }}–{{ movements.to }}
                     из {{ movements.total }}
                 </p>
 
-                <div class="flex flex-wrap gap-1">
+                <nav
+                    v-if="movements.total > 0"
+                    class="flex flex-wrap items-center justify-center gap-1"
+                    aria-label="Навигация по страницам"
+                >
                     <template
                         v-for="(link, index) in movements.links"
-                        :key="index"
+                        :key="`${index}-${link.label}`"
                     >
+                        <!-- Назад -->
                         <Link
-                            v-if="link.url"
+                            v-if="index === 0 && link.url"
                             :href="link.url"
-                            class="rounded-md px-3 py-1.5 text-sm"
-                            :class="link.active
-                                ? 'bg-gray-900 text-white'
-                                : 'text-gray-600 hover:bg-gray-100'"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300"
+                        >
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </Link>
+
+                        <span
+                            v-else-if="index === 0"
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-100 px-3 text-sm text-slate-300 dark:border-slate-800 dark:text-slate-600"
+                        >
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </span>
+
+                        <!-- Номера страниц -->
+                        <Link
+                            v-else-if="index !== movements.links.length - 1 && link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
+                            :class="
+                                link.active
+                                    ? 'border-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm'
+                                    : 'border-slate-200 text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300'
+                            "
                             v-html="link.label"
                         />
 
                         <span
-                            v-else
-                            class="rounded-md px-3 py-1.5 text-sm text-gray-300"
+                            v-else-if="index !== movements.links.length - 1"
+                            class="inline-flex h-9 min-w-9 items-center justify-center px-2 text-sm text-slate-400"
                             v-html="link.label"
                         />
+
+                        <!-- Далее -->
+                        <Link
+                            v-else-if="link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300"
+                        >
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </Link>
+
+                        <span
+                            v-else
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-100 px-3 text-sm text-slate-300 dark:border-slate-800 dark:text-slate-600"
+                        >
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </span>
                     </template>
-                </div>
+                </nav>
             </div>
         </div>
+
+        <ConfirmDeleteDialog
+            :open="deleteDialogOpen"
+            item-name="эту запись"
+            :loading="deleting"
+            @confirm="confirmDelete"
+            @cancel="closeDeleteDialog"
+        />
     </div>
 </template>

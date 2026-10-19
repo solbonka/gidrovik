@@ -19,6 +19,8 @@ use App\Http\Controllers\Admin\StockWriteOffController;
 use App\Http\Controllers\Admin\StockReturnController;
 use App\Http\Controllers\Admin\StockInventoryController;
 use App\Http\Controllers\Admin\StockBalanceController;
+use App\Http\Controllers\Admin\ManufacturerController;
+use App\Http\Controllers\Admin\CountryController;
 
 Route::inertia('/', 'Welcome')->name('home');
 
@@ -63,6 +65,12 @@ Route::middleware('auth')
         Route::resource('threads', ThreadController::class)
             ->except(['show']);
 
+        Route::resource('manufacturers', ManufacturerController::class)
+            ->except(['show']);
+
+        Route::resource('countries', CountryController::class)
+            ->except(['show']);
+
         Route::resource('racks', RackController::class)
             ->except(['show']);
 
@@ -92,6 +100,11 @@ Route::middleware('auth')
             'store',
         ])->name('stock.receipt.store');
 
+        Route::post('/stock/receipt/batch', [
+            StockReceiptController::class,
+            'storeBatch',
+        ])->name('stock.receipt.batch');
+
         Route::get('/stock/transfer', [
             StockTransferController::class,
             'create',
@@ -116,6 +129,11 @@ Route::middleware('auth')
             StockMovementController::class,
             'index',
         ])->name('stock.movements.index');
+
+        Route::delete('/stock/movements/{movement}', [
+            StockMovementController::class,
+            'destroy',
+        ])->name('stock.movements.destroy');
 
         Route::get('/stock/return', [StockReturnController::class, 'create'])
             ->name('stock.return.create');

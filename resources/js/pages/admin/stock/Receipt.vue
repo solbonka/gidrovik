@@ -1,7 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3'
 import { computed, ref } from 'vue'
-import { Plus, Trash2, Package } from '@lucide/vue'
+import {
+    ArrowLeft,
+    Check,
+    CirclePlus,
+    FileText,
+    Info,
+    LoaderCircle,
+    Package,
+    Plus,
+    Trash2,
+} from '@lucide/vue'
 import { toast } from 'vue-sonner'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 import ProductSelect from '@/components/admin/ProductSelect.vue'
@@ -87,7 +97,7 @@ const form = useForm({
 
 const submit = (): void => {
     if (items.value.length === 0) {
-        alert('Добавьте хотя бы один товар')
+        toast.error('Добавьте хотя бы один товар')
         return
     }
 
@@ -102,59 +112,92 @@ const submit = (): void => {
     })
 }
 
-// Add first item on mount
 addItem()
 </script>
 
 <template>
     <Head title="Приёмка товара" />
 
-    <div class="mx-auto max-w-6xl space-y-4 sm:space-y-6">
-        <div>
-            <Link
-                href="/admin/stock"
-                class="text-sm text-gray-500 hover:text-gray-900"
-            >
-                ← К складу
-            </Link>
+    <div class="space-y-6 p-4 sm:p-6">
+        <!-- Заголовок -->
+        <div
+            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
+        >
+            <div
+                class="pointer-events-none absolute -right-10 -top-16 h-52 w-52 rounded-full bg-violet-400/20 blur-3xl"
+            />
 
-            <h1 class="mt-3 text-xl font-semibold text-gray-900 sm:text-2xl">
-                Приёмка товара
-            </h1>
+            <div class="relative">
+                <Link
+                    href="/admin/stock"
+                    class="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-indigo-100 transition hover:bg-white/20 hover:text-white"
+                >
+                    <ArrowLeft class="h-4 w-4" />
+                    К складу
+                </Link>
 
-            <p class="mt-1 text-sm text-gray-500">
-                Приёмка нескольких товаров на склад в одном документе.
-            </p>
+                <div class="flex items-center gap-4">
+                    <div class="hidden rounded-2xl border border-white/15 bg-white/10 p-3 sm:block">
+                        <CirclePlus class="h-8 w-8 text-indigo-200" />
+                    </div>
+
+                    <div>
+                        <div class="mb-2 flex items-center gap-2 text-sm text-indigo-200">
+                            <Package class="h-4 w-4" />
+                            Склад
+                        </div>
+
+                        <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                            Приёмка товара
+                        </h1>
+
+                        <p class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base">
+                            Приёмка нескольких товаров на склад в одном документе.
+                        </p>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <form
-            class="space-y-4 sm:space-y-6 rounded-xl border border-gray-200 bg-white p-4 sm:p-6 shadow-sm"
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
             @submit.prevent="submit"
         >
-            <!-- Items -->
-            <div class="space-y-4">
-                <div class="flex items-center justify-between gap-2">
-                    <h2 class="text-base font-medium text-gray-900 sm:text-lg">
-                        Товары ({{ items.length }})
-                    </h2>
+            <div class="border-b border-slate-200 px-5 py-5 dark:border-slate-800 sm:px-7">
+                <div class="flex items-center justify-between gap-3">
+                    <div class="flex items-center gap-3">
+                        <div class="rounded-xl bg-indigo-50 p-2.5 dark:bg-indigo-500/10">
+                            <FileText class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                        </div>
+
+                        <div>
+                            <h2 class="font-semibold text-slate-900 dark:text-white">
+                                Товары ({{ items.length }})
+                            </h2>
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                                Добавьте товары для поступления
+                            </p>
+                        </div>
+                    </div>
 
                     <button
                         type="button"
-                        class="inline-flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors sm:px-4"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
                         @click="addItem"
                     >
-                        <Plus :size="16" />
-                        <span class="hidden sm:inline">Добавить товар</span>
-                        <span class="sm:hidden">Добавить</span>
+                        <Plus class="h-4 w-4" />
+                        Добавить товар
                     </button>
                 </div>
+            </div>
 
+            <div class="space-y-4 p-5 sm:p-7">
                 <div
                     v-if="items.length === 0"
-                    class="rounded-lg border border-dashed border-gray-300 p-6 sm:p-8 text-center"
+                    class="rounded-2xl border border-dashed border-slate-300 p-8 sm:p-12 text-center"
                 >
-                    <Package :size="40" class="mx-auto text-gray-300 mb-4 sm:size-48" />
-                    <p class="text-sm text-gray-500">
+                    <Package class="mx-auto h-12 w-12 text-slate-300 mb-4" />
+                    <p class="text-sm text-slate-500">
                         Список товаров пуст. Добавьте первый товар.
                     </p>
                 </div>
@@ -162,30 +205,30 @@ addItem()
                 <div
                     v-for="(item, index) in items"
                     :key="index"
-                    class="rounded-lg border border-gray-200 p-3 sm:p-4 space-y-3 sm:space-y-4"
+                    class="rounded-2xl border border-slate-200 bg-slate-50/50 p-4 dark:border-slate-700 dark:bg-slate-900/50"
                 >
-                    <div class="flex items-center justify-between">
-                        <span class="text-sm font-medium text-gray-700">
+                    <div class="flex items-center justify-between mb-4">
+                        <span class="text-sm font-semibold text-slate-700 dark:text-slate-200">
                             Товар #{{ index + 1 }}
                         </span>
 
                         <button
                             type="button"
-                            class="text-sm text-red-600 hover:text-red-700 transition-colors p-1"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400"
                             @click="removeItem(index)"
                         >
-                            <Trash2 :size="16" />
+                            <Trash2 class="h-4 w-4" />
                         </button>
                     </div>
 
-                    <div class="grid gap-3 sm:gap-4 sm:grid-cols-2">
-                        <!-- Product -->
+                    <div class="grid gap-4 sm:gap-6 sm:grid-cols-2">
                         <div class="sm:col-span-2">
                             <label
                                 :for="`product_${index}`"
-                                class="mb-2 block text-sm font-medium text-gray-700"
+                                class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                             >
                                 Товар
+                                <span class="text-rose-500">*</span>
                             </label>
 
                             <ProductSelect
@@ -198,19 +241,20 @@ addItem()
 
                             <p
                                 v-if="form.errors[`items.${index}.product_id`]"
-                                class="mt-1 text-sm text-red-600"
+                                class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
                             >
+                                <Info class="h-4 w-4 shrink-0" />
                                 {{ form.errors[`items.${index}.product_id`] }}
                             </p>
                         </div>
 
-                        <!-- Location -->
                         <div class="sm:col-span-2">
                             <label
                                 :for="`location_${index}`"
-                                class="mb-2 block text-sm font-medium text-gray-700"
+                                class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                             >
                                 Ячейка назначения
+                                <span class="text-rose-500">*</span>
                             </label>
 
                             <LocationSelect
@@ -221,29 +265,31 @@ addItem()
 
                             <p
                                 v-if="form.errors[`items.${index}.location_id`]"
-                                class="mt-1 text-sm text-red-600"
+                                class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
                             >
+                                <Info class="h-4 w-4 shrink-0" />
                                 {{ form.errors[`items.${index}.location_id`] }}
                             </p>
 
                             <p
                                 v-if="locations.length === 0"
-                                class="mt-2 text-sm text-amber-700"
+                                class="mt-2 flex items-center gap-1.5 text-sm text-amber-600 dark:text-amber-400"
                             >
+                                <Info class="h-4 w-4 shrink-0" />
                                 Нет доступных ячеек. Сначала создайте стеллаж и ячейки хранения.
                             </p>
                         </div>
 
-                        <!-- Quantity -->
                         <div>
                             <label
                                 :for="`quantity_${index}`"
-                                class="mb-2 block text-sm font-medium text-gray-700"
+                                class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                             >
                                 Количество
                                 <template v-if="selectedProduct(item.product_id)">
                                     ({{ selectedProduct(item.product_id).unit }})
                                 </template>
+                                <span class="text-rose-500">*</span>
                             </label>
 
                             <input
@@ -255,13 +301,13 @@ addItem()
                                 max="999999999.999"
                                 :step="quantityStep(item.product_id)"
                                 required
-                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
-                                :class="{ 'border-red-500': form.errors[`items.${index}.quantity`] }"
+                                class="w-full rounded-xl border bg-slate-50 py-3 px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                                :class="{ 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500': form.errors[`items.${index}.quantity`], 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 dark:border-slate-700': !form.errors[`items.${index}.quantity`] }"
                             />
 
                             <p
                                 v-if="selectedProduct(item.product_id)"
-                                class="mt-1 text-xs text-gray-500"
+                                class="mt-2 text-xs text-slate-500 dark:text-slate-400"
                             >
                                 <template v-if="isIntegerUnit(item.product_id)">
                                     Для этой единицы измерения допускаются только целые количества.
@@ -273,17 +319,17 @@ addItem()
 
                             <p
                                 v-if="form.errors[`items.${index}.quantity`]"
-                                class="mt-1 text-sm text-red-600"
+                                class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
                             >
+                                <Info class="h-4 w-4 shrink-0" />
                                 {{ form.errors[`items.${index}.quantity`] }}
                             </p>
                         </div>
 
-                        <!-- Comment -->
                         <div>
                             <label
                                 :for="`comment_${index}`"
-                                class="mb-2 block text-sm font-medium text-gray-700"
+                                class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
                             >
                                 Комментарий
                             </label>
@@ -294,14 +340,15 @@ addItem()
                                 rows="2"
                                 maxlength="5000"
                                 placeholder="Например, поступление от поставщика"
-                                class="w-full rounded-lg border-gray-300 shadow-sm focus:border-gray-500 focus:ring-gray-500 text-sm"
-                                :class="{ 'border-red-500': form.errors[`items.${index}.comment`] }"
+                                class="w-full resize-y rounded-xl border bg-slate-50 py-3 px-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                                :class="{ 'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500': form.errors[`items.${index}.comment`], 'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 dark:border-slate-700': !form.errors[`items.${index}.comment`] }"
                             />
 
                             <p
                                 v-if="form.errors[`items.${index}.comment`]"
-                                class="mt-1 text-sm text-red-600"
+                                class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
                             >
+                                <Info class="h-4 w-4 shrink-0" />
                                 {{ form.errors[`items.${index}.comment`] }}
                             </p>
                         </div>
@@ -310,12 +357,13 @@ addItem()
             </div>
 
             <div
-                class="flex flex-col sm:flex-row items-center justify-end gap-3 border-t border-gray-100 pt-4 sm:pt-5"
+                class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 dark:border-slate-800 dark:bg-slate-950/40 sm:flex-row sm:justify-end sm:px-7"
             >
                 <Link
                     href="/admin/stock"
-                    class="w-full sm:w-auto rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors text-center"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                 >
+                    <ArrowLeft class="h-4 w-4" />
                     Отмена
                 </Link>
 
@@ -326,13 +374,15 @@ addItem()
                         || items.length === 0
                         || locations.length === 0
                     "
-                    class="w-full sm:w-auto rounded-lg bg-gray-900 px-5 py-2 text-sm font-medium text-white hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-slate-900"
                 >
-                    {{
-                        form.processing
-                            ? 'Сохранение...'
-                            : 'Оформить поступление'
-                    }}
+                    <LoaderCircle
+                        v-if="form.processing"
+                        class="h-4 w-4 animate-spin"
+                    />
+                    <Check v-else class="h-4 w-4" />
+
+                    {{ form.processing ? 'Сохранение...' : 'Оформить поступление' }}
                 </button>
             </div>
         </form>

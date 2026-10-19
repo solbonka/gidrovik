@@ -21,6 +21,7 @@ import {
     Building2,
     Globe,
 } from '@lucide/vue'
+import { Button } from '@/components/ui/button'
 
 interface Props {
     open: boolean
@@ -187,33 +188,38 @@ function isActive(item: NavigationItem): boolean {
     <div>
         <div
             v-if="open"
-            class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+            class="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm lg:hidden"
             @click="emit('close')"
         />
 
         <aside
-            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-gray-200 bg-white transition-transform duration-200 lg:translate-x-0"
+            class="fixed inset-y-0 left-0 z-50 flex w-64 flex-col border-r border-border/10 bg-gradient-to-b from-white to-slate-50/50 shadow-xl transition-transform duration-300 ease-out lg:translate-x-0"
             :class="open ? 'translate-x-0' : '-translate-x-full'"
         >
             <div
-                class="flex h-16 shrink-0 items-center justify-between border-b border-gray-200 px-6"
+                class="flex h-16 shrink-0 items-center justify-between border-b border-border/10 bg-white/50 backdrop-blur-sm px-6"
             >
                 <Link
                     href="/admin"
-                    class="text-lg font-bold text-gray-900"
+                    class="flex items-center gap-2 text-lg font-bold bg-gradient-to-r from-primary to-indigo-600 bg-clip-text text-transparent"
                     @click="emit('close')"
                 >
-                    Склад
+                    <div class="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg">
+                        <LayoutDashboard :size="18" />
+                    </div>
+                    Гидровик
                 </Link>
 
-                <button
+                <Button
                     type="button"
+                    variant="ghost"
+                    size="icon"
                     aria-label="Закрыть меню"
-                    class="text-gray-500 transition hover:text-gray-900 lg:hidden"
+                    class="lg:hidden text-muted-foreground hover:text-foreground"
                     @click="emit('close')"
                 >
                     <X :size="20" />
-                </button>
+                </Button>
             </div>
 
             <nav class="flex-1 overflow-y-auto p-4">
@@ -223,7 +229,7 @@ function isActive(item: NavigationItem): boolean {
                     class="mb-6"
                 >
                     <div
-                        class="mb-2 px-3 text-xs font-semibold uppercase tracking-wider text-gray-400"
+                        class="mb-3 px-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground/70"
                     >
                         {{ group.title }}
                     </div>
@@ -233,11 +239,11 @@ function isActive(item: NavigationItem): boolean {
                             v-for="item in group.items"
                             :key="item.href"
                             :href="item.href"
-                            class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition"
+                            class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200"
                             :class="
                                 isActive(item)
-                                    ? 'bg-gray-900 text-white'
-                                    : 'text-gray-700 hover:bg-gray-100'
+                                    ? 'bg-gradient-to-r from-primary/10 to-indigo-500/10 text-primary shadow-sm border border-primary/20'
+                                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
                             "
                             :aria-current="isActive(item) ? 'page' : undefined"
                             @click="emit('close')"
@@ -245,19 +251,34 @@ function isActive(item: NavigationItem): boolean {
                             <component
                                 :is="item.icon"
                                 :size="18"
-                                :stroke-width="1.8"
-                                class="shrink-0"
+                                :stroke-width="2"
+                                class="shrink-0 transition-colors"
+                                :class="isActive(item) ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'"
                             />
 
-                            <span>{{ item.name }}</span>
+                            <span class="relative">
+                                {{ item.name }}
+                                <span
+                                    v-if="isActive(item)"
+                                    class="absolute bottom-0 left-0 h-0.5 w-full bg-gradient-to-r from-primary to-indigo-600 rounded-full"
+                                />
+                            </span>
                         </Link>
                     </div>
                 </div>
             </nav>
 
-            <div class="shrink-0 border-t border-gray-200 p-4">
-                <div class="text-xs text-gray-500">
-                    Warehouse Admin
+            <div class="shrink-0 border-t border-border/10 bg-gradient-to-t from-white/50 to-transparent p-4">
+                <div class="rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 p-4 border border-border/10">
+                    <div class="flex items-center gap-3">
+                        <div class="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-primary/20 to-indigo-500/20 text-primary">
+                            <Building2 :size="18" />
+                        </div>
+                        <div>
+                            <div class="text-sm font-semibold text-foreground">Большой склад</div>
+                            <div class="text-xs text-muted-foreground">Admin Panel</div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </aside>

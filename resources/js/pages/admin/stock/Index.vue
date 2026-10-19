@@ -1,6 +1,20 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { reactive } from 'vue'
+import {
+    ArrowLeft,
+    ArrowRight,
+    ArrowUpDown,
+    Box,
+    ChevronLeft,
+    ChevronRight,
+    FileText,
+    Filter,
+    Plus,
+    Search,
+    Warehouse,
+    X,
+} from '@lucide/vue'
 import AdminLayout from '@/layouts/AdminLayout.vue'
 
 defineOptions({
@@ -123,245 +137,291 @@ function goToPage(url: string | null): void {
 <template>
     <Head title="Остатки на складе" />
 
-    <div class="space-y-6">
+    <div class="space-y-6 p-4 sm:p-6">
+        <!-- Заголовок -->
         <div
-            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
         >
-            <div>
-                <h1 class="text-2xl font-semibold text-gray-900">
-                    Остатки на складе
-                </h1>
+            <div
+                class="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl"
+            />
+            <div
+                class="pointer-events-none absolute -bottom-20 right-1/3 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
+            />
 
-                <p class="mt-1 text-sm text-gray-500">
-                    Текущие запасы товаров и их расположение по ячейкам.
-                </p>
+            <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <div class="mb-3 flex items-center gap-2 text-sm text-indigo-200">
+                        <Warehouse class="h-4 w-4" />
+                        <span>Склад</span>
+                    </div>
+
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                        Остатки на складе
+                    </h1>
+
+                    <p class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base">
+                        Текущие запасы товаров и их расположение по ячейкам.
+                    </p>
+                </div>
+
+                <Link
+                    href="/admin/stock/receipt"
+                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-950"
+                >
+                    <Plus class="h-5 w-5" />
+                    Поступление товара
+                </Link>
             </div>
-
-            <Link
-                href="/admin/stock/receipt"
-                class="inline-flex items-center justify-center rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
-            >
-                + Поступление товара
-            </Link>
         </div>
 
         <!-- Быстрые переходы -->
         <div class="flex flex-wrap gap-2">
             <Link
                 href="/admin/stock/transfer"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
+                <Box class="h-4 w-4" />
                 Перемещение
             </Link>
 
             <Link
                 href="/admin/stock/return"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
+                <ArrowLeft class="h-4 w-4" />
                 Возврат
             </Link>
 
             <Link
                 href="/admin/stock/write-off"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
+                <X class="h-4 w-4" />
                 Списание
             </Link>
 
             <Link
                 href="/admin/stock/inventory"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
+                <FileText class="h-4 w-4" />
                 Инвентаризация
             </Link>
 
             <Link
                 href="/admin/stock/movements"
-                class="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-50 hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
+                <ArrowUpDown class="h-4 w-4" />
                 Журнал операций
             </Link>
         </div>
 
         <!-- Фильтры -->
         <form
-            class="space-y-4 rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
             @submit.prevent="applyFilters"
         >
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-4">
-                <div>
-                    <label
-                        for="search"
-                        class="mb-1.5 block text-sm font-medium text-gray-700"
-                    >
-                        Поиск товара
-                    </label>
+            <div class="border-b border-slate-200 px-5 py-4 dark:border-slate-800 sm:px-6">
+                <div class="flex items-center gap-3">
+                    <div class="rounded-xl bg-indigo-50 p-2.5 dark:bg-indigo-500/10">
+                        <Filter class="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                    </div>
 
-                    <input
-                        id="search"
-                        v-model="filters.search"
-                        type="search"
-                        placeholder="Название или артикул"
-                        class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    />
-                </div>
-
-                <div>
-                    <label
-                        for="category_id"
-                        class="mb-1.5 block text-sm font-medium text-gray-700"
-                    >
-                        Категория
-                    </label>
-
-                    <select
-                        id="category_id"
-                        v-model="filters.category_id"
-                        class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    >
-                        <option value="">Все категории</option>
-
-                        <option
-                            v-for="category in props.categories"
-                            :key="category.id"
-                            :value="String(category.id)"
-                        >
-                            {{ category.name }}
-                        </option>
-                    </select>
-                </div>
-
-                <div>
-                    <label
-                        for="rack_id"
-                        class="mb-1.5 block text-sm font-medium text-gray-700"
-                    >
-                        Стеллаж
-                    </label>
-
-                    <select
-                        id="rack_id"
-                        v-model="filters.rack_id"
-                        class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    >
-                        <option value="">Все стеллажи</option>
-
-                        <option
-                            v-for="rack in props.racks"
-                            :key="rack.id"
-                            :value="String(rack.id)"
-                        >
-                            {{ rack.code }}
-                            <template v-if="rack.name">
-                                — {{ rack.name }}
-                            </template>
-                        </option>
-                    </select>
-                </div>
-
-                <div>
-                    <label
-                        for="stock"
-                        class="mb-1.5 block text-sm font-medium text-gray-700"
-                    >
-                        Наличие
-                    </label>
-
-                    <select
-                        id="stock"
-                        v-model="filters.stock"
-                        class="block w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-gray-500 focus:outline-none focus:ring-1 focus:ring-gray-500"
-                    >
-                        <option value="all">Все товары</option>
-                        <option value="in_stock">Есть остаток</option>
-                        <option value="out_of_stock">Нет остатка</option>
-                        <option value="below_minimum">
-                            Ниже минимального остатка
-                        </option>
-                    </select>
+                    <div>
+                        <h2 class="font-semibold text-slate-900 dark:text-white">
+                            Фильтры
+                        </h2>
+                        <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                            Настройте параметры поиска товаров
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            <div
-                class="flex flex-wrap justify-end gap-2 border-t border-gray-100 pt-4"
-            >
-                <button
-                    type="button"
-                    class="rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-                    @click="resetFilters"
-                >
-                    Сбросить
-                </button>
+            <div class="space-y-4 p-5 sm:p-6">
+                <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <div>
+                        <label
+                            for="search"
+                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                            Поиск товара
+                        </label>
 
-                <button
-                    type="submit"
-                    class="rounded-lg bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800"
+                        <div class="relative">
+                            <Search class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+
+                            <input
+                                id="search"
+                                v-model="filters.search"
+                                type="search"
+                                placeholder="Название или артикул"
+                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-9 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label
+                            for="category_id"
+                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                            Категория
+                        </label>
+
+                        <select
+                            id="category_id"
+                            v-model="filters.category_id"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                        >
+                            <option value="">Все категории</option>
+
+                            <option
+                                v-for="category in props.categories"
+                                :key="category.id"
+                                :value="String(category.id)"
+                            >
+                                {{ category.name }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label
+                            for="rack_id"
+                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                            Стеллаж
+                        </label>
+
+                        <select
+                            id="rack_id"
+                            v-model="filters.rack_id"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                        >
+                            <option value="">Все стеллажи</option>
+
+                            <option
+                                v-for="rack in props.racks"
+                                :key="rack.id"
+                                :value="String(rack.id)"
+                            >
+                                {{ rack.code }}
+                                <template v-if="rack.name">
+                                    — {{ rack.name }}
+                                </template>
+                            </option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label
+                            for="stock"
+                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
+                        >
+                            Наличие
+                        </label>
+
+                        <select
+                            id="stock"
+                            v-model="filters.stock"
+                            class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 px-4 text-sm text-slate-900 outline-none transition focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
+                        >
+                            <option value="all">Все товары</option>
+                            <option value="in_stock">Есть остаток</option>
+                            <option value="out_of_stock">Нет остатка</option>
+                            <option value="below_minimum">
+                                Ниже минимального остатка
+                            </option>
+                        </select>
+                    </div>
+                </div>
+
+                <div
+                    class="flex flex-wrap justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800"
                 >
-                    Применить фильтры
-                </button>
+                    <button
+                        type="button"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 transition hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        @click="resetFilters"
+                    >
+                        <X class="h-4 w-4" />
+                        Сбросить
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+                    >
+                        <Filter class="h-4 w-4" />
+                        Применить фильтры
+                    </button>
+                </div>
             </div>
         </form>
 
         <!-- Таблица остатков -->
         <div
-            class="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm"
+            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
             <div
-                class="flex flex-col gap-1 border-b border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                class="flex flex-col gap-1 border-b border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
             >
-                <h2 class="font-semibold text-gray-900">
+                <h2 class="font-semibold text-slate-900 dark:text-white">
                     Складские запасы
                 </h2>
 
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
                     Найдено товаров: {{ props.products.total }}
                 </p>
             </div>
 
             <div class="overflow-x-auto">
                 <table
-                    class="w-full min-w-[1050px] divide-y divide-gray-200 text-sm"
+                    class="w-full min-w-[1050px] divide-y divide-slate-100 text-sm dark:divide-slate-800"
                 >
                     <thead
-                        class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wide text-gray-500"
+                        class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500 dark:bg-slate-950/60 dark:text-slate-400"
                     >
                     <tr>
-                        <th class="px-4 py-3">Товар</th>
-                        <th class="px-4 py-3">Категория</th>
-                        <th class="px-4 py-3">Расположение</th>
-                        <th class="px-4 py-3 text-right">Всего</th>
-                        <th class="px-4 py-3 text-right">Минимум</th>
-                        <th class="px-4 py-3 text-right">Не хватает</th>
-                        <th class="px-4 py-3 text-right">Действия</th>
+                        <th class="px-5 py-4">Товар</th>
+                        <th class="px-5 py-4">Категория</th>
+                        <th class="px-5 py-4">Расположение</th>
+                        <th class="px-5 py-4 text-right">Всего</th>
+                        <th class="px-5 py-4 text-right">Минимум</th>
+                        <th class="px-5 py-4 text-right">Не хватает</th>
+                        <th class="px-5 py-4 text-right">Действия</th>
                     </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-gray-100">
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
                     <tr
                         v-for="product in props.products.data"
                         :key="product.id"
-                        class="align-top transition hover:bg-gray-50"
+                        class="align-top transition hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
                         :class="
                                 Number(product.stock_deficit) > 0
-                                    ? 'bg-red-50/50'
+                                    ? 'bg-rose-50/50 dark:bg-rose-500/5'
                                     : ''
                             "
                     >
-                        <td class="px-4 py-4">
-                            <div class="font-medium text-gray-900">
+                        <td class="px-5 py-4">
+                            <div class="font-medium text-slate-900 dark:text-white">
                                 {{ product.name }}
                             </div>
 
-                            <div class="mt-1 text-xs text-gray-500">
+                            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                                 Артикул: {{ product.sku || '—' }}
                             </div>
                         </td>
 
-                        <td class="px-4 py-4 text-gray-600">
+                        <td class="px-5 py-4 text-slate-600 dark:text-slate-400">
                             {{ product.category || '—' }}
                         </td>
 
-                        <td class="px-4 py-4">
+                        <td class="px-5 py-4">
                             <div
                                 v-if="product.locations.length"
                                 class="flex flex-wrap gap-1.5"
@@ -369,7 +429,7 @@ function goToPage(url: string | null): void {
                                     <span
                                         v-for="location in product.locations"
                                         :key="location.id"
-                                        class="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs text-gray-700"
+                                        class="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-slate-50 px-2 py-1 text-xs text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                     >
                                         <span class="font-semibold">
                                             {{ location.code }}
@@ -377,12 +437,12 @@ function goToPage(url: string | null): void {
 
                                         <span
                                             v-if="location.rack_code"
-                                            class="text-gray-500"
+                                            class="text-slate-500 dark:text-slate-400"
                                         >
                                             ({{ location.rack_code }})
                                         </span>
 
-                                        <span class="text-gray-500">
+                                        <span class="text-slate-500 dark:text-slate-400">
                                             ·
                                             {{ formatNumber(location.quantity) }}
                                             {{ product.unit }}
@@ -392,19 +452,19 @@ function goToPage(url: string | null): void {
 
                             <span
                                 v-else
-                                class="text-gray-400"
+                                class="text-slate-400 dark:text-slate-500"
                             >
                                     Не размещён
-                                </span>
+                            </span>
                         </td>
 
-                        <td class="px-4 py-4 text-right">
+                        <td class="px-5 py-4 text-right">
                                 <span
                                     class="inline-flex min-w-12 justify-center rounded-lg px-2.5 py-1 font-semibold"
                                     :class="
                                         Number(product.stock_quantity) > 0
-                                            ? 'bg-green-50 text-green-700'
-                                            : 'bg-gray-100 text-gray-500'
+                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
                                     "
                                 >
                                     {{ formatNumber(product.stock_quantity) }}
@@ -412,10 +472,10 @@ function goToPage(url: string | null): void {
                                 </span>
                         </td>
 
-                        <td class="px-4 py-4 text-right">
+                        <td class="px-5 py-4 text-right">
                                 <span
                                     v-if="product.minimum_stock !== null"
-                                    class="text-gray-700"
+                                    class="text-slate-700 dark:text-slate-300"
                                 >
                                     {{ formatNumber(product.minimum_stock) }}
                                     {{ product.unit }}
@@ -423,16 +483,16 @@ function goToPage(url: string | null): void {
 
                             <span
                                 v-else
-                                class="text-gray-400"
+                                class="text-slate-400 dark:text-slate-500"
                             >
                                     Не задан
-                                </span>
+                            </span>
                         </td>
 
-                        <td class="px-4 py-4 text-right">
+                        <td class="px-5 py-4 text-right">
                                 <span
                                     v-if="Number(product.stock_deficit) > 0"
-                                    class="inline-flex min-w-16 justify-center rounded-lg bg-red-100 px-2.5 py-1 font-semibold text-red-700"
+                                    class="inline-flex min-w-16 justify-center rounded-lg bg-rose-100 px-2.5 py-1 font-semibold text-rose-700 dark:bg-rose-500/10 dark:text-rose-400"
                                 >
                                     {{ formatNumber(product.stock_deficit) }}
                                     {{ product.unit }}
@@ -440,16 +500,16 @@ function goToPage(url: string | null): void {
 
                             <span
                                 v-else
-                                class="text-gray-400"
+                                class="text-slate-400 dark:text-slate-500"
                             >
                                     —
-                                </span>
+                            </span>
                         </td>
 
-                        <td class="px-4 py-4 text-right">
+                        <td class="px-5 py-4 text-right">
                             <Link
                                 :href="`/admin/products/${product.id}`"
-                                class="font-medium text-gray-700 underline decoration-gray-300 underline-offset-4 hover:text-gray-950"
+                                class="font-medium text-slate-700 underline decoration-slate-300 underline-offset-4 hover:text-slate-950 dark:text-slate-300 dark:decoration-slate-600 dark:hover:text-white"
                             >
                                 Открыть
                             </Link>
@@ -459,13 +519,13 @@ function goToPage(url: string | null): void {
                     <tr v-if="props.products.data.length === 0">
                         <td
                             colspan="7"
-                            class="px-4 py-12 text-center"
+                            class="px-5 py-12 text-center"
                         >
-                            <p class="font-medium text-gray-900">
+                            <p class="font-medium text-slate-900 dark:text-white">
                                 Товары не найдены
                             </p>
 
-                            <p class="mt-1 text-sm text-gray-500">
+                            <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                                 Измените параметры поиска или сбросьте фильтры.
                             </p>
                         </td>
@@ -476,38 +536,82 @@ function goToPage(url: string | null): void {
 
             <!-- Пагинация -->
             <div
-                class="flex flex-col gap-3 border-t border-gray-200 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                v-if="props.products.links.length > 3"
+                class="flex flex-col gap-4 border-t border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between dark:border-slate-800"
             >
-                <p class="text-sm text-gray-500">
+                <p class="text-sm text-slate-500 dark:text-slate-400">
                     Показано {{ props.products.from ?? 0 }}–{{ props.products.to ?? 0 }}
                     из {{ props.products.total }}
                 </p>
 
-                <div class="flex flex-wrap gap-1">
+                <nav
+                    v-if="props.products.total > 0"
+                    class="flex flex-wrap items-center justify-center gap-1"
+                    aria-label="Навигация по страницам"
+                >
                     <template
                         v-for="(link, index) in props.products.links"
-                        :key="index"
+                        :key="`${index}-${link.label}`"
                     >
-                        <button
-                            v-if="link.url"
-                            type="button"
-                            class="rounded-lg border px-3 py-1.5 text-sm"
+                        <!-- Назад -->
+                        <Link
+                            v-if="index === 0 && link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300"
+                        >
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </Link>
+
+                        <span
+                            v-else-if="index === 0"
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-100 px-3 text-sm text-slate-300 dark:border-slate-800 dark:text-slate-600"
+                        >
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </span>
+
+                        <!-- Номера страниц -->
+                        <Link
+                            v-else-if="index !== props.products.links.length - 1 && link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
                             :class="
                                 link.active
-                                    ? 'border-gray-900 bg-gray-900 text-white'
-                                    : 'border-gray-200 bg-white text-gray-700 hover:bg-gray-50'
+                                    ? 'border-indigo-600 bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-sm'
+                                    : 'border-slate-200 text-slate-600 hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300'
                             "
-                            @click="goToPage(link.url)"
                             v-html="link.label"
                         />
 
                         <span
-                            v-else
-                            class="rounded-lg border border-gray-100 px-3 py-1.5 text-sm text-gray-300"
+                            v-else-if="index !== props.products.links.length - 1"
+                            class="inline-flex h-9 min-w-9 items-center justify-center px-2 text-sm text-slate-400"
                             v-html="link.label"
                         />
+
+                        <!-- Далее -->
+                        <Link
+                            v-else-if="link.url"
+                            :href="link.url"
+                            preserve-scroll
+                            class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-500/30 hover:bg-indigo-500/5 hover:text-indigo-600 dark:border-slate-700 dark:text-slate-300"
+                        >
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </Link>
+
+                        <span
+                            v-else
+                            class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-slate-100 px-3 text-sm text-slate-300 dark:border-slate-800 dark:text-slate-600"
+                        >
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </span>
                     </template>
-                </div>
+                </nav>
             </div>
         </div>
     </div>

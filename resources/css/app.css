@@ -13,9 +13,11 @@
         'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
         'Noto Color Emoji';
 
-    --radius-lg: var(--radius);
-    --radius-md: calc(var(--radius) - 2px);
+    --radius-xs: calc(var(--radius) - 6px);
     --radius-sm: calc(var(--radius) - 4px);
+    --radius-md: calc(var(--radius) - 2px);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) + 4px);
 
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -59,6 +61,12 @@
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-ring: var(--sidebar-ring);
+
+    --shadow-xs: var(--shadow-xs);
+    --shadow-sm: var(--shadow-sm);
+    --shadow-md: var(--shadow-md);
+    --shadow-lg: var(--shadow-lg);
+    --shadow-xl: var(--shadow-xl);
 }
 
 /*
@@ -90,40 +98,44 @@
 }
 
 :root {
-    --background: hsl(0 0% 100%);
-    --foreground: hsl(0 0% 3.9%);
+    --background: hsl(220 40% 98%);
+    --foreground: hsl(222 47% 11%);
     --card: hsl(0 0% 100%);
-    --card-foreground: hsl(0 0% 3.9%);
+    --card-foreground: hsl(222 47% 11%);
     --popover: hsl(0 0% 100%);
-    --popover-foreground: hsl(0 0% 3.9%);
-    --primary: hsl(0 0% 9%);
-    --primary-foreground: hsl(0 0% 98%);
-    --secondary: hsl(0 0% 92.1%);
-    --secondary-foreground: hsl(0 0% 9%);
-    --muted: hsl(0 0% 96.1%);
-    --muted-foreground: hsl(0 0% 45.1%);
-    --accent: hsl(0 0% 96.1%);
-    --accent-foreground: hsl(0 0% 9%);
-    --destructive: hsl(0 84.2% 60.2%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 92.8%);
-    --input: hsl(0 0% 89.8%);
-    --ring: hsl(0 0% 3.9%);
-    --chart-1: hsl(12 76% 61%);
-    --chart-2: hsl(173 58% 39%);
-    --chart-3: hsl(197 37% 24%);
-    --chart-4: hsl(43 74% 66%);
-    --chart-5: hsl(27 87% 67%);
-    --radius: 0.5rem;
-    --sidebar-background: hsl(0 0% 98%);
+    --popover-foreground: hsl(222 47% 11%);
+    --primary: hsl(220 70% 50%);
+    --primary-foreground: hsl(210 40% 98%);
+    --secondary: hsl(220 30% 96%);
+    --secondary-foreground: hsl(222 47% 11%);
+    --muted: hsl(220 20% 96%);
+    --muted-foreground: hsl(215 16% 47%);
+    --accent: hsl(262 70% 96%);
+    --accent-foreground: hsl(222 47% 11%);
+    --destructive: hsl(0 84% 60%);
+    --destructive-foreground: hsl(210 40% 98%);
+    --border: hsl(214 32% 91%);
+    --input: hsl(214 32% 91%);
+    --ring: hsl(220 70% 50%);
+    --chart-1: hsl(220 70% 50%);
+    --chart-2: hsl(220 70% 50%);
+    --chart-3: hsl(190 70% 50%);
+    --chart-4: hsl(280 70% 50%);
+    --chart-5: hsl(340 70% 50%);
+    --radius: 1rem;
+    --sidebar-background: hsl(0 0% 100%);
     --sidebar-foreground: hsl(240 5.3% 26.1%);
-    --sidebar-primary: hsl(0 0% 10%);
-    --sidebar-primary-foreground: hsl(0 0% 98%);
-    --sidebar-accent: hsl(0 0% 94%);
-    --sidebar-accent-foreground: hsl(0 0% 30%);
-    --sidebar-border: hsl(0 0% 91%);
-    --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(0 0% 98%);
+    --sidebar-primary: hsl(220 70% 50%);
+    --sidebar-primary-foreground: hsl(210 40% 98%);
+    --sidebar-accent: hsl(220 30% 96%);
+    --sidebar-accent-foreground: hsl(222 47% 11%);
+    --sidebar-border: hsl(214 32% 91%);
+    --sidebar-ring: hsl(220 70% 50%);
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 0% / 0.05);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.08), 0 1px 2px -1px hsl(0 0% 0% / 0.05);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.1), 0 2px 4px -2px hsl(0 0% 0% / 0.08);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.1), 0 4px 6px -4px hsl(0 0% 0% / 0.08);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 0% / 0.12), 0 8px 10px -6px hsl(0 0% 0% / 0.1);
 }
 
 .dark {
@@ -159,14 +171,30 @@
     --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
     --sidebar-border: hsl(0 0% 15.9%);
     --sidebar-ring: hsl(217.2 91.2% 59.8%);
-    --sidebar: hsl(240 5.9% 10%);
+    --shadow-xs: 0 1px 2px 0 hsl(0 0% 100% / 0.01);
+    --shadow-sm: 0 1px 3px 0 hsl(0 0% 100% / 0.04), 0 1px 2px -1px hsl(0 0% 100% / 0.04);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 100% / 0.04), 0 2px 4px -2px hsl(0 0% 100% / 0.04);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 100% / 0.04), 0 4px 6px -4px hsl(0 0% 100% / 0.04);
+    --shadow-xl: 0 20px 25px -5px hsl(0 0% 100% / 0.04), 0 8px 10px -6px hsl(0 0% 100% / 0.04);
 }
 
 @layer base {
     * {
         @apply border-border outline-ring/50;
+        text-rendering: optimizeLegibility;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        font-feature-settings:
+            'liga' 1,
+            'calt' 1;
     }
     body {
         @apply bg-background text-foreground;
+        line-height: 1.6;
+    }
+    html {
+        scroll-behavior: smooth;
+        text-size-adjust: 100%;
+        -webkit-text-size-adjust: 100%;
     }
 }

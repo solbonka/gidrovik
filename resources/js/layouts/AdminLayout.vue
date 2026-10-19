@@ -12,7 +12,7 @@ const toggleSidebar = (): void => {
 </script>
 
 <template>
-    <div class="min-h-screen bg-gray-100">
+    <div class="min-h-screen bg-background">
         <AdminSidebar
             :open="sidebarOpen"
             @close="sidebarOpen = false"
@@ -21,11 +21,13 @@ const toggleSidebar = (): void => {
         <div class="lg:pl-64">
             <AdminHeader @toggle-sidebar="toggleSidebar" />
 
-            <main class="p-4 sm:p-6 lg:p-8">
-                <slot />
+            <main class="px-3 py-4 sm:px-6 sm:py-6 lg:px-8">
+                <div class="mx-auto w-full max-w-7xl space-y-6">
+                    <slot />
+                </div>
             </main>
         </div>
 
-        <Toaster />
+        <Toaster rich-colors close-button position="top-right" />
     </div>
 </template>
