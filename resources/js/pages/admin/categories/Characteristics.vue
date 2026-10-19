@@ -1,7 +1,6 @@
-
 <script setup lang="ts">
-import { computed } from 'vue'
-import { Head, Link, useForm } from '@inertiajs/vue3'
+import { computed } from 'vue';
+import { Head, Link, useForm } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     SlidersHorizontal,
@@ -13,37 +12,37 @@ import {
     Hash,
     Settings2,
     X,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { index as categoriesIndex } from '@/routes/admin/categories'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index as categoriesIndex } from '@/routes/admin/categories';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Category {
-    id: number
-    name: string
-    slug: string
+    id: number;
+    name: string;
+    slug: string;
 }
 
 interface Characteristic {
-    id: number
-    name: string
-    slug: string
-    type: string
-    unit: string | null
-    assigned: boolean
-    is_required: boolean
-    sort_order: number
+    id: number;
+    name: string;
+    slug: string;
+    type: string;
+    unit: string | null;
+    assigned: boolean;
+    is_required: boolean;
+    sort_order: number;
 }
 
 interface Props {
-    category: Category
-    characteristics: Characteristic[]
+    category: Category;
+    characteristics: Characteristic[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const form = useForm({
     characteristics: props.characteristics.map((characteristic) => ({
@@ -52,7 +51,7 @@ const form = useForm({
         is_required: characteristic.is_required,
         sort_order: characteristic.sort_order,
     })),
-})
+});
 
 const typeLabels: Record<string, string> = {
     text: 'Текст',
@@ -62,22 +61,22 @@ const typeLabels: Record<string, string> = {
     decimal: 'Дробное число',
     select: 'Список',
     boolean: 'Да / Нет',
-}
+};
 
 const selectedCount = computed(() => {
     return form.characteristics.filter(
         (characteristic) => characteristic.enabled,
-    ).length
-})
+    ).length;
+});
 
 const requiredCount = computed(() => {
     return form.characteristics.filter(
         (characteristic) =>
             characteristic.enabled && characteristic.is_required,
-    ).length
-})
+    ).length;
+});
 
-const hasChanges = computed(() => form.isDirty)
+const hasChanges = computed(() => form.isDirty);
 
 const save = (): void => {
     const selectedCharacteristics = form.characteristics
@@ -86,14 +85,14 @@ const save = (): void => {
             id: characteristic.id,
             is_required: characteristic.is_required,
             sort_order: characteristic.sort_order,
-        }))
+        }));
 
     form.transform(() => ({
         characteristics: selectedCharacteristics,
     })).put(`/admin/categories/${props.category.id}/characteristics`, {
         preserveScroll: true,
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -105,7 +104,7 @@ const save = (): void => {
             class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-6 shadow-lg sm:px-8 sm:py-8"
         >
             <div
-                class="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl"
+                class="pointer-events-none absolute -top-16 -right-12 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl"
             />
 
             <div
@@ -137,7 +136,7 @@ const save = (): void => {
                         </div>
 
                         <h1
-                            class="break-words text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                            class="text-2xl font-bold tracking-tight break-words text-white sm:text-3xl"
                         >
                             Характеристики категории
                         </h1>
@@ -145,15 +144,15 @@ const save = (): void => {
                         <p class="mt-2 text-sm leading-6 text-slate-300">
                             Настройте параметры, доступные для категории
                             <span class="font-semibold text-white">
-                                {{ category.name }}
-                            </span>.
+                                {{ category.name }} </span
+                            >.
                         </p>
                     </div>
                 </div>
 
                 <Link
                     :href="categoriesIndex().url"
-                    class="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 sm:self-center"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:ring-2 focus:ring-white/50 focus:outline-none sm:self-center"
                 >
                     <ArrowLeft :size="16" />
                     К категориям
@@ -163,7 +162,7 @@ const save = (): void => {
 
         <!-- Информация о категории -->
         <div
-            class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            class="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700 dark:bg-slate-900"
         >
             <div class="flex min-w-0 items-center gap-3">
                 <div
@@ -173,10 +172,14 @@ const save = (): void => {
                 </div>
 
                 <div class="min-w-0">
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                    >
                         Настраиваемая категория
                     </p>
-                    <p class="mt-1 truncate text-base font-semibold text-slate-900 dark:text-white">
+                    <p
+                        class="mt-1 truncate text-base font-semibold text-slate-900 dark:text-white"
+                    >
                         {{ category.name }}
                     </p>
                     <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -207,21 +210,24 @@ const save = (): void => {
             class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
             <div
-                class="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700"
             >
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                    <h2
+                        class="text-lg font-semibold text-slate-900 dark:text-white"
+                    >
                         Доступные характеристики
                     </h2>
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Отметьте параметры, которые должны использоваться у товаров этой категории.
+                        Отметьте параметры, которые должны использоваться у
+                        товаров этой категории.
                     </p>
                 </div>
 
                 <button
                     type="button"
                     :disabled="form.processing || !hasChanges"
-                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     @click="save"
                 >
                     <span
@@ -229,7 +235,11 @@ const save = (): void => {
                         class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
                     />
                     <Save v-else :size="16" />
-                    {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
+                    {{
+                        form.processing
+                            ? 'Сохранение...'
+                            : 'Сохранить изменения'
+                    }}
                 </button>
             </div>
 
@@ -237,125 +247,134 @@ const save = (): void => {
             <div class="overflow-x-auto">
                 <table class="w-full min-w-[850px] text-left text-sm">
                     <thead>
-                    <tr
-                        class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/60"
-                    >
-                        <th
-                            class="w-32 px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:px-6"
+                        <tr
+                            class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/60"
                         >
-                            Использовать
-                        </th>
+                            <th
+                                class="w-32 px-5 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase sm:px-6 dark:text-slate-400"
+                            >
+                                Использовать
+                            </th>
 
-                        <th
-                            class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 sm:px-6"
-                        >
-                            Характеристика
-                        </th>
+                            <th
+                                class="px-5 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase sm:px-6 dark:text-slate-400"
+                            >
+                                Характеристика
+                            </th>
 
-                        <th
-                            class="px-4 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Тип
-                        </th>
+                            <th
+                                class="px-4 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Тип
+                            </th>
 
-                        <th
-                            class="px-4 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Единица
-                        </th>
+                            <th
+                                class="px-4 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Единица
+                            </th>
 
-                        <th
-                            class="w-36 px-4 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Обязательная
-                        </th>
+                            <th
+                                class="w-36 px-4 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Обязательная
+                            </th>
 
-                        <th
-                            class="w-32 px-4 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Порядок
-                        </th>
-                    </tr>
+                            <th
+                                class="w-32 px-4 py-4 text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Порядок
+                            </th>
+                        </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    <tr
-                        v-for="(characteristic, index) in characteristics"
-                        :key="characteristic.id"
-                        class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                    <tbody
+                        class="divide-y divide-slate-100 dark:divide-slate-800"
                     >
-                        <!-- Использовать -->
-                        <td class="px-5 py-4 sm:px-6">
-                            <label class="inline-flex cursor-pointer items-center gap-2.5">
-                                <input
-                                    v-model="form.characteristics[index].enabled"
-                                    type="checkbox"
-                                    class="size-4 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800"
-                                />
+                        <tr
+                            v-for="(characteristic, index) in characteristics"
+                            :key="characteristic.id"
+                            class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                        >
+                            <!-- Использовать -->
+                            <td class="px-5 py-4 sm:px-6">
+                                <label
+                                    class="inline-flex cursor-pointer items-center gap-2.5"
+                                >
+                                    <input
+                                        v-model="
+                                            form.characteristics[index].enabled
+                                        "
+                                        type="checkbox"
+                                        class="size-4 rounded border-slate-300 text-indigo-600 focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-600 dark:bg-slate-800"
+                                    />
 
-                                <span
-                                    class="text-xs font-semibold"
-                                    :class="
+                                    <span
+                                        class="text-xs font-semibold"
+                                        :class="
                                             form.characteristics[index].enabled
                                                 ? 'text-indigo-700 dark:text-indigo-300'
                                                 : 'text-slate-400 dark:text-slate-500'
                                         "
-                                >
+                                    >
                                         {{
-                                        form.characteristics[index].enabled
-                                            ? 'Включена'
-                                            : 'Выключена'
-                                    }}
+                                            form.characteristics[index].enabled
+                                                ? 'Включена'
+                                                : 'Выключена'
+                                        }}
                                     </span>
-                            </label>
-                        </td>
+                                </label>
+                            </td>
 
-                        <!-- Название -->
-                        <td class="px-5 py-4 sm:px-6">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                                    :class="
+                            <!-- Название -->
+                            <td class="px-5 py-4 sm:px-6">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                                        :class="
                                             form.characteristics[index].enabled
                                                 ? 'bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400'
                                                 : 'bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500'
                                         "
-                                >
-                                    <Hash :size="17" />
-                                </div>
+                                    >
+                                        <Hash :size="17" />
+                                    </div>
 
-                                <div class="min-w-0">
-                                    <p
-                                        class="font-semibold"
-                                        :class="
-                                                form.characteristics[index].enabled
+                                    <div class="min-w-0">
+                                        <p
+                                            class="font-semibold"
+                                            :class="
+                                                form.characteristics[index]
+                                                    .enabled
                                                     ? 'text-slate-900 dark:text-white'
                                                     : 'text-slate-500 dark:text-slate-400'
                                             "
-                                    >
-                                        {{ characteristic.name }}
-                                    </p>
-                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                        {{ characteristic.slug }}
-                                    </p>
+                                        >
+                                            {{ characteristic.name }}
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+                                        >
+                                            {{ characteristic.slug }}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        </td>
+                            </td>
 
-                        <!-- Тип -->
-                        <td class="px-4 py-4">
+                            <!-- Тип -->
+                            <td class="px-4 py-4">
                                 <span
                                     class="inline-flex items-center rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300"
                                 >
                                     {{
-                                        typeLabels[characteristic.type]
-                                        ?? characteristic.type
+                                        typeLabels[characteristic.type] ??
+                                        characteristic.type
                                     }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <!-- Единица -->
-                        <td class="px-4 py-4">
+                            <!-- Единица -->
+                            <td class="px-4 py-4">
                                 <span
                                     class="text-sm"
                                     :class="
@@ -366,84 +385,106 @@ const save = (): void => {
                                 >
                                     {{ characteristic.unit || '—' }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <!-- Обязательность -->
-                        <td class="px-4 py-4">
-                            <label
-                                class="inline-flex items-center gap-2.5"
-                                :class="
+                            <!-- Обязательность -->
+                            <td class="px-4 py-4">
+                                <label
+                                    class="inline-flex items-center gap-2.5"
+                                    :class="
                                         form.characteristics[index].enabled
                                             ? 'cursor-pointer'
                                             : 'cursor-not-allowed opacity-50'
                                     "
-                            >
-                                <input
-                                    v-model="form.characteristics[index].is_required"
-                                    type="checkbox"
-                                    :disabled="!form.characteristics[index].enabled"
-                                    class="size-4 rounded border-slate-300 text-amber-600 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-800"
-                                />
+                                >
+                                    <input
+                                        v-model="
+                                            form.characteristics[index]
+                                                .is_required
+                                        "
+                                        type="checkbox"
+                                        :disabled="
+                                            !form.characteristics[index].enabled
+                                        "
+                                        class="size-4 rounded border-slate-300 text-amber-600 focus:ring-2 focus:ring-amber-500/20 disabled:cursor-not-allowed dark:border-slate-600 dark:bg-slate-800"
+                                    />
 
-                                <span
-                                    class="text-sm"
-                                    :class="
-                                            form.characteristics[index].is_required &&
+                                    <span
+                                        class="text-sm"
+                                        :class="
+                                            form.characteristics[index]
+                                                .is_required &&
                                             form.characteristics[index].enabled
                                                 ? 'font-medium text-amber-700 dark:text-amber-300'
                                                 : 'text-slate-500 dark:text-slate-400'
                                         "
-                                >
+                                    >
                                         {{
-                                        form.characteristics[index].is_required &&
-                                        form.characteristics[index].enabled
-                                            ? 'Да'
-                                            : 'Нет'
-                                    }}
+                                            form.characteristics[index]
+                                                .is_required &&
+                                            form.characteristics[index].enabled
+                                                ? 'Да'
+                                                : 'Нет'
+                                        }}
                                     </span>
-                            </label>
-                        </td>
+                                </label>
+                            </td>
 
-                        <!-- Порядок -->
-                        <td class="px-4 py-4">
-                            <input
-                                v-model.number="form.characteristics[index].sort_order"
-                                type="number"
-                                min="0"
-                                :disabled="!form.characteristics[index].enabled"
-                                :aria-label="`Порядок характеристики ${characteristic.name}`"
-                                class="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-800/50"
-                            />
-                        </td>
-                    </tr>
+                            <!-- Порядок -->
+                            <td class="px-4 py-4">
+                                <input
+                                    v-model.number="
+                                        form.characteristics[index].sort_order
+                                    "
+                                    type="number"
+                                    min="0"
+                                    :disabled="
+                                        !form.characteristics[index].enabled
+                                    "
+                                    :aria-label="`Порядок характеристики ${characteristic.name}`"
+                                    class="w-24 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 transition outline-none focus:border-indigo-400 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:disabled:bg-slate-800/50"
+                                />
+                            </td>
+                        </tr>
 
-                    <tr v-if="characteristics.length === 0">
-                        <td colspan="6" class="px-6 py-16 text-center">
-                            <div
-                                class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                            >
-                                <SlidersHorizontal :size="28" />
-                            </div>
+                        <tr v-if="characteristics.length === 0">
+                            <td colspan="6" class="px-6 py-16 text-center">
+                                <div
+                                    class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                                >
+                                    <SlidersHorizontal :size="28" />
+                                </div>
 
-                            <h3 class="mt-4 text-sm font-semibold text-slate-900 dark:text-white">
-                                Характеристик пока нет
-                            </h3>
+                                <h3
+                                    class="mt-4 text-sm font-semibold text-slate-900 dark:text-white"
+                                >
+                                    Характеристик пока нет
+                                </h3>
 
-                            <p class="mx-auto mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400">
-                                Сначала добавьте характеристики в справочнике, затем назначьте их этой категории.
-                            </p>
-                        </td>
-                    </tr>
+                                <p
+                                    class="mx-auto mt-1 max-w-md text-sm text-slate-500 dark:text-slate-400"
+                                >
+                                    Сначала добавьте характеристики в
+                                    справочнике, затем назначьте их этой
+                                    категории.
+                                </p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
 
             <!-- Нижняя панель -->
             <div
-                class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50/70 px-5 py-4 dark:border-slate-700 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700 dark:bg-slate-800/30"
             >
-                <p class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                    <CheckCircle2 :size="16" class="shrink-0 text-emerald-500" />
+                <p
+                    class="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400"
+                >
+                    <CheckCircle2
+                        :size="16"
+                        class="shrink-0 text-emerald-500"
+                    />
                     Выбрано характеристик:
                     <span class="font-semibold text-slate-900 dark:text-white">
                         {{ selectedCount }}
@@ -454,7 +495,7 @@ const save = (): void => {
                 <button
                     type="button"
                     :disabled="form.processing || !hasChanges"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-50"
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50"
                     @click="save"
                 >
                     <span
@@ -462,7 +503,11 @@ const save = (): void => {
                         class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
                     />
                     <Save v-else :size="17" />
-                    {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
+                    {{
+                        form.processing
+                            ? 'Сохранение...'
+                            : 'Сохранить изменения'
+                    }}
                 </button>
             </div>
         </div>
@@ -477,11 +522,19 @@ const save = (): void => {
             />
 
             <div>
-                <p class="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                <p
+                    class="text-sm font-semibold text-blue-900 dark:text-blue-200"
+                >
                     Как работает настройка
                 </p>
-                <p class="mt-1 text-sm leading-5 text-blue-800/80 dark:text-blue-300/80">
-                    Включённые характеристики будут доступны у товаров категории. Обязательные поля должны заполняться при создании или редактировании товара, если это предусмотрено серверной валидацией. Чем меньше значение порядка, тем раньше характеристика отображается.
+                <p
+                    class="mt-1 text-sm leading-5 text-blue-800/80 dark:text-blue-300/80"
+                >
+                    Включённые характеристики будут доступны у товаров
+                    категории. Обязательные поля должны заполняться при создании
+                    или редактировании товара, если это предусмотрено серверной
+                    валидацией. Чем меньше значение порядка, тем раньше
+                    характеристика отображается.
                 </p>
             </div>
         </div>

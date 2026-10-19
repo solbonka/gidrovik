@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -163,9 +162,7 @@ const form = useForm({
 });
 
 const selectedCategory = computed<Category | undefined>(() =>
-    props.categories.find(
-        (category) => category.id === form.category_id,
-    ),
+    props.categories.find((category) => category.id === form.category_id),
 );
 
 const characteristics = computed<Characteristic[]>(
@@ -226,11 +223,7 @@ const maxConnections = computed(() => {
     return 0;
 });
 
-const visibleConnections = reactive<boolean[]>([
-    false,
-    false,
-    false,
-]);
+const visibleConnections = reactive<boolean[]>([false, false, false]);
 
 for (const connection of props.product.connections) {
     const connectionIndex = connection.position - 1;
@@ -250,10 +243,7 @@ for (const connection of props.product.connections) {
 watch(
     () => form.category_id,
     (categoryId, oldCategoryId) => {
-        if (
-            categoryId === oldCategoryId ||
-            oldCategoryId === undefined
-        ) {
+        if (categoryId === oldCategoryId || oldCategoryId === undefined) {
             return;
         }
 
@@ -262,19 +252,18 @@ watch(
     },
 );
 
-const activeConnectionsCount = computed(() =>
-    form.connections.filter(
-        (connection) =>
-            connection.standard_id ||
-            connection.diameter_id ||
-            connection.thread_id,
-    ).length,
+const activeConnectionsCount = computed(
+    () =>
+        form.connections.filter(
+            (connection) =>
+                connection.standard_id ||
+                connection.diameter_id ||
+                connection.thread_id,
+        ).length,
 );
 
 const showConnection = (connectionIndex: number): void => {
-    if (
-        activeConnectionsCount.value >= maxConnections.value
-    ) {
+    if (activeConnectionsCount.value >= maxConnections.value) {
         return;
     }
 
@@ -292,9 +281,7 @@ const hideConnection = (connectionIndex: number): void => {
     visibleConnections[connectionIndex] = false;
 };
 
-const characteristicError = (
-    id: number,
-): string | undefined => {
+const characteristicError = (id: number): string | undefined => {
     const key = `characteristics.${id}` as keyof typeof form.errors;
 
     return form.errors[key];
@@ -347,13 +334,13 @@ const submit = (): void => {
 
                         <div class="min-w-0">
                             <h1
-                                class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl"
+                                class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
                             >
                                 Редактирование товара
                             </h1>
 
                             <p
-                                class="mt-1 break-words text-sm text-gray-500 dark:text-gray-400"
+                                class="mt-1 text-sm break-words text-gray-500 dark:text-gray-400"
                             >
                                 {{ product.name }}
                             </p>
@@ -382,7 +369,9 @@ const submit = (): void => {
                                                 : 'bg-gray-400'
                                         "
                                     />
-                                    {{ form.is_active ? 'Активен' : 'Неактивен' }}
+                                    {{
+                                        form.is_active ? 'Активен' : 'Неактивен'
+                                    }}
                                 </span>
                             </div>
                         </div>
@@ -399,16 +388,13 @@ const submit = (): void => {
             </div>
         </header>
 
-        <form
-            class="space-y-6"
-            @submit.prevent="submit"
-        >
+        <form class="space-y-6" @submit.prevent="submit">
             <!-- Основная информация -->
             <section
                 class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
                 <div
-                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6"
+                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
                 >
                     <div
                         class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
@@ -417,13 +403,13 @@ const submit = (): void => {
                     </div>
 
                     <div>
-                        <h2
-                            class="font-semibold text-gray-900 dark:text-white"
-                        >
+                        <h2 class="font-semibold text-gray-900 dark:text-white">
                             Основная информация
                         </h2>
 
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             Название, категория и параметры учёта
                         </p>
                     </div>
@@ -495,7 +481,8 @@ const submit = (): void => {
                                 step="0.001"
                                 class="form-input pr-16"
                                 :class="{
-                                    'form-input-error': form.errors.minimum_stock,
+                                    'form-input-error':
+                                        form.errors.minimum_stock,
                                 }"
                                 placeholder="Не задан"
                             />
@@ -507,16 +494,15 @@ const submit = (): void => {
                             </span>
                         </div>
 
-                        <p class="mt-1.5 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-1.5 text-xs leading-5 text-gray-500 dark:text-gray-400"
+                        >
                             Если остаток на всех складах станет ниже указанного
                             значения, товар попадёт в список дефицита. Пустое
                             поле отключает контроль.
                         </p>
 
-                        <p
-                            v-if="form.errors.minimum_stock"
-                            class="field-error"
-                        >
+                        <p v-if="form.errors.minimum_stock" class="field-error">
                             {{ form.errors.minimum_stock }}
                         </p>
                     </div>
@@ -538,9 +524,7 @@ const submit = (): void => {
                                 'form-input-error': form.errors.category_id,
                             }"
                         >
-                            <option :value="0">
-                                Выберите категорию
-                            </option>
+                            <option :value="0">Выберите категорию</option>
 
                             <option
                                 v-for="category in categories"
@@ -551,10 +535,7 @@ const submit = (): void => {
                             </option>
                         </select>
 
-                        <p
-                            v-if="form.errors.category_id"
-                            class="field-error"
-                        >
+                        <p v-if="form.errors.category_id" class="field-error">
                             {{ form.errors.category_id }}
                         </p>
                     </div>
@@ -576,9 +557,7 @@ const submit = (): void => {
                             }"
                             :disabled="!form.category_id"
                         >
-                            <option :value="null">
-                                Не указан
-                            </option>
+                            <option :value="null">Не указан</option>
 
                             <option
                                 v-for="type in productTypes"
@@ -709,10 +688,7 @@ const submit = (): void => {
                             </option>
                         </select>
 
-                        <p
-                            v-if="form.errors.country_id"
-                            class="field-error"
-                        >
+                        <p v-if="form.errors.country_id" class="field-error">
                             {{ form.errors.country_id }}
                         </p>
                     </div>
@@ -736,16 +712,13 @@ const submit = (): void => {
                             placeholder="Дополнительная информация о товаре..."
                         />
 
-                        <p
-                            v-if="form.errors.description"
-                            class="field-error"
-                        >
+                        <p v-if="form.errors.description" class="field-error">
                             {{ form.errors.description }}
                         </p>
                     </div>
 
                     <div
-                        class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-800/50 sm:col-span-2"
+                        class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 sm:col-span-2 dark:border-gray-700 dark:bg-gray-800/50"
                     >
                         <label class="flex cursor-pointer items-start gap-3">
                             <input
@@ -764,9 +737,9 @@ const submit = (): void => {
                                 <span
                                     class="mt-1 block text-xs leading-5 text-gray-500 dark:text-gray-400"
                                 >
-                                    Неактивный товар останется в системе, но
-                                    не будет доступен для использования там,
-                                    где предусмотрена фильтрация активных товаров.
+                                    Неактивный товар останется в системе, но не
+                                    будет доступен для использования там, где
+                                    предусмотрена фильтрация активных товаров.
                                 </span>
                             </span>
                         </label>
@@ -779,7 +752,7 @@ const submit = (): void => {
                 class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
                 <div
-                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6"
+                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
                 >
                     <div
                         class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
@@ -788,13 +761,13 @@ const submit = (): void => {
                     </div>
 
                     <div>
-                        <h2
-                            class="font-semibold text-gray-900 dark:text-white"
-                        >
+                        <h2 class="font-semibold text-gray-900 dark:text-white">
                             Характеристики
                         </h2>
 
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             Параметры определяются выбранной категорией
                         </p>
                     </div>
@@ -838,7 +811,9 @@ const submit = (): void => {
                                     class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
                                 />
 
-                                <span class="text-sm text-gray-700 dark:text-gray-300">
+                                <span
+                                    class="text-sm text-gray-700 dark:text-gray-300"
+                                >
                                     Да
                                 </span>
                             </label>
@@ -897,16 +872,19 @@ const submit = (): void => {
                     <div
                         class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700"
                     >
-                        <Layers3
-                            class="mx-auto h-8 w-8 text-gray-400"
-                        />
+                        <Layers3 class="mx-auto h-8 w-8 text-gray-400" />
 
-                        <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <p
+                            class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                             Характеристики не настроены
                         </p>
 
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Для выбранной категории нет дополнительных параметров.
+                        <p
+                            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                            Для выбранной категории нет дополнительных
+                            параметров.
                         </p>
                     </div>
                 </div>
@@ -918,7 +896,7 @@ const submit = (): void => {
                 class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-700 dark:bg-gray-900"
             >
                 <div
-                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 dark:border-gray-800 sm:px-6"
+                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
                 >
                     <div
                         class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
@@ -927,19 +905,19 @@ const submit = (): void => {
                     </div>
 
                     <div>
-                        <h2
-                            class="font-semibold text-gray-900 dark:text-white"
-                        >
+                        <h2 class="font-semibold text-gray-900 dark:text-white">
                             Подключения
                         </h2>
 
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             {{
                                 isFitting
                                     ? 'Одно подключение для фитинга'
                                     : isCoupling
-                                        ? 'Укажите диаметр муфты'
-                                        : `До ${maxConnections} подключений для адаптера`
+                                      ? 'Укажите диаметр муфты'
+                                      : `До ${maxConnections} подключений для адаптера`
                             }}
                         </p>
                     </div>
@@ -947,7 +925,9 @@ const submit = (): void => {
 
                 <div class="space-y-4 p-5 sm:p-6">
                     <div
-                        v-for="(connection, connectionIndex) in form.connections"
+                        v-for="(
+                            connection, connectionIndex
+                        ) in form.connections"
                         :key="connection.position"
                         class="overflow-hidden rounded-xl border border-gray-200 transition-colors dark:border-gray-700"
                         :class="
@@ -978,9 +958,15 @@ const submit = (): void => {
                                         Подключение {{ connection.position }}
                                     </h3>
 
-                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <p
+                                        class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                                    >
                                         <template
-                                            v-if="visibleConnections[connectionIndex]"
+                                            v-if="
+                                                visibleConnections[
+                                                    connectionIndex
+                                                ]
+                                            "
                                         >
                                             {{
                                                 connection.standard_id ||
@@ -1051,7 +1037,8 @@ const submit = (): void => {
                                         :key="standard.id"
                                         :value="standard.id"
                                     >
-                                        {{ standard.code }} — {{ standard.name }}
+                                        {{ standard.code }} —
+                                        {{ standard.name }}
                                     </option>
                                 </select>
                             </div>
@@ -1101,7 +1088,8 @@ const submit = (): void => {
                                         :key="thread.id"
                                         :value="thread.id"
                                     >
-                                        {{ thread.designation }} — {{ thread.name }}
+                                        {{ thread.designation }} —
+                                        {{ thread.name }}
                                     </option>
                                 </select>
                             </div>
@@ -1117,7 +1105,7 @@ const submit = (): void => {
                                 {{
                                     form.errors[
                                         `connections.${connectionIndex}.position`
-                                        ]
+                                    ]
                                 }}
                             </p>
                         </div>
@@ -1133,9 +1121,7 @@ const submit = (): void => {
                 <CircleAlert class="mt-0.5 h-5 w-5 shrink-0" />
 
                 <div>
-                    <p class="font-semibold">
-                        Не удалось сохранить изменения
-                    </p>
+                    <p class="font-semibold">Не удалось сохранить изменения</p>
 
                     <p class="mt-1">
                         Проверьте поля с ошибками и повторите попытку.
@@ -1145,9 +1131,11 @@ const submit = (): void => {
 
             <!-- Кнопки -->
             <div
-                class="flex flex-col-reverse gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col-reverse gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-gray-700 dark:bg-gray-900"
             >
-                <p class="hidden items-center gap-2 text-xs text-gray-500 dark:text-gray-400 md:flex">
+                <p
+                    class="hidden items-center gap-2 text-xs text-gray-500 md:flex dark:text-gray-400"
+                >
                     <Warehouse class="h-4 w-4" />
                     Изменения применятся после сохранения формы
                 </p>
@@ -1163,7 +1151,7 @@ const submit = (): void => {
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
                     >
                         <span
                             v-if="form.processing"

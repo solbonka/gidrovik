@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Head, Link, useForm } from '@inertiajs/vue3';
@@ -120,9 +119,8 @@ const selectedCategory = computed<Category | null>(() => {
     }
 
     return (
-        props.categories.find(
-            (category) => category.id === form.category_id,
-        ) ?? null
+        props.categories.find((category) => category.id === form.category_id) ??
+        null
     );
 });
 
@@ -202,7 +200,7 @@ const maxConnections = computed(() => {
     if (isFitting.value) return 1;
     if (isAdapter.value) return 3;
     if (isCoupling.value) return 1;
-    if (isHose.value) return 1
+    if (isHose.value) return 1;
 
     return 0;
 });
@@ -313,13 +311,16 @@ const submit = (): void => {
 
                         <div>
                             <h1
-                                class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl"
+                                class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
                             >
                                 Новый товар
                             </h1>
 
-                            <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-                                Создание товара с характеристиками и параметрами подключения
+                            <p
+                                class="mt-1 text-sm text-gray-500 dark:text-gray-400"
+                            >
+                                Создание товара с характеристиками и параметрами
+                                подключения
                             </p>
                         </div>
                     </div>
@@ -346,9 +347,7 @@ const submit = (): void => {
                     </div>
 
                     <div>
-                        <h2 class="form-card-title">
-                            Основная информация
-                        </h2>
+                        <h2 class="form-card-title">Основная информация</h2>
 
                         <p class="form-card-subtitle">
                             Название, категория и параметры учёта
@@ -366,11 +365,11 @@ const submit = (): void => {
                             id="category"
                             v-model="form.category_id"
                             class="form-input"
-                            :class="{ 'form-input-error': form.errors.category_id }"
+                            :class="{
+                                'form-input-error': form.errors.category_id,
+                            }"
                         >
-                            <option :value="null">
-                                Выберите категорию
-                            </option>
+                            <option :value="null">Выберите категорию</option>
 
                             <option
                                 v-for="category in categories"
@@ -400,9 +399,7 @@ const submit = (): void => {
                             }"
                             :disabled="!form.category_id"
                         >
-                            <option :value="null">
-                                Выберите тип
-                            </option>
+                            <option :value="null">Выберите тип</option>
 
                             <option
                                 v-for="type in productTypes"
@@ -413,7 +410,10 @@ const submit = (): void => {
                             </option>
                         </select>
 
-                        <p v-if="form.errors.product_type_id" class="field-error">
+                        <p
+                            v-if="form.errors.product_type_id"
+                            class="field-error"
+                        >
                             {{ form.errors.product_type_id }}
                         </p>
                     </div>
@@ -472,7 +472,8 @@ const submit = (): void => {
                                 step="0.001"
                                 class="form-input pr-16"
                                 :class="{
-                                    'form-input-error': form.errors.minimum_stock,
+                                    'form-input-error':
+                                        form.errors.minimum_stock,
                                 }"
                                 placeholder="Не задан"
                             />
@@ -484,9 +485,11 @@ const submit = (): void => {
                             </span>
                         </div>
 
-                        <p class="mt-1.5 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                            При остатке ниже указанного значения товар попадёт
-                            в список дефицита. Оставьте поле пустым, чтобы
+                        <p
+                            class="mt-1.5 text-xs leading-5 text-gray-500 dark:text-gray-400"
+                        >
+                            При остатке ниже указанного значения товар попадёт в
+                            список дефицита. Оставьте поле пустым, чтобы
                             отключить контроль.
                         </p>
 
@@ -496,9 +499,7 @@ const submit = (): void => {
                     </div>
 
                     <div v-if="isFitting">
-                        <label for="angle" class="form-label">
-                            Угол
-                        </label>
+                        <label for="angle" class="form-label"> Угол </label>
 
                         <select
                             id="angle"
@@ -506,9 +507,7 @@ const submit = (): void => {
                             class="form-input"
                             :class="{ 'form-input-error': form.errors.angle }"
                         >
-                            <option :value="null">
-                                Не указан
-                            </option>
+                            <option :value="null">Не указан</option>
 
                             <option :value="45">45°</option>
                             <option :value="90">90°</option>
@@ -566,7 +565,10 @@ const submit = (): void => {
                             </option>
                         </select>
 
-                        <p v-if="form.errors.manufacturer_id" class="field-error">
+                        <p
+                            v-if="form.errors.manufacturer_id"
+                            class="field-error"
+                        >
                             {{ form.errors.manufacturer_id }}
                         </p>
                     </div>
@@ -580,7 +582,9 @@ const submit = (): void => {
                             id="country"
                             v-model="form.country_id"
                             class="form-input"
-                            :class="{ 'form-input-error': form.errors.country_id }"
+                            :class="{
+                                'form-input-error': form.errors.country_id,
+                            }"
                         >
                             <option :value="null">Не выбрана</option>
 
@@ -620,7 +624,7 @@ const submit = (): void => {
                     </div>
 
                     <div
-                        class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 dark:border-gray-700 dark:bg-gray-800/50 sm:col-span-2"
+                        class="rounded-xl border border-gray-200 bg-gray-50/80 p-4 sm:col-span-2 dark:border-gray-700 dark:bg-gray-800/50"
                     >
                         <label class="flex cursor-pointer items-start gap-3">
                             <input
@@ -630,13 +634,17 @@ const submit = (): void => {
                             />
 
                             <span>
-                                <span class="block text-sm font-semibold text-gray-800 dark:text-gray-200">
+                                <span
+                                    class="block text-sm font-semibold text-gray-800 dark:text-gray-200"
+                                >
                                     Товар активен
                                 </span>
 
-                                <span class="mt-1 block text-xs leading-5 text-gray-500 dark:text-gray-400">
-                                    Активный товар будет доступен в тех разделах,
-                                    где используются активные товары.
+                                <span
+                                    class="mt-1 block text-xs leading-5 text-gray-500 dark:text-gray-400"
+                                >
+                                    Активный товар будет доступен в тех
+                                    разделах, где используются активные товары.
                                 </span>
                             </span>
                         </label>
@@ -645,10 +653,7 @@ const submit = (): void => {
             </section>
 
             <!-- Характеристики -->
-            <section
-                v-if="form.category_id"
-                class="form-card"
-            >
+            <section v-if="form.category_id" class="form-card">
                 <div class="form-card-heading">
                     <div
                         class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
@@ -657,9 +662,7 @@ const submit = (): void => {
                     </div>
 
                     <div>
-                        <h2 class="form-card-title">
-                            Характеристики
-                        </h2>
+                        <h2 class="form-card-title">Характеристики</h2>
 
                         <p class="form-card-subtitle">
                             Параметры определяются выбранной категорией
@@ -696,14 +699,18 @@ const submit = (): void => {
                             >
                                 <input
                                     :id="`characteristic-${characteristic.id}`"
-                                    v-model="form.characteristics[characteristic.id]"
+                                    v-model="
+                                        form.characteristics[characteristic.id]
+                                    "
                                     type="checkbox"
                                     :true-value="'1'"
                                     :false-value="'0'"
                                     class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-800"
                                 />
 
-                                <span class="text-sm text-gray-700 dark:text-gray-300">
+                                <span
+                                    class="text-sm text-gray-700 dark:text-gray-300"
+                                >
                                     Да
                                 </span>
                             </label>
@@ -712,7 +719,9 @@ const submit = (): void => {
                         <template v-else>
                             <input
                                 :id="`characteristic-${characteristic.id}`"
-                                v-model="form.characteristics[characteristic.id]"
+                                v-model="
+                                    form.characteristics[characteristic.id]
+                                "
                                 :type="
                                     characteristic.type === 'integer' ||
                                     characteristic.type === 'decimal'
@@ -750,14 +759,20 @@ const submit = (): void => {
                 </div>
 
                 <div v-else class="p-5 sm:p-6">
-                    <div class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700">
+                    <div
+                        class="rounded-xl border border-dashed border-gray-300 px-4 py-8 text-center dark:border-gray-700"
+                    >
                         <Layers3 class="mx-auto h-8 w-8 text-gray-400" />
 
-                        <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <p
+                            class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                             Характеристики не настроены
                         </p>
 
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             Для этой категории нет дополнительных параметров.
                         </p>
                     </div>
@@ -777,19 +792,17 @@ const submit = (): void => {
                     </div>
 
                     <div class="min-w-0 flex-1">
-                        <h2 class="form-card-title">
-                            Подключения
-                        </h2>
+                        <h2 class="form-card-title">Подключения</h2>
 
                         <p class="form-card-subtitle">
                             {{
                                 isFitting
                                     ? 'Одно подключение для фитинга'
                                     : isCoupling
-                                        ? 'Укажите диаметр муфты'
-                                        : isHose
-                                            ? 'Укажите диаметр рукава'
-                                            : `До ${maxConnections} подключений для адаптера`
+                                      ? 'Укажите диаметр муфты'
+                                      : isHose
+                                        ? 'Укажите диаметр рукава'
+                                        : `До ${maxConnections} подключений для адаптера`
                             }}
                         </p>
                     </div>
@@ -808,22 +821,32 @@ const submit = (): void => {
 
                 <div class="space-y-4 p-5 sm:p-6">
                     <div
-                        v-for="(connection, connectionIndex) in form.connections"
+                        v-for="(
+                            connection, connectionIndex
+                        ) in form.connections"
                         :key="connection.position"
                         class="overflow-hidden rounded-xl border border-gray-200 dark:border-gray-700"
                     >
-                        <div class="flex items-center justify-between gap-3 bg-gray-50/80 px-4 py-3 dark:bg-gray-800/50">
+                        <div
+                            class="flex items-center justify-between gap-3 bg-gray-50/80 px-4 py-3 dark:bg-gray-800/50"
+                        >
                             <div class="flex items-center gap-3">
-                                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300">
+                                <div
+                                    class="flex h-9 w-9 items-center justify-center rounded-xl bg-indigo-100 text-sm font-bold text-indigo-700 dark:bg-indigo-500/20 dark:text-indigo-300"
+                                >
                                     {{ connection.position }}
                                 </div>
 
                                 <div>
-                                    <h3 class="text-sm font-semibold text-gray-900 dark:text-white">
+                                    <h3
+                                        class="text-sm font-semibold text-gray-900 dark:text-white"
+                                    >
                                         Подключение {{ connection.position }}
                                     </h3>
 
-                                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                                    <p
+                                        class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                                    >
                                         Укажите необходимые параметры
                                     </p>
                                 </div>
@@ -873,15 +896,24 @@ const submit = (): void => {
                                         :key="standard.id"
                                         :value="standard.id"
                                     >
-                                        {{ standard.code }} — {{ standard.name }}
+                                        {{ standard.code }} —
+                                        {{ standard.name }}
                                     </option>
                                 </select>
 
                                 <p
-                                    v-if="form.errors[`connections.${connectionIndex}.standard_id`]"
+                                    v-if="
+                                        form.errors[
+                                            `connections.${connectionIndex}.standard_id`
+                                        ]
+                                    "
                                     class="field-error"
                                 >
-                                    {{ form.errors[`connections.${connectionIndex}.standard_id`] }}
+                                    {{
+                                        form.errors[
+                                            `connections.${connectionIndex}.standard_id`
+                                        ]
+                                    }}
                                 </p>
                             </div>
 
@@ -916,10 +948,18 @@ const submit = (): void => {
                                 </select>
 
                                 <p
-                                    v-if="form.errors[`connections.${connectionIndex}.diameter_id`]"
+                                    v-if="
+                                        form.errors[
+                                            `connections.${connectionIndex}.diameter_id`
+                                        ]
+                                    "
                                     class="field-error"
                                 >
-                                    {{ form.errors[`connections.${connectionIndex}.diameter_id`] }}
+                                    {{
+                                        form.errors[
+                                            `connections.${connectionIndex}.diameter_id`
+                                        ]
+                                    }}
                                 </p>
                             </div>
 
@@ -949,23 +989,40 @@ const submit = (): void => {
                                         :key="thread.id"
                                         :value="thread.id"
                                     >
-                                        {{ thread.designation }} — {{ thread.name }}
+                                        {{ thread.designation }} —
+                                        {{ thread.name }}
                                     </option>
                                 </select>
 
                                 <p
-                                    v-if="form.errors[`connections.${connectionIndex}.thread_id`]"
+                                    v-if="
+                                        form.errors[
+                                            `connections.${connectionIndex}.thread_id`
+                                        ]
+                                    "
                                     class="field-error"
                                 >
-                                    {{ form.errors[`connections.${connectionIndex}.thread_id`] }}
+                                    {{
+                                        form.errors[
+                                            `connections.${connectionIndex}.thread_id`
+                                        ]
+                                    }}
                                 </p>
                             </div>
 
                             <p
-                                v-if="form.errors[`connections.${connectionIndex}.position`]"
+                                v-if="
+                                    form.errors[
+                                        `connections.${connectionIndex}.position`
+                                    ]
+                                "
                                 class="field-error sm:col-span-2 lg:col-span-3"
                             >
-                                {{ form.errors[`connections.${connectionIndex}.position`] }}
+                                {{
+                                    form.errors[
+                                        `connections.${connectionIndex}.position`
+                                    ]
+                                }}
                             </p>
                         </div>
                     </div>
@@ -976,12 +1033,17 @@ const submit = (): void => {
                     >
                         <Plug class="mx-auto h-8 w-8 text-gray-400" />
 
-                        <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                        <p
+                            class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                             Подключения не добавлены
                         </p>
 
-                        <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                            Добавьте подключение, чтобы указать стандарт, диаметр и резьбу.
+                        <p
+                            class="mt-1 text-xs text-gray-500 dark:text-gray-400"
+                        >
+                            Добавьте подключение, чтобы указать стандарт,
+                            диаметр и резьбу.
                         </p>
 
                         <button
@@ -1003,21 +1065,22 @@ const submit = (): void => {
                 <CircleAlert class="mt-0.5 h-5 w-5 shrink-0" />
 
                 <div>
-                    <p class="font-semibold">
-                        Проверьте заполнение формы
-                    </p>
+                    <p class="font-semibold">Проверьте заполнение формы</p>
 
                     <p class="mt-1">
-                        Некоторые поля содержат ошибки. Исправьте их перед созданием товара.
+                        Некоторые поля содержат ошибки. Исправьте их перед
+                        созданием товара.
                     </p>
                 </div>
             </div>
 
             <!-- Кнопки -->
             <div
-                class="flex flex-col-reverse gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-900 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col-reverse gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-gray-700 dark:bg-gray-900"
             >
-                <p class="hidden items-center gap-2 text-xs text-gray-500 dark:text-gray-400 md:flex">
+                <p
+                    class="hidden items-center gap-2 text-xs text-gray-500 md:flex dark:text-gray-400"
+                >
                     <Warehouse class="h-4 w-4" />
                     Новый товар появится в каталоге после сохранения
                 </p>
@@ -1033,7 +1096,7 @@ const submit = (): void => {
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:focus:ring-offset-gray-900"
                     >
                         <span
                             v-if="form.processing"
@@ -1042,11 +1105,7 @@ const submit = (): void => {
 
                         <Save v-else class="h-4 w-4" />
 
-                        {{
-                            form.processing
-                                ? 'Создание...'
-                                : 'Создать товар'
-                        }}
+                        {{ form.processing ? 'Создание...' : 'Создать товар' }}
                     </button>
                 </div>
             </div>

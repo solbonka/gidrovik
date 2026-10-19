@@ -1,7 +1,6 @@
-
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+import { Head, Link, router } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import {
     Package,
     Search,
@@ -14,100 +13,90 @@ import {
     ChevronRight,
     SlidersHorizontal,
     Boxes,
-} from '@lucide/vue'
-import { toast } from 'vue-sonner'
-import { Label } from '@/components/ui/label'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+} from '@lucide/vue';
+import { toast } from 'vue-sonner';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select'
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from '@/components/ui/card'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
-import {
-    create,
-    destroy,
-    edit,
-    show,
-} from '@/routes/admin/products'
+} from '@/components/ui/select';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
+import { create, destroy, edit, show } from '@/routes/admin/products';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Category {
-    id: number
-    name: string
+    id: number;
+    name: string;
 }
 
 interface ProductType {
-    id: number
-    category_id: number
-    name: string
-    category?: Category
+    id: number;
+    category_id: number;
+    name: string;
+    category?: Category;
 }
 
 interface Product {
-    id: number
-    name: string
-    sku: string
-    is_active: boolean
-    stock_quantity: number | null
-    category: Category
-    product_type: ProductType | null
+    id: number;
+    name: string;
+    sku: string;
+    is_active: boolean;
+    stock_quantity: number | null;
+    category: Category;
+    product_type: ProductType | null;
 }
 
 interface PaginationLink {
-    url: string | null
-    label: string
-    active: boolean
+    url: string | null;
+    label: string;
+    active: boolean;
 }
 
 interface PaginatedProducts {
-    data: Product[]
-    current_page: number
-    last_page: number
-    from: number | null
-    to: number | null
-    total: number
-    links: PaginationLink[]
+    data: Product[];
+    current_page: number;
+    last_page: number;
+    from: number | null;
+    to: number | null;
+    total: number;
+    links: PaginationLink[];
 }
 
 interface Filters {
-    search: string
-    category_id: number | null
-    product_type_id: number | null
+    search: string;
+    category_id: number | null;
+    product_type_id: number | null;
 }
 
 interface Props {
-    products: PaginatedProducts
-    filters: Filters
-    categories: Category[]
-    productTypes: ProductType[]
+    products: PaginatedProducts;
+    filters: Filters;
+    categories: Category[];
+    productTypes: ProductType[];
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const search = ref(props.filters.search)
-const categoryId = ref(props.filters.category_id?.toString() ?? '')
-const productTypeId = ref(props.filters.product_type_id?.toString() ?? '')
+const search = ref(props.filters.search);
+const categoryId = ref(props.filters.category_id?.toString() ?? '');
+const productTypeId = ref(props.filters.product_type_id?.toString() ?? '');
 
 const deleteDialog = ref({
     open: false,
     id: null as number | null,
     name: '',
     loading: false,
-})
+});
 
 const submitFilters = (): void => {
     router.get(
@@ -127,60 +116,60 @@ const submitFilters = (): void => {
             preserveState: true,
             preserveScroll: true,
         },
-    )
-}
+    );
+};
 
 const resetFilters = (): void => {
-    search.value = ''
-    categoryId.value = 'all'
-    productTypeId.value = 'all'
+    search.value = '';
+    categoryId.value = 'all';
+    productTypeId.value = 'all';
 
-    router.get('/admin/products')
-}
+    router.get('/admin/products');
+};
 
 const openDeleteDialog = (product: Product): void => {
-    deleteDialog.value.id = product.id
-    deleteDialog.value.name = product.name
-    deleteDialog.value.open = true
-}
+    deleteDialog.value.id = product.id;
+    deleteDialog.value.name = product.name;
+    deleteDialog.value.open = true;
+};
 
 const confirmDelete = (): void => {
-    if (deleteDialog.value.id === null) return
+    if (deleteDialog.value.id === null) return;
 
-    deleteDialog.value.loading = true
+    deleteDialog.value.loading = true;
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
 
         onSuccess: (page) => {
             const flash = page.props.flash as {
-                success?: string | null
-                error?: string | null
-            }
+                success?: string | null;
+                error?: string | null;
+            };
 
             if (flash.error) {
-                toast.error(flash.error)
-                return
+                toast.error(flash.error);
+                return;
             }
 
             if (flash.success) {
-                toast.success(flash.success)
+                toast.success(flash.success);
             }
         },
 
         onError: (errors) => {
-            console.error('Ошибка удаления:', errors)
+            console.error('Ошибка удаления:', errors);
             toast.error(
                 'Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.',
-            )
+            );
         },
 
         onFinish: () => {
-            deleteDialog.value.loading = false
-            deleteDialog.value.open = false
+            deleteDialog.value.loading = false;
+            deleteDialog.value.open = false;
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -188,7 +177,9 @@ const confirmDelete = (): void => {
 
     <div class="space-y-8">
         <!-- Заголовок -->
-        <header class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+        <header
+            class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"
+        >
             <div class="flex items-center gap-3">
                 <div
                     class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg"
@@ -198,7 +189,7 @@ const confirmDelete = (): void => {
 
                 <div>
                     <h1
-                        class="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent"
+                        class="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-3xl font-bold text-transparent"
                     >
                         Товары
                     </h1>
@@ -211,7 +202,7 @@ const confirmDelete = (): void => {
 
             <Link
                 :href="create().url"
-                class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
             >
                 <Plus :size="18" />
                 Добавить товар
@@ -236,14 +227,17 @@ const confirmDelete = (): void => {
             <CardContent class="p-6">
                 <div class="grid gap-5 lg:grid-cols-4">
                     <div class="lg:col-span-2">
-                        <Label for="search" class="font-semibold text-foreground">
+                        <Label
+                            for="search"
+                            class="font-semibold text-foreground"
+                        >
                             Поиск
                         </Label>
 
                         <div class="relative mt-2">
                             <Search
                                 :size="17"
-                                class="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                                class="absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
                             />
 
                             <Input
@@ -251,7 +245,7 @@ const confirmDelete = (): void => {
                                 v-model="search"
                                 type="search"
                                 placeholder="Название или артикул..."
-                                class="h-11 rounded-xl border-border bg-background pl-10 pr-10 transition-all focus-visible:border-primary/50 focus-visible:ring-primary/20"
+                                class="h-11 rounded-xl border-border bg-background pr-10 pl-10 transition-all focus-visible:border-primary/50 focus-visible:ring-primary/20"
                                 @keyup.enter="submitFilters"
                             />
 
@@ -260,8 +254,11 @@ const confirmDelete = (): void => {
                                 type="button"
                                 variant="ghost"
                                 size="icon"
-                                class="absolute right-1 top-1/2 h-8 w-8 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
-                                @click="search = ''; submitFilters()"
+                                class="absolute top-1/2 right-1 h-8 w-8 -translate-y-1/2 rounded-lg text-muted-foreground hover:bg-primary/10 hover:text-primary"
+                                @click="
+                                    search = '';
+                                    submitFilters();
+                                "
                             >
                                 <X :size="16" />
                                 <span class="sr-only">Очистить поиск</span>
@@ -270,7 +267,10 @@ const confirmDelete = (): void => {
                     </div>
 
                     <div>
-                        <Label for="category" class="font-semibold text-foreground">
+                        <Label
+                            for="category"
+                            class="font-semibold text-foreground"
+                        >
                             Категория
                         </Label>
 
@@ -302,7 +302,10 @@ const confirmDelete = (): void => {
                     </div>
 
                     <div>
-                        <Label for="product-type" class="font-semibold text-foreground">
+                        <Label
+                            for="product-type"
+                            class="font-semibold text-foreground"
+                        >
                             Тип товара
                         </Label>
 
@@ -318,9 +321,7 @@ const confirmDelete = (): void => {
                             </SelectTrigger>
 
                             <SelectContent>
-                                <SelectItem value="all">
-                                    Все типы
-                                </SelectItem>
+                                <SelectItem value="all"> Все типы </SelectItem>
 
                                 <SelectItem
                                     v-for="productType in productTypes"
@@ -385,60 +386,74 @@ const confirmDelete = (): void => {
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-muted/30">
-                    <tr>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Товар
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Артикул
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Категория
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Тип
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Остаток
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Статус
-                        </th>
-                        <th class="whitespace-nowrap px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-                            Действия
-                        </th>
-                    </tr>
+                        <tr>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Товар
+                            </th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Артикул
+                            </th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Категория
+                            </th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Тип
+                            </th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Остаток
+                            </th>
+                            <th
+                                class="px-6 py-4 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Статус
+                            </th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase"
+                            >
+                                Действия
+                            </th>
+                        </tr>
                     </thead>
 
                     <tbody class="divide-y divide-border/50">
-                    <tr
-                        v-for="product in products.data"
-                        :key="product.id"
-                        class="transition-colors hover:bg-primary/[0.03]"
-                    >
-                        <td class="px-6 py-4">
-                            <div class="font-semibold text-foreground">
-                                {{ product.name }}
-                            </div>
-                        </td>
+                        <tr
+                            v-for="product in products.data"
+                            :key="product.id"
+                            class="transition-colors hover:bg-primary/[0.03]"
+                        >
+                            <td class="px-6 py-4">
+                                <div class="font-semibold text-foreground">
+                                    {{ product.name }}
+                                </div>
+                            </td>
 
-                        <td class="whitespace-nowrap px-6 py-4">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <span
                                     class="inline-flex items-center rounded-lg border border-primary/10 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-2.5 py-1 font-mono text-xs font-medium text-primary"
                                 >
                                     {{ product.sku }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="px-6 py-4 text-muted-foreground">
-                            {{ product.category.name }}
-                        </td>
+                            <td class="px-6 py-4 text-muted-foreground">
+                                {{ product.category.name }}
+                            </td>
 
-                        <td class="px-6 py-4 text-muted-foreground">
-                            {{ product.product_type?.name ?? '—' }}
-                        </td>
+                            <td class="px-6 py-4 text-muted-foreground">
+                                {{ product.product_type?.name ?? '—' }}
+                            </td>
 
-                        <td class="whitespace-nowrap px-6 py-4">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <span
                                     class="font-semibold"
                                     :class="
@@ -449,9 +464,9 @@ const confirmDelete = (): void => {
                                 >
                                     {{ product.stock_quantity ?? 0 }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="whitespace-nowrap px-6 py-4">
+                            <td class="px-6 py-4 whitespace-nowrap">
                                 <span
                                     class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
                                     :class="
@@ -468,78 +483,88 @@ const confirmDelete = (): void => {
                                                 : 'bg-muted-foreground/50'
                                         "
                                     />
-                                    {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                                    {{
+                                        product.is_active
+                                            ? 'Активен'
+                                            : 'Неактивен'
+                                    }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="whitespace-nowrap px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-1">
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    as-child
-                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                            <td class="px-6 py-4 text-right whitespace-nowrap">
+                                <div
+                                    class="flex items-center justify-end gap-1"
                                 >
-                                    <Link :href="show(product.id).url">
-                                        <Eye :size="17" />
-                                        <span class="sr-only">Просмотр</span>
-                                    </Link>
-                                </Button>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        as-child
+                                        class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                                    >
+                                        <Link :href="show(product.id).url">
+                                            <Eye :size="17" />
+                                            <span class="sr-only"
+                                                >Просмотр</span
+                                            >
+                                        </Link>
+                                    </Button>
 
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    as-child
-                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        as-child
+                                        class="rounded-xl text-muted-foreground transition-colors hover:bg-primary/10 hover:text-primary"
+                                    >
+                                        <Link :href="edit(product.id).url">
+                                            <Pencil :size="17" />
+                                            <span class="sr-only"
+                                                >Изменить</span
+                                            >
+                                        </Link>
+                                    </Button>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="rounded-xl text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
+                                        @click="openDeleteDialog(product)"
+                                    >
+                                        <Trash2 :size="17" />
+                                        <span class="sr-only">Удалить</span>
+                                    </Button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr v-if="products.data.length === 0">
+                            <td colspan="7" class="px-6 py-16 text-center">
+                                <div
+                                    class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
                                 >
-                                    <Link :href="edit(product.id).url">
-                                        <Pencil :size="17" />
-                                        <span class="sr-only">Изменить</span>
-                                    </Link>
-                                </Button>
+                                    <Package :size="30" />
+                                </div>
 
-                                <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    class="rounded-xl text-muted-foreground transition-colors hover:bg-red-50 hover:text-red-600"
-                                    @click="openDeleteDialog(product)"
+                                <p class="font-semibold text-foreground">
+                                    Товары не найдены
+                                </p>
+
+                                <p class="mt-1 text-sm text-muted-foreground">
+                                    Измените параметры фильтров или добавьте
+                                    новый товар.
+                                </p>
+
+                                <Link
+                                    :href="create().url"
+                                    class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-primary/90 hover:to-indigo-600/90"
                                 >
-                                    <Trash2 :size="17" />
-                                    <span class="sr-only">Удалить</span>
-                                </Button>
-                            </div>
-                        </td>
-                    </tr>
-
-                    <tr v-if="products.data.length === 0">
-                        <td colspan="7" class="px-6 py-16 text-center">
-                            <div
-                                class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
-                            >
-                                <Package :size="30" />
-                            </div>
-
-                            <p class="font-semibold text-foreground">
-                                Товары не найдены
-                            </p>
-
-                            <p class="mt-1 text-sm text-muted-foreground">
-                                Измените параметры фильтров или добавьте новый товар.
-                            </p>
-
-                            <Link
-                                :href="create().url"
-                                class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-primary/90 hover:to-indigo-600/90"
-                            >
-                                <Plus :size="16" />
-                                Добавить первый товар
-                            </Link>
-                        </td>
-                    </tr>
+                                    <Plus :size="16" />
+                                    Добавить первый товар
+                                </Link>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-
 
             <!-- Пагинация -->
             <div
@@ -550,19 +575,21 @@ const confirmDelete = (): void => {
                 <p class="text-sm text-gray-500 dark:text-gray-400">
                     <template v-if="products.total > 0">
                         Показано
-                        <span class="font-semibold text-gray-900 dark:text-gray-100">
-                {{ products.from }}–{{ products.to }}
-            </span>
+                        <span
+                            class="font-semibold text-gray-900 dark:text-gray-100"
+                        >
+                            {{ products.from }}–{{ products.to }}
+                        </span>
                         из
-                        <span class="font-semibold text-gray-900 dark:text-gray-100">
-                {{ products.total }}
-            </span>
+                        <span
+                            class="font-semibold text-gray-900 dark:text-gray-100"
+                        >
+                            {{ products.total }}
+                        </span>
                         товаров
                     </template>
 
-                    <template v-else>
-                        Товары не найдены
-                    </template>
+                    <template v-else> Товары не найдены </template>
                 </p>
 
                 <!-- Кнопки страниц -->
@@ -590,21 +617,23 @@ const confirmDelete = (): void => {
                             v-else-if="index === 0"
                             class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-gray-100 px-3 text-sm text-gray-300 dark:border-gray-800 dark:text-gray-600"
                         >
-                <ChevronLeft class="h-4 w-4" />
-                <span>Назад</span>
-            </span>
+                            <ChevronLeft class="h-4 w-4" />
+                            <span>Назад</span>
+                        </span>
 
                         <!-- Номера страниц -->
                         <Link
-                            v-else-if="index !== products.links.length - 1 && link.url"
+                            v-else-if="
+                                index !== products.links.length - 1 && link.url
+                            "
                             :href="link.url"
                             preserve-scroll
                             class="inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-3 text-sm font-medium transition"
                             :class="
-                    link.active
-                        ? 'border-primary bg-gradient-to-r from-primary to-indigo-600 text-white shadow-sm'
-                        : 'border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:text-gray-300'
-                "
+                                link.active
+                                    ? 'border-primary bg-gradient-to-r from-primary to-indigo-600 text-white shadow-sm'
+                                    : 'border-gray-200 text-gray-600 hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:text-gray-300'
+                            "
                             v-html="link.label"
                         />
 
@@ -629,9 +658,9 @@ const confirmDelete = (): void => {
                             v-else
                             class="inline-flex h-9 cursor-not-allowed items-center gap-2 rounded-xl border border-gray-100 px-3 text-sm text-gray-300 dark:border-gray-800 dark:text-gray-600"
                         >
-                <span>Далее</span>
-                <ChevronRight class="h-4 w-4" />
-            </span>
+                            <span>Далее</span>
+                            <ChevronRight class="h-4 w-4" />
+                        </span>
                     </template>
                 </nav>
             </div>

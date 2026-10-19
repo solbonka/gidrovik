@@ -1,26 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\CategoryController;
+use App\Http\Controllers\Admin\CharacteristicController;
+use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DiameterController;
+use App\Http\Controllers\Admin\LocationController;
+use App\Http\Controllers\Admin\ManufacturerController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductCreateController;
 use App\Http\Controllers\Admin\ProductTypeController;
-use App\Http\Controllers\Admin\CharacteristicController;
-use App\Http\Controllers\Admin\StandardController;
-use App\Http\Controllers\Admin\DiameterController;
-use App\Http\Controllers\Admin\ThreadController;
-use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\RackController;
-use App\Http\Controllers\Admin\StockReceiptController;
-use App\Http\Controllers\Admin\StockTransferController;
-use App\Http\Controllers\Admin\StockMovementController;
-use App\Http\Controllers\Admin\StockWriteOffController;
-use App\Http\Controllers\Admin\StockReturnController;
-use App\Http\Controllers\Admin\StockInventoryController;
+use App\Http\Controllers\Admin\StandardController;
 use App\Http\Controllers\Admin\StockBalanceController;
-use App\Http\Controllers\Admin\ManufacturerController;
-use App\Http\Controllers\Admin\CountryController;
+use App\Http\Controllers\Admin\StockInventoryController;
+use App\Http\Controllers\Admin\StockMovementController;
+use App\Http\Controllers\Admin\StockReceiptController;
+use App\Http\Controllers\Admin\StockReturnController;
+use App\Http\Controllers\Admin\StockTransferController;
+use App\Http\Controllers\Admin\StockWriteOffController;
+use App\Http\Controllers\Admin\ThreadController;
+use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
 
@@ -83,7 +83,7 @@ Route::middleware('auth')
                 ]);
         });
 
-        Route::get("/locations", [LocationController::class, "getLocationsWithProduct"])->name("admin.locations.with-product");
+        Route::get('/locations', [LocationController::class, 'getLocationsWithProduct'])->name('admin.locations.with-product');
 
         Route::get('/locations/{location}/products', [
             RackController::class,

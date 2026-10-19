@@ -1,22 +1,19 @@
 <script setup lang="ts">
-import AdminHeader from '@/components/admin/AdminHeader.vue'
-import AdminSidebar from '@/components/admin/AdminSidebar.vue'
-import { Toaster } from '@/components/ui/sonner'
-import { ref } from 'vue'
+import AdminHeader from '@/components/admin/AdminHeader.vue';
+import AdminSidebar from '@/components/admin/AdminSidebar.vue';
+import { Toaster } from '@/components/ui/sonner';
+import { ref } from 'vue';
 
-const sidebarOpen = ref<boolean>(false)
+const sidebarOpen = ref<boolean>(false);
 
 const toggleSidebar = (): void => {
-    sidebarOpen.value = !sidebarOpen.value
-}
+    sidebarOpen.value = !sidebarOpen.value;
+};
 </script>
 
 <template>
     <div class="min-h-screen bg-background">
-        <AdminSidebar
-            :open="sidebarOpen"
-            @close="sidebarOpen = false"
-        />
+        <AdminSidebar :open="sidebarOpen" @close="sidebarOpen = false" />
 
         <div class="lg:pl-64">
             <AdminHeader @toggle-sidebar="toggleSidebar" />

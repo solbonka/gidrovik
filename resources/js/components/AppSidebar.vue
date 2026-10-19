@@ -27,7 +27,7 @@ const mainNavItems: NavItem[] = [
         title: 'Admin panel',
         href: '/admin',
         icon: Warehouse,
-    }
+    },
 ];
 
 const footerNavItems: NavItem[] = [
@@ -45,7 +45,11 @@ const footerNavItems: NavItem[] = [
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="inset" class="border-r border-sidebar-border/60">
+    <Sidebar
+        collapsible="icon"
+        variant="inset"
+        class="border-r border-sidebar-border/60"
+    >
         <SidebarHeader class="border-b border-sidebar-border/60">
             <SidebarMenu>
                 <SidebarMenuItem>

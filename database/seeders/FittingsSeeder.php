@@ -2,7 +2,9 @@
 
 namespace Database\Seeders;
 
+use App\Models\Characteristic;
 use App\Models\Product;
+use App\Models\ProductCharacteristicValue;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -270,6 +272,7 @@ class FittingsSeeder extends Seeder
                 $existing = Product::where('sku', $sku)->first();
                 if ($existing) {
                     echo "Товар с SKU {$sku} уже существует, пропускаем...\n";
+
                     continue;
                 }
 
@@ -285,9 +288,9 @@ class FittingsSeeder extends Seeder
 
                 // Добавляем характеристику Interlock если есть
                 if ($characteristic) {
-                    $char = \App\Models\Characteristic::where('name', $characteristic)->first();
+                    $char = Characteristic::where('name', $characteristic)->first();
                     if ($char) {
-                        \App\Models\ProductCharacteristicValue::create([
+                        ProductCharacteristicValue::create([
                             'product_id' => $newProduct->id,
                             'characteristic_id' => $char->id,
                             'value' => '1',

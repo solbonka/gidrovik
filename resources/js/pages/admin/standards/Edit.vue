@@ -1,39 +1,39 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
-import { toast } from 'vue-sonner'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { index, update } from '@/routes/admin/standards'
+import { Head, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index, update } from '@/routes/admin/standards';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Standard {
-    id: number
-    code: string
-    name: string
-    is_active: boolean
+    id: number;
+    code: string;
+    name: string;
+    is_active: boolean;
 }
 
 interface Props {
-    standard: Standard
+    standard: Standard;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const form = useForm({
     code: props.standard.code,
     name: props.standard.name,
     is_active: props.standard.is_active,
-})
+});
 
 const submit = (): void => {
     form.put(update(props.standard.id).url, {
         onSuccess: () => {
-            toast.success('Стандарт успешно обновлён.')
+            toast.success('Стандарт успешно обновлён.');
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -113,15 +113,10 @@ const submit = (): void => {
                         class="h-4 w-4 rounded border-gray-300"
                     />
 
-                    <span class="text-sm text-gray-700">
-                        Активен
-                    </span>
+                    <span class="text-sm text-gray-700"> Активен </span>
                 </label>
 
-                <p
-                    v-if="form.errors.is_active"
-                    class="text-sm text-red-600"
-                >
+                <p v-if="form.errors.is_active" class="text-sm text-red-600">
                     {{ form.errors.is_active }}
                 </p>
             </div>

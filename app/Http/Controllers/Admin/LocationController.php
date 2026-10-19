@@ -18,8 +18,7 @@ class LocationController extends Controller
 {
     public function __construct(
         private readonly LocationService $locationService,
-    ) {
-    }
+    ) {}
 
     public function store(
         StoreLocationRequest $request,
@@ -110,8 +109,8 @@ class LocationController extends Controller
                     'id' => $location->id,
                     'number' => $location->number,
                     'code' => $location->rack
-                        ? $location->rack->code . '-' . $location->number
-                        : 'Ячейка №' . $location->number,
+                        ? $location->rack->code.'-'.$location->number
+                        : 'Ячейка №'.$location->number,
                     'quantity' => $location->quantity,
                 ];
             });

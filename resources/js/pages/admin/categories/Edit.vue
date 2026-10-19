@@ -1,7 +1,6 @@
-
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3'
-import { toast } from 'vue-sonner'
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 import {
     ArrowLeft,
     FolderPen,
@@ -12,48 +11,48 @@ import {
     X,
     Info,
     RotateCcw,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { index, update } from '@/routes/admin/categories'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index, update } from '@/routes/admin/categories';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Category {
-    id: number
-    name: string
-    slug: string
-    is_active: boolean
+    id: number;
+    name: string;
+    slug: string;
+    is_active: boolean;
 }
 
 const props = defineProps<{
-    category: Category
-}>()
+    category: Category;
+}>();
 
 const form = useForm({
     name: props.category.name,
     slug: props.category.slug,
     is_active: props.category.is_active,
-})
+});
 
 const submit = (): void => {
     form.put(update.url(props.category.id), {
         onSuccess: () => {
-            toast.success('Категория успешно обновлена.')
+            toast.success('Категория успешно обновлена.');
         },
         onError: () => {
-            toast.error('Не удалось обновить категорию. Проверьте поля формы.')
+            toast.error('Не удалось обновить категорию. Проверьте поля формы.');
         },
-    })
-}
+    });
+};
 
 const resetForm = (): void => {
-    form.name = props.category.name
-    form.slug = props.category.slug
-    form.is_active = props.category.is_active
-    form.clearErrors()
-}
+    form.name = props.category.name;
+    form.slug = props.category.slug;
+    form.is_active = props.category.is_active;
+    form.clearErrors();
+};
 </script>
 
 <template>
@@ -65,7 +64,7 @@ const resetForm = (): void => {
             class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-6 shadow-lg sm:px-8 sm:py-8"
         >
             <div
-                class="pointer-events-none absolute -right-12 -top-16 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl"
+                class="pointer-events-none absolute -top-16 -right-12 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl"
             />
 
             <div
@@ -97,7 +96,7 @@ const resetForm = (): void => {
                         </div>
 
                         <h1
-                            class="break-words text-2xl font-bold tracking-tight text-white sm:text-3xl"
+                            class="text-2xl font-bold tracking-tight break-words text-white sm:text-3xl"
                         >
                             Редактирование категории
                         </h1>
@@ -113,7 +112,7 @@ const resetForm = (): void => {
 
                 <Link
                     :href="index.url()"
-                    class="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:outline-none focus:ring-2 focus:ring-white/50 sm:self-center"
+                    class="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:ring-2 focus:ring-white/50 focus:outline-none sm:self-center"
                 >
                     <ArrowLeft :size="16" />
                     К категориям
@@ -122,9 +121,7 @@ const resetForm = (): void => {
         </div>
 
         <!-- Информация о категории -->
-        <div
-            class="grid grid-cols-1 gap-4 sm:grid-cols-2"
-        >
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div
                 class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
             >
@@ -135,10 +132,14 @@ const resetForm = (): void => {
                 </div>
 
                 <div class="min-w-0">
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                    >
                         ID категории
                     </p>
-                    <p class="mt-1 text-lg font-bold text-slate-900 dark:text-white">
+                    <p
+                        class="mt-1 text-lg font-bold text-slate-900 dark:text-white"
+                    >
                         #{{ category.id }}
                     </p>
                 </div>
@@ -159,7 +160,9 @@ const resetForm = (): void => {
                 </div>
 
                 <div class="min-w-0">
-                    <p class="text-xs font-medium text-slate-500 dark:text-slate-400">
+                    <p
+                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                    >
                         Текущий статус
                     </p>
 
@@ -183,7 +186,7 @@ const resetForm = (): void => {
             @submit.prevent="submit"
         >
             <div
-                class="flex items-center gap-3 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:px-7"
+                class="flex items-center gap-3 border-b border-slate-200 px-5 py-5 sm:px-7 dark:border-slate-700"
             >
                 <div
                     class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
@@ -192,7 +195,9 @@ const resetForm = (): void => {
                 </div>
 
                 <div>
-                    <h2 class="text-base font-semibold text-slate-900 dark:text-white">
+                    <h2
+                        class="text-base font-semibold text-slate-900 dark:text-white"
+                    >
                         Основная информация
                     </h2>
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -215,7 +220,7 @@ const resetForm = (): void => {
                     <div class="relative">
                         <Tag
                             :size="18"
-                            class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                            class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
                         />
 
                         <input
@@ -225,7 +230,7 @@ const resetForm = (): void => {
                             autocomplete="off"
                             placeholder="Например, Рукава"
                             :aria-invalid="!!form.errors.name"
-                            class="w-full rounded-xl border bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
+                            class="w-full rounded-xl border bg-slate-50 py-3 pr-4 pl-11 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
                             :class="
                                 form.errors.name
                                     ? 'border-red-400 focus:border-red-400 focus:ring-red-500/10 dark:border-red-500'
@@ -263,7 +268,7 @@ const resetForm = (): void => {
                     <div class="relative">
                         <Hash
                             :size="18"
-                            class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400"
+                            class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
                         />
 
                         <input
@@ -273,7 +278,7 @@ const resetForm = (): void => {
                             autocomplete="off"
                             placeholder="rukava"
                             :aria-invalid="!!form.errors.slug"
-                            class="w-full rounded-xl border bg-slate-50 py-3 pl-11 pr-4 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
+                            class="w-full rounded-xl border bg-slate-50 py-3 pr-4 pl-11 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
                             :class="
                                 form.errors.slug
                                     ? 'border-red-400 focus:border-red-400 focus:ring-red-500/10 dark:border-red-500'
@@ -294,7 +299,8 @@ const resetForm = (): void => {
                         v-else
                         class="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400"
                     >
-                        Системный идентификатор категории. Если он используется в коде или URL, меняйте его внимательно.
+                        Системный идентификатор категории. Если он используется
+                        в коде или URL, меняйте его внимательно.
                     </p>
                 </div>
 
@@ -343,7 +349,8 @@ const resetForm = (): void => {
                             <span
                                 class="mt-1 block text-sm leading-5 text-slate-500 dark:text-slate-400"
                             >
-                                Статус определяет, доступна ли категория для использования в интерфейсе.
+                                Статус определяет, доступна ли категория для
+                                использования в интерфейсе.
                             </span>
                         </span>
                     </label>
@@ -352,12 +359,12 @@ const resetForm = (): void => {
 
             <!-- Действия -->
             <div
-                class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 dark:border-slate-700 dark:bg-slate-800/30 sm:flex-row sm:items-center sm:justify-between sm:px-7"
+                class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-slate-700 dark:bg-slate-800/30"
             >
                 <button
                     type="button"
                     :disabled="form.processing"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-slate-500/20 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus:ring-2 focus:ring-slate-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                     @click="resetForm"
                 >
                     <RotateCcw :size="16" />
@@ -367,7 +374,7 @@ const resetForm = (): void => {
                 <div class="flex flex-col-reverse gap-3 sm:flex-row">
                     <Link
                         :href="index.url()"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500/20 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:ring-2 focus:ring-slate-500/20 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                     >
                         <X :size="16" />
                         Отмена
@@ -376,7 +383,7 @@ const resetForm = (): void => {
                     <button
                         type="submit"
                         :disabled="form.processing || !form.isDirty"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <span
                             v-if="form.processing"
@@ -384,7 +391,11 @@ const resetForm = (): void => {
                         />
                         <Save v-else :size="17" />
 
-                        {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
+                        {{
+                            form.processing
+                                ? 'Сохранение...'
+                                : 'Сохранить изменения'
+                        }}
                     </button>
                 </div>
             </div>
@@ -400,11 +411,16 @@ const resetForm = (): void => {
             />
 
             <div>
-                <p class="text-sm font-semibold text-blue-900 dark:text-blue-200">
+                <p
+                    class="text-sm font-semibold text-blue-900 dark:text-blue-200"
+                >
                     Обратите внимание
                 </p>
-                <p class="mt-1 text-sm leading-5 text-blue-800/80 dark:text-blue-300/80">
-                    Изменение названия не меняет автоматически характеристики и типы товаров, связанные с этой категорией.
+                <p
+                    class="mt-1 text-sm leading-5 text-blue-800/80 dark:text-blue-300/80"
+                >
+                    Изменение названия не меняет автоматически характеристики и
+                    типы товаров, связанные с этой категорией.
                 </p>
             </div>
         </div>

@@ -420,12 +420,12 @@ class StockMovementService
 
             $movementComment = trim(
                 ($comment ?? '')
-                . ' Инвентаризация: было '
-                . $this->formatQuantity($currentQuantity)
-                . ', стало '
-                . $this->formatQuantity($actualQuantity)
-                . '. '
-                . ($isShortage ? 'Недостача.' : 'Излишек.')
+                .' Инвентаризация: было '
+                .$this->formatQuantity($currentQuantity)
+                .', стало '
+                .$this->formatQuantity($actualQuantity)
+                .'. '
+                .($isShortage ? 'Недостача.' : 'Излишек.')
             );
 
             return StockMovement::query()->create([
@@ -449,8 +449,7 @@ class StockMovementService
 
         if (! preg_match('/^\d+(?:\.\d{1,3})?$/', $value)) {
             throw ValidationException::withMessages([
-                $allowZero ? 'actual_quantity' : 'quantity' =>
-                    'Введите корректное количество максимум с тремя знаками после запятой.',
+                $allowZero ? 'actual_quantity' : 'quantity' => 'Введите корректное количество максимум с тремя знаками после запятой.',
             ]);
         }
 
@@ -459,8 +458,7 @@ class StockMovementService
             && ! in_array($unit, self::DECIMAL_UNITS, true)
         ) {
             throw ValidationException::withMessages([
-                $allowZero ? 'actual_quantity' : 'quantity' =>
-                    "Неподдерживаемая единица измерения: {$unit}.",
+                $allowZero ? 'actual_quantity' : 'quantity' => "Неподдерживаемая единица измерения: {$unit}.",
             ]);
         }
 
@@ -469,8 +467,7 @@ class StockMovementService
             && str_contains($value, '.')
         ) {
             throw ValidationException::withMessages([
-                $allowZero ? 'actual_quantity' : 'quantity' =>
-                    "Для единицы измерения «{$unit}» допускаются только целые количества.",
+                $allowZero ? 'actual_quantity' : 'quantity' => "Для единицы измерения «{$unit}» допускаются только целые количества.",
             ]);
         }
 
@@ -479,8 +476,7 @@ class StockMovementService
             || (! $allowZero && bccomp($value, '0', 3) === 0)
         ) {
             throw ValidationException::withMessages([
-                $allowZero ? 'actual_quantity' : 'quantity' =>
-                    $allowZero
+                $allowZero ? 'actual_quantity' : 'quantity' => $allowZero
                         ? 'Фактическое количество не может быть отрицательным.'
                         : 'Количество должно быть больше нуля.',
             ]);

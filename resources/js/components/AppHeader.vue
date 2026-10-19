@@ -50,8 +50,7 @@ const page = usePage();
 const auth = computed(() => page.props.auth);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
 
-const activeItemStyles =
-    'bg-muted text-foreground';
+const activeItemStyles = 'bg-muted text-foreground';
 
 const mainNavItems: NavItem[] = [
     {
@@ -78,7 +77,9 @@ const rightNavItems: NavItem[] = [
 <template>
     <div>
         <div class="border-b border-sidebar-border/80">
-            <div class="mx-auto flex h-14 items-center px-3 sm:px-4 md:max-w-7xl lg:px-6">
+            <div
+                class="mx-auto flex h-14 items-center px-3 sm:px-4 md:max-w-7xl lg:px-6"
+            >
                 <!-- Mobile Menu -->
                 <div class="lg:hidden">
                     <Sheet>
@@ -91,7 +92,10 @@ const rightNavItems: NavItem[] = [
                                 <Menu class="h-5 w-5" />
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="left" class="w-[85vw] max-w-xs p-5 sm:w-[320px]">
+                        <SheetContent
+                            side="left"
+                            class="w-[85vw] max-w-xs p-5 sm:w-[320px]"
+                        >
                             <SheetTitle class="sr-only"
                                 >Navigation menu</SheetTitle
                             >
@@ -190,16 +194,16 @@ const rightNavItems: NavItem[] = [
 
                 <div class="ml-auto flex items-center space-x-1 sm:space-x-2">
                     <div class="relative flex items-center space-x-1">
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                class="group h-9 w-9 cursor-pointer"
-                            >
-                                <Search
-                                    class="size-5 opacity-80 group-hover:opacity-100"
-                                />
-                                <span class="sr-only">Search</span>
-                            </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="group h-9 w-9 cursor-pointer"
+                        >
+                            <Search
+                                class="size-5 opacity-80 group-hover:opacity-100"
+                            />
+                            <span class="sr-only">Search</span>
+                        </Button>
 
                         <div class="hidden space-x-1 lg:flex">
                             <template
@@ -208,7 +212,7 @@ const rightNavItems: NavItem[] = [
                             >
                                 <TooltipProvider :delay-duration="0">
                                     <Tooltip>
-                                <TooltipTrigger as-child>
+                                        <TooltipTrigger as-child>
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
@@ -246,9 +250,7 @@ const rightNavItems: NavItem[] = [
                                 size="icon"
                                 class="relative size-9 rounded-full p-0 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                             >
-                                <Avatar
-                                    class="size-8"
-                                >
+                                <Avatar class="size-8">
                                     <AvatarImage
                                         v-if="auth.user.avatar"
                                         :src="auth.user.avatar"
@@ -262,7 +264,11 @@ const rightNavItems: NavItem[] = [
                                 </Avatar>
                             </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" class="w-56" :side-offset="8">
+                        <DropdownMenuContent
+                            align="end"
+                            class="w-56"
+                            :side-offset="8"
+                        >
                             <UserMenuContent :user="auth.user" />
                         </DropdownMenuContent>
                     </DropdownMenu>
@@ -275,8 +281,8 @@ const rightNavItems: NavItem[] = [
             class="flex w-full border-b border-sidebar-border/70"
         >
             <div
-            class="mx-auto flex h-10 w-full items-center justify-start px-3 text-sm text-muted-foreground sm:px-4 md:max-w-7xl lg:px-6"
-        >
+                class="mx-auto flex h-10 w-full items-center justify-start px-3 text-sm text-muted-foreground sm:px-4 md:max-w-7xl lg:px-6"
+            >
                 <Breadcrumbs :breadcrumbs="breadcrumbs" />
             </div>
         </div>

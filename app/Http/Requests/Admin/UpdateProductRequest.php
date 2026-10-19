@@ -110,7 +110,7 @@ class UpdateProductRequest extends FormRequest
                 'nullable',
                 'string',
                 'max:20',
-                'in:' . implode(',', UnitType::getAll()),
+                'in:'.implode(',', UnitType::getAll()),
             ],
 
             'manufacturer_id' => [
@@ -132,7 +132,7 @@ class UpdateProductRequest extends FormRequest
         $validator->after(function ($validator): void {
             $categoryId = $this->integer('category_id');
 
-            if (!$categoryId) {
+            if (! $categoryId) {
                 return;
             }
 
@@ -140,7 +140,7 @@ class UpdateProductRequest extends FormRequest
                 ->with('characteristics')
                 ->find($categoryId);
 
-            if (!$category) {
+            if (! $category) {
                 return;
             }
 
@@ -151,7 +151,7 @@ class UpdateProductRequest extends FormRequest
                 ->all();
 
             foreach (array_keys($this->input('characteristics', [])) as $characteristicId) {
-                if (!in_array(
+                if (! in_array(
                     (string) $characteristicId,
                     $allowedCharacteristicIds,
                     true
@@ -169,7 +169,7 @@ class UpdateProductRequest extends FormRequest
                     ->whereKey($this->integer('product_type_id'))
                     ->exists();
 
-                if (!$productTypeBelongsToCategory) {
+                if (! $productTypeBelongsToCategory) {
                     $validator->errors()->add(
                         'product_type_id',
                         'Выбранный тип товара не относится к выбранной категории.'

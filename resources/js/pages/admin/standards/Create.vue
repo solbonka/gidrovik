@@ -1,26 +1,26 @@
 <script setup lang="ts">
-import { Head, useForm } from '@inertiajs/vue3'
-import { toast } from 'vue-sonner'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { index, store } from '@/routes/admin/standards'
+import { Head, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index, store } from '@/routes/admin/standards';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 const form = useForm({
     code: '',
     name: '',
     is_active: true,
-})
+});
 
 const submit = (): void => {
     form.post(store().url, {
         onSuccess: () => {
-            toast.success('Стандарт успешно создан.')
+            toast.success('Стандарт успешно создан.');
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -106,15 +106,10 @@ const submit = (): void => {
                         class="h-4 w-4 rounded border-gray-300"
                     />
 
-                    <span class="text-sm text-gray-700">
-                        Активен
-                    </span>
+                    <span class="text-sm text-gray-700"> Активен </span>
                 </label>
 
-                <p
-                    v-if="form.errors.is_active"
-                    class="text-sm text-red-600"
-                >
+                <p v-if="form.errors.is_active" class="text-sm text-red-600">
                     {{ form.errors.is_active }}
                 </p>
             </div>

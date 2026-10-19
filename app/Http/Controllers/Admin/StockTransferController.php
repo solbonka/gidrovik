@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreStockTransferRequest;
+use App\Models\Category;
 use App\Models\Location;
 use App\Models\Product;
 use App\Services\Admin\StockMovementService;
@@ -15,7 +16,7 @@ class StockTransferController extends Controller
 {
     public function create(): Response
     {
-        $categories = \App\Models\Category::query()
+        $categories = Category::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -34,7 +35,7 @@ class StockTransferController extends Controller
 
         $products = $products->map(function (Product $product) use ($stockQuantities) {
             $characteristics = $product->characteristicValues->map(function ($cv) {
-                return $cv->characteristic->name . ': ' . $cv->value;
+                return $cv->characteristic->name.': '.$cv->value;
             })->implode(', ');
 
             return [

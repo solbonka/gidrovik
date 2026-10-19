@@ -15,7 +15,11 @@ const className = computed(() => props.class);
 </script>
 
 <template>
-    <SidebarInset v-if="props.variant === 'sidebar'" :class="className" class="flex min-h-svh flex-col bg-background/95">
+    <SidebarInset
+        v-if="props.variant === 'sidebar'"
+        :class="className"
+        class="flex min-h-svh flex-col bg-background/95"
+    >
         <slot />
     </SidebarInset>
     <main

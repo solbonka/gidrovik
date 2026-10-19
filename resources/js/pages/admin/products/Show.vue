@@ -1,6 +1,5 @@
-
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3'
+import { Head, Link } from '@inertiajs/vue3';
 import {
     ArrowLeft,
     ArrowRight,
@@ -19,134 +18,130 @@ import {
     Globe,
     Boxes,
     Hash,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { create, index, edit } from '@/routes/admin/products'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { create, index, edit } from '@/routes/admin/products';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Category {
-    id: number
-    name: string
-    slug: string
+    id: number;
+    name: string;
+    slug: string;
 }
 
 interface ProductType {
-    id: number
-    name: string
-    slug: string
+    id: number;
+    name: string;
+    slug: string;
 }
 
 interface Characteristic {
-    id: number
-    characteristic_id: number
-    name: string
-    slug: string
-    type: string
-    unit: string | null
-    value: string | null
+    id: number;
+    characteristic_id: number;
+    name: string;
+    slug: string;
+    type: string;
+    unit: string | null;
+    value: string | null;
 }
 
 interface Standard {
-    id: number
-    code: string
-    name: string
+    id: number;
+    code: string;
+    name: string;
 }
 
 interface Diameter {
-    id: number
-    value: number
-    unit: string
+    id: number;
+    value: number;
+    unit: string;
 }
 
 interface Thread {
-    id: number
-    system: string
-    designation: string
-    name: string
+    id: number;
+    system: string;
+    designation: string;
+    name: string;
 }
 
 interface Connection {
-    id: number
-    position: number
-    standard: Standard | null
-    diameter: Diameter | null
-    thread: Thread | null
+    id: number;
+    position: number;
+    standard: Standard | null;
+    diameter: Diameter | null;
+    thread: Thread | null;
 }
 
 interface Rack {
-    id: number
-    code: string
-    name: string | null
+    id: number;
+    code: string;
+    name: string | null;
 }
 
 interface Location {
-    id: number
-    code: string
-    rack: Rack
-    number: number
-    quantity: number
+    id: number;
+    code: string;
+    rack: Rack;
+    number: number;
+    quantity: number;
 }
 
 interface Product {
-    id: number
-    name: string
-    sku: string
-    angle: number | null
-    description: string | null
-    is_active: boolean
-    unit: string
-    manufacturer: { id: number; name: string } | null
-    country: { id: number; name: string } | null
-    category: Category | null
-    product_type: ProductType | null
-    stock_quantity: number
-    characteristics: Characteristic[]
-    connections: Connection[]
-    locations: Location[]
+    id: number;
+    name: string;
+    sku: string;
+    angle: number | null;
+    description: string | null;
+    is_active: boolean;
+    unit: string;
+    manufacturer: { id: number; name: string } | null;
+    country: { id: number; name: string } | null;
+    category: Category | null;
+    product_type: ProductType | null;
+    stock_quantity: number;
+    characteristics: Characteristic[];
+    connections: Connection[];
+    locations: Location[];
 }
 
 interface Props {
-    product: Product
+    product: Product;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
-const formatCharacteristicValue = (
-    characteristic: Characteristic,
-): string => {
+const formatCharacteristicValue = (characteristic: Characteristic): string => {
     if (characteristic.value === null || characteristic.value === '') {
-        return '—'
+        return '—';
     }
 
     if (characteristic.unit) {
-        return `${characteristic.value} ${characteristic.unit}`
+        return `${characteristic.value} ${characteristic.unit}`;
     }
 
-    return characteristic.value
-}
+    return characteristic.value;
+};
 
 const connectionTitle = (connection: Connection): string => {
-    const parts: string[] = []
+    const parts: string[] = [];
 
     if (connection.standard) {
-        parts.push(connection.standard.code)
+        parts.push(connection.standard.code);
     }
 
     if (connection.diameter) {
-        parts.push(
-            `${connection.diameter.value} ${connection.diameter.unit}`,
-        )
+        parts.push(`${connection.diameter.value} ${connection.diameter.unit}`);
     }
 
     if (connection.thread) {
-        parts.push(connection.thread.designation)
+        parts.push(connection.thread.designation);
     }
 
-    return parts.length > 0 ? parts.join(' / ') : 'Параметры не указаны'
-}
+    return parts.length > 0 ? parts.join(' / ') : 'Параметры не указаны';
+};
 </script>
 
 <template>
@@ -158,11 +153,11 @@ const connectionTitle = (connection: Connection): string => {
             class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 dark:border-gray-800 dark:bg-gray-900"
         >
             <div
-                class="pointer-events-none absolute -right-16 -top-20 h-56 w-56 rounded-full bg-primary/5 blur-3xl"
+                class="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-primary/5 blur-3xl"
             />
 
             <div
-                class="pointer-events-none absolute -bottom-24 right-1/4 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl"
+                class="pointer-events-none absolute right-1/4 -bottom-24 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl"
             />
 
             <div class="relative">
@@ -178,7 +173,9 @@ const connectionTitle = (connection: Connection): string => {
 
                     <ChevronRight class="h-4 w-4" />
 
-                    <span class="max-w-[240px] truncate font-medium text-gray-700 dark:text-gray-200">
+                    <span
+                        class="max-w-[240px] truncate font-medium text-gray-700 dark:text-gray-200"
+                    >
                         {{ product.name }}
                     </span>
                 </div>
@@ -195,7 +192,7 @@ const connectionTitle = (connection: Connection): string => {
 
                         <div class="min-w-0">
                             <h1
-                                class="break-words text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
+                                class="text-2xl font-bold tracking-tight break-words text-gray-900 sm:text-3xl dark:text-white"
                             >
                                 {{ product.name }}
                             </h1>
@@ -212,8 +209,8 @@ const connectionTitle = (connection: Connection): string => {
                                     class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
                                     :class="
                                         product.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                            : 'bg-gray-100 text-gray-600 ring-1 ring-inset ring-gray-500/20 dark:bg-gray-800 dark:text-gray-400'
+                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 ring-inset dark:bg-emerald-500/10 dark:text-emerald-400'
+                                            : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20 ring-inset dark:bg-gray-800 dark:text-gray-400'
                                     "
                                 >
                                     <span
@@ -224,7 +221,11 @@ const connectionTitle = (connection: Connection): string => {
                                                 : 'bg-gray-400'
                                         "
                                     />
-                                    {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                                    {{
+                                        product.is_active
+                                            ? 'Активен'
+                                            : 'Неактивен'
+                                    }}
                                 </span>
                             </div>
                         </div>
@@ -278,7 +279,9 @@ const connectionTitle = (connection: Connection): string => {
                         <h2 class="font-semibold text-gray-900 dark:text-white">
                             Основная информация
                         </h2>
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             Общие сведения о товаре
                         </p>
                     </div>
@@ -289,7 +292,9 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Название
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.name }}
                         </div>
                     </div>
@@ -298,7 +303,9 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Артикул
                         </div>
-                        <div class="mt-1.5 font-mono font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-mono font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.sku }}
                         </div>
                     </div>
@@ -307,7 +314,9 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Категория
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.category?.name ?? '—' }}
                         </div>
                     </div>
@@ -316,7 +325,9 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Тип товара
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.product_type?.name ?? '—' }}
                         </div>
                     </div>
@@ -325,7 +336,9 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Угол
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.angle }}°
                         </div>
                     </div>
@@ -334,27 +347,37 @@ const connectionTitle = (connection: Connection): string => {
                         <div class="text-sm text-gray-500 dark:text-gray-400">
                             Единица измерения
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.unit }}
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div
+                            class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                        >
                             <Factory class="h-4 w-4" />
                             Производитель
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.manufacturer?.name ?? '—' }}
                         </div>
                     </div>
 
                     <div>
-                        <div class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div
+                            class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                        >
                             <Globe class="h-4 w-4" />
                             Страна
                         </div>
-                        <div class="mt-1.5 font-medium text-gray-900 dark:text-gray-100">
+                        <div
+                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                        >
                             {{ product.country?.name ?? '—' }}
                         </div>
                     </div>
@@ -364,13 +387,15 @@ const connectionTitle = (connection: Connection): string => {
                     v-if="product.description"
                     class="border-t border-gray-100 px-5 py-5 sm:px-6 dark:border-gray-800"
                 >
-                    <div class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400">
+                    <div
+                        class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400"
+                    >
                         <FileText class="h-4 w-4" />
                         Описание
                     </div>
 
                     <p
-                        class="mt-2 whitespace-pre-wrap text-sm leading-6 text-gray-700 dark:text-gray-300"
+                        class="mt-2 text-sm leading-6 whitespace-pre-wrap text-gray-700 dark:text-gray-300"
                     >
                         {{ product.description }}
                     </p>
@@ -382,7 +407,7 @@ const connectionTitle = (connection: Connection): string => {
                 class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
             >
                 <div
-                    class="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-primary/10 blur-2xl"
+                    class="pointer-events-none absolute -top-10 -right-10 h-36 w-36 rounded-full bg-primary/10 blur-2xl"
                 />
 
                 <div class="relative p-5 sm:p-6">
@@ -394,7 +419,9 @@ const connectionTitle = (connection: Connection): string => {
                         </div>
 
                         <div>
-                            <h2 class="font-semibold text-gray-900 dark:text-white">
+                            <h2
+                                class="font-semibold text-gray-900 dark:text-white"
+                            >
                                 Остаток
                             </h2>
                             <p class="text-xs text-gray-500 dark:text-gray-400">
@@ -404,18 +431,26 @@ const connectionTitle = (connection: Connection): string => {
                     </div>
 
                     <div class="mt-8">
-                        <div class="break-words text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl dark:text-white">
+                        <div
+                            class="text-4xl font-bold tracking-tight break-words text-gray-900 sm:text-5xl dark:text-white"
+                        >
                             {{ product.stock_quantity }}
                         </div>
 
-                        <div class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                        <div
+                            class="mt-2 text-sm text-gray-500 dark:text-gray-400"
+                        >
                             {{ product.unit }} на складе
                         </div>
                     </div>
 
-                    <div class="mt-7 space-y-4 border-t border-gray-100 pt-5 dark:border-gray-800">
+                    <div
+                        class="mt-7 space-y-4 border-t border-gray-100 pt-5 dark:border-gray-800"
+                    >
                         <div class="flex items-center justify-between gap-3">
-                            <span class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span
+                                class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                            >
                                 <MapPin class="h-4 w-4" />
                                 Ячеек с товаром
                             </span>
@@ -428,7 +463,9 @@ const connectionTitle = (connection: Connection): string => {
                         </div>
 
                         <div class="flex items-center justify-between gap-3">
-                            <span class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                            <span
+                                class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
+                            >
                                 <Layers3 class="h-4 w-4" />
                                 Подключений
                             </span>
@@ -491,11 +528,15 @@ const connectionTitle = (connection: Connection): string => {
                     :key="characteristic.id"
                     class="flex items-start justify-between gap-4 bg-white px-5 py-4 sm:px-6 dark:bg-gray-900"
                 >
-                    <div class="min-w-0 text-sm text-gray-500 dark:text-gray-400">
+                    <div
+                        class="min-w-0 text-sm text-gray-500 dark:text-gray-400"
+                    >
                         {{ characteristic.name }}
                     </div>
 
-                    <div class="shrink-0 text-right text-sm font-semibold text-gray-900 dark:text-gray-100">
+                    <div
+                        class="shrink-0 text-right text-sm font-semibold text-gray-900 dark:text-gray-100"
+                    >
                         {{ formatCharacteristicValue(characteristic) }}
                     </div>
                 </div>
@@ -511,7 +552,9 @@ const connectionTitle = (connection: Connection): string => {
                     <Ruler class="h-6 w-6" />
                 </div>
 
-                <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p
+                    class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                     Характеристики не указаны
                 </p>
 
@@ -567,22 +610,32 @@ const connectionTitle = (connection: Connection): string => {
                         </div>
 
                         <div class="min-w-0 flex-1">
-                            <div class="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
+                            <div
+                                class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                            >
                                 Подключение {{ connection.position }}
                             </div>
 
-                            <div class="mt-1 break-words font-semibold text-gray-900 dark:text-white">
+                            <div
+                                class="mt-1 font-semibold break-words text-gray-900 dark:text-white"
+                            >
                                 {{ connectionTitle(connection) }}
                             </div>
                         </div>
                     </div>
 
-                    <div class="mt-5 grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-3 dark:border-gray-800">
+                    <div
+                        class="mt-5 grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-3 dark:border-gray-800"
+                    >
                         <div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                            >
                                 Стандарт
                             </div>
-                            <div class="mt-1 break-words text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <div
+                                class="mt-1 text-sm font-medium break-words text-gray-900 dark:text-gray-100"
+                            >
                                 {{
                                     connection.standard
                                         ? `${connection.standard.code} — ${connection.standard.name}`
@@ -592,10 +645,14 @@ const connectionTitle = (connection: Connection): string => {
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                            >
                                 Диаметр
                             </div>
-                            <div class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <div
+                                class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100"
+                            >
                                 {{
                                     connection.diameter
                                         ? `${connection.diameter.value} ${connection.diameter.unit}`
@@ -605,10 +662,14 @@ const connectionTitle = (connection: Connection): string => {
                         </div>
 
                         <div>
-                            <div class="text-xs text-gray-500 dark:text-gray-400">
+                            <div
+                                class="text-xs text-gray-500 dark:text-gray-400"
+                            >
                                 Резьба
                             </div>
-                            <div class="mt-1 break-words text-sm font-medium text-gray-900 dark:text-gray-100">
+                            <div
+                                class="mt-1 text-sm font-medium break-words text-gray-900 dark:text-gray-100"
+                            >
                                 {{
                                     connection.thread
                                         ? `${connection.thread.name}`
@@ -630,7 +691,9 @@ const connectionTitle = (connection: Connection): string => {
                     <Plug class="h-6 w-6" />
                 </div>
 
-                <p class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300">
+                <p
+                    class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
+                >
                     Подключения не указаны
                 </p>
 
@@ -658,7 +721,9 @@ const connectionTitle = (connection: Connection): string => {
                         <h2 class="font-semibold text-gray-900 dark:text-white">
                             Расположение на складе
                         </h2>
-                        <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                        <p
+                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                        >
                             Ячейки, стеллажи и количество товара
                         </p>
                     </div>
@@ -672,93 +737,106 @@ const connectionTitle = (connection: Connection): string => {
                 </span>
             </div>
 
-            <div
-                v-if="product.locations.length"
-                class="overflow-x-auto"
-            >
+            <div v-if="product.locations.length" class="overflow-x-auto">
                 <table class="w-full text-left text-sm">
                     <thead
                         class="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50"
                     >
-                    <tr>
-                        <th class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400">
-                            Ячейка
-                        </th>
+                        <tr>
+                            <th
+                                class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400"
+                            >
+                                Ячейка
+                            </th>
 
-                        <th class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400">
-                            Стеллаж
-                        </th>
+                            <th
+                                class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400"
+                            >
+                                Стеллаж
+                            </th>
 
-                        <th class="px-5 py-3.5 text-right font-medium text-gray-500 sm:px-6 dark:text-gray-400">
-                            Количество
-                        </th>
-                    </tr>
+                            <th
+                                class="px-5 py-3.5 text-right font-medium text-gray-500 sm:px-6 dark:text-gray-400"
+                            >
+                                Количество
+                            </th>
+                        </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
-                    <tr
-                        v-for="location in product.locations"
-                        :key="location.id"
-                        class="transition hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
+                    <tbody
+                        class="divide-y divide-gray-100 dark:divide-gray-800"
                     >
-                        <td class="px-5 py-4 sm:px-6">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
-                                >
-                                    <MapPin class="h-4 w-4" />
-                                </div>
+                        <tr
+                            v-for="location in product.locations"
+                            :key="location.id"
+                            class="transition hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
+                        >
+                            <td class="px-5 py-4 sm:px-6">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                    >
+                                        <MapPin class="h-4 w-4" />
+                                    </div>
 
-                                <span class="font-mono font-semibold text-gray-900 dark:text-gray-100">
+                                    <span
+                                        class="font-mono font-semibold text-gray-900 dark:text-gray-100"
+                                    >
                                         {{ location.code }}
                                     </span>
-                            </div>
-                        </td>
+                                </div>
+                            </td>
 
-                        <td class="px-5 py-4 sm:px-6">
-                            <div class="font-medium text-gray-900 dark:text-gray-100">
-                                {{ location.rack.code }}
-                            </div>
+                            <td class="px-5 py-4 sm:px-6">
+                                <div
+                                    class="font-medium text-gray-900 dark:text-gray-100"
+                                >
+                                    {{ location.rack.code }}
+                                </div>
 
-                            <div
-                                v-if="location.rack.name"
-                                class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
-                            >
-                                {{ location.rack.name }}
-                            </div>
-                        </td>
+                                <div
+                                    v-if="location.rack.name"
+                                    class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                                >
+                                    {{ location.rack.name }}
+                                </div>
+                            </td>
 
-                        <td class="px-5 py-4 text-right sm:px-6">
+                            <td class="px-5 py-4 text-right sm:px-6">
                                 <span
                                     class="inline-flex items-center rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
                                 >
                                     {{ location.quantity }} {{ product.unit }}
                                 </span>
-                        </td>
-                    </tr>
+                            </td>
+                        </tr>
                     </tbody>
 
                     <tfoot
                         class="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50"
                     >
-                    <tr>
-                        <td
-                            colspan="2"
-                            class="px-5 py-4 text-right font-semibold text-gray-700 sm:px-6 dark:text-gray-300"
-                        >
-                            Общий остаток
-                        </td>
+                        <tr>
+                            <td
+                                colspan="2"
+                                class="px-5 py-4 text-right font-semibold text-gray-700 sm:px-6 dark:text-gray-300"
+                            >
+                                Общий остаток
+                            </td>
 
-                        <td class="px-5 py-4 text-right sm:px-6">
-                                <span class="text-base font-bold text-gray-900 dark:text-white">
+                            <td class="px-5 py-4 text-right sm:px-6">
+                                <span
+                                    class="text-base font-bold text-gray-900 dark:text-white"
+                                >
                                     {{ product.stock_quantity }}
                                 </span>
 
-                            <span class="ml-1 text-xs text-gray-500 dark:text-gray-400">
+                                <span
+                                    class="ml-1 text-xs text-gray-500 dark:text-gray-400"
+                                >
                                     {{ product.unit }}
                                 </span>
-                        </td>
-                    </tr>
+                            </td>
+                        </tr>
                     </tfoot>
                 </table>
             </div>
@@ -777,7 +855,9 @@ const connectionTitle = (connection: Connection): string => {
                     Товар пока не размещён
                 </p>
 
-                <p class="mt-1 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400">
+                <p
+                    class="mt-1 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400"
+                >
                     У этого товара пока нет размещения в ячейках склада.
                 </p>
             </div>

@@ -27,7 +27,7 @@ class StoreStockReceiptRequest extends FormRequest
             ],
             'quantity' => [
                 'required',
-                new ValidStockQuantity(),
+                new ValidStockQuantity,
             ],
             'comment' => [
                 'nullable',

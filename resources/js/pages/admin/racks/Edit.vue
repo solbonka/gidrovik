@@ -1,7 +1,6 @@
-
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3'
-import { toast } from 'vue-sonner'
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 import {
     ArrowLeft,
     Check,
@@ -9,44 +8,44 @@ import {
     Info,
     LoaderCircle,
     Package,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { index, update } from '@/routes/admin/racks'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index, update } from '@/routes/admin/racks';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Location {
-    id: number
-    number: number
+    id: number;
+    number: number;
 }
 
 interface Rack {
-    id: number
-    code: string
-    name: string | null
-    locations: Location[]
+    id: number;
+    code: string;
+    name: string | null;
+    locations: Location[];
 }
 
 interface Props {
-    rack: Rack
+    rack: Rack;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const form = useForm({
     code: props.rack.code,
     name: props.rack.name ?? '',
-})
+});
 
 const submit = (): void => {
     form.put(update(props.rack.id).url, {
         onSuccess: () => {
-            toast.success('Стеллаж успешно обновлён.')
+            toast.success('Стеллаж успешно обновлён.');
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -72,7 +71,7 @@ const submit = (): void => {
 
                 <div>
                     <h1
-                        class="text-3xl font-bold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent"
+                        class="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-3xl font-bold text-transparent"
                     >
                         Редактирование стеллажа
                     </h1>
@@ -104,7 +103,14 @@ const submit = (): void => {
                     <span class="font-semibold text-foreground">
                         {{ rack.locations.length }}
                     </span>
-                    {{ rack.locations.length === 1 ? 'ячейка' : rack.locations.length >= 2 && rack.locations.length <= 4 ? 'ячейки' : 'ячеек' }}.
+                    {{
+                        rack.locations.length === 1
+                            ? 'ячейка'
+                            : rack.locations.length >= 2 &&
+                                rack.locations.length <= 4
+                              ? 'ячейки'
+                              : 'ячеек'
+                    }}.
                 </p>
 
                 <p class="mt-1 text-xs text-muted-foreground">
@@ -156,7 +162,7 @@ const submit = (): void => {
                         maxlength="10"
                         autocomplete="off"
                         placeholder="Например, A"
-                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
                         :class="{
                             'border-red-500 focus:border-red-500 focus:ring-red-500/10':
                                 form.errors.code,
@@ -170,10 +176,7 @@ const submit = (): void => {
                         {{ form.errors.code }}
                     </p>
 
-                    <p
-                        v-else
-                        class="mt-2 text-xs text-muted-foreground"
-                    >
+                    <p v-else class="mt-2 text-xs text-muted-foreground">
                         Короткое обозначение для идентификации стеллажа.
                     </p>
                 </div>
@@ -195,7 +198,7 @@ const submit = (): void => {
                         maxlength="255"
                         autocomplete="off"
                         placeholder="Например, Стеллаж A"
-                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
+                        class="w-full rounded-xl border border-border bg-background px-4 py-3 text-sm text-foreground transition-all outline-none placeholder:text-muted-foreground/60 focus:border-primary/50 focus:ring-2 focus:ring-primary/15"
                         :class="{
                             'border-red-500 focus:border-red-500 focus:ring-red-500/10':
                                 form.errors.name,
@@ -209,10 +212,7 @@ const submit = (): void => {
                         {{ form.errors.name }}
                     </p>
 
-                    <p
-                        v-else
-                        class="mt-2 text-xs text-muted-foreground"
-                    >
+                    <p v-else class="mt-2 text-xs text-muted-foreground">
                         Понятное название для отображения в складской системе.
                     </p>
                 </div>
@@ -224,7 +224,7 @@ const submit = (): void => {
             >
                 <Link
                     :href="index().url"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-3 text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
                 >
                     <ArrowLeft :size="16" />
                     Отмена
@@ -233,7 +233,7 @@ const submit = (): void => {
                 <button
                     type="submit"
                     :disabled="form.processing"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:pointer-events-none disabled:opacity-50"
+                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-5 py-3 text-sm font-semibold text-white shadow-md transition-all duration-200 hover:-translate-y-0.5 hover:from-primary/90 hover:to-indigo-600/90 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50"
                 >
                     <LoaderCircle
                         v-if="form.processing"
@@ -243,7 +243,11 @@ const submit = (): void => {
 
                     <Check v-else :size="18" />
 
-                    {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
+                    {{
+                        form.processing
+                            ? 'Сохранение...'
+                            : 'Сохранить изменения'
+                    }}
                 </button>
             </div>
         </form>

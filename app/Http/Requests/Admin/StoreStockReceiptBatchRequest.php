@@ -18,7 +18,7 @@ class StoreStockReceiptBatchRequest extends FormRequest
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'integer', 'exists:products,id'],
             'items.*.location_id' => ['required', 'integer', 'exists:locations,id'],
-            'items.*.quantity' => ['required', new ValidStockQuantity()],
+            'items.*.quantity' => ['required', new ValidStockQuantity],
             'items.*.comment' => ['nullable', 'string', 'max:5000'],
         ];
     }

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Category;
+use App\Models\Country;
 use App\Models\Diameter;
+use App\Models\Manufacturer;
 use App\Models\Standard;
 use App\Models\Thread;
 use Illuminate\Http\JsonResponse;
@@ -42,11 +44,11 @@ class ProductCreateController
                 ->orderBy('system')
                 ->orderBy('designation')
                 ->get(['id', 'system', 'designation', 'name']),
-            'manufacturers' => \App\Models\Manufacturer::query()
+            'manufacturers' => Manufacturer::query()
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
-            'countries' => \App\Models\Country::query()
+            'countries' => Country::query()
                 ->orderBy('name')
                 ->get(['id', 'name']),
         ]);

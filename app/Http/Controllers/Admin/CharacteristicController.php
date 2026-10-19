@@ -6,10 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreCharacteristicRequest;
 use App\Http\Requests\Admin\UpdateCharacteristicRequest;
 use App\Models\Characteristic;
+use App\Models\ProductCharacteristicValue;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
 use Inertia\Response;
-use App\Models\ProductCharacteristicValue;
 
 class CharacteristicController extends Controller
 {

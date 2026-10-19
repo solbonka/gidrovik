@@ -4,14 +4,16 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductRequest;
+use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Category;
+use App\Models\Country;
+use App\Models\Diameter;
+use App\Models\Manufacturer;
 use App\Models\Product;
 use App\Models\ProductType;
-use App\Models\Diameter;
 use App\Models\Standard;
 use App\Models\StockMovement;
 use App\Models\Thread;
-use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Services\Admin\ProductService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -302,12 +304,12 @@ class ProductController extends Controller
                     'name',
                 ]),
 
-            'manufacturers' => \App\Models\Manufacturer::query()
+            'manufacturers' => Manufacturer::query()
                 ->where('is_active', true)
                 ->orderBy('name')
                 ->get(['id', 'name']),
 
-            'countries' => \App\Models\Country::query()
+            'countries' => Country::query()
                 ->orderBy('name')
                 ->get(['id', 'name']),
         ]);

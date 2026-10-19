@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreRackRequest;
 use App\Http\Requests\Admin\UpdateRackRequest;
+use App\Models\Category;
 use App\Models\Location;
 use App\Models\Product;
 use App\Models\Rack;
@@ -20,8 +21,7 @@ class RackController extends Controller
 {
     public function __construct(
         private readonly RackService $rackService,
-    ) {
-    }
+    ) {}
 
     public function index(): Response
     {
@@ -58,6 +58,7 @@ class RackController extends Controller
 
         $racks = $racks->map(function ($rack) use ($locationQuantities) {
             $rackCode = $rack->code;
+
             return [
                 'id' => $rack->id,
                 'code' => $rack->code,
@@ -77,7 +78,7 @@ class RackController extends Controller
         });
 
         // Get categories
-        $categories = \App\Models\Category::query()
+        $categories = Category::query()
             ->where('is_active', true)
             ->orderBy('name')
             ->get(['id', 'name']);
@@ -90,7 +91,7 @@ class RackController extends Controller
             ->get(['id', 'name', 'sku', 'unit', 'category_id'])
             ->map(function ($product) {
                 $characteristics = $product->characteristicValues->map(function ($cv) {
-                    return $cv->characteristic->name . ': ' . $cv->value;
+                    return $cv->characteristic->name.': '.$cv->value;
                 })->implode(', ');
 
                 return [

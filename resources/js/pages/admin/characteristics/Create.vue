@@ -1,7 +1,6 @@
-
 <script setup lang="ts">
-import { Head, Link, useForm } from '@inertiajs/vue3'
-import { toast } from 'vue-sonner'
+import { Head, Link, useForm } from '@inertiajs/vue3';
+import { toast } from 'vue-sonner';
 import {
     ArrowLeft,
     Check,
@@ -15,16 +14,13 @@ import {
     ShieldCheck,
     Type,
     X,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import {
-    index,
-    store,
-} from '@/routes/admin/characteristics'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { index, store } from '@/routes/admin/characteristics';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 const form = useForm({
     name: '',
@@ -32,7 +28,7 @@ const form = useForm({
     type: 'text',
     unit: '',
     is_active: true,
-})
+});
 
 const typeOptions = [
     {
@@ -59,19 +55,19 @@ const typeOptions = [
         description: 'Логическое значение',
         icon: Check,
     },
-]
+];
 
 const submit = (): void => {
     form.post(store.url(), {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Характеристика успешно создана.')
+            toast.success('Характеристика успешно создана.');
         },
         onError: () => {
-            toast.error('Проверьте правильность заполнения формы.')
+            toast.error('Проверьте правильность заполнения формы.');
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -80,13 +76,15 @@ const submit = (): void => {
     <div class="mx-auto w-full max-w-5xl space-y-6 p-4 sm:p-6 lg:p-8">
         <!-- Заголовок -->
         <div
-            class="relative overflow-hidden rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-6 shadow-sm dark:border-indigo-900/50 dark:from-indigo-950/50 dark:via-gray-950 dark:to-violet-950/30 sm:p-8"
+            class="relative overflow-hidden rounded-2xl border border-indigo-200/60 bg-gradient-to-br from-indigo-50 via-white to-violet-50 p-6 shadow-sm sm:p-8 dark:border-indigo-900/50 dark:from-indigo-950/50 dark:via-gray-950 dark:to-violet-950/30"
         >
             <div
-                class="pointer-events-none absolute -right-12 -top-16 h-48 w-48 rounded-full bg-indigo-400/10 blur-3xl"
+                class="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full bg-indigo-400/10 blur-3xl"
             />
 
-            <div class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+            <div
+                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
+            >
                 <div class="flex items-start gap-4">
                     <div
                         class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-lg shadow-indigo-500/20"
@@ -106,20 +104,25 @@ const submit = (): void => {
                             </span>
                         </div>
 
-                        <h1 class="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
+                        <h1
+                            class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl dark:text-white"
+                        >
                             Новая характеристика
                         </h1>
 
-                        <p class="mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-400">
-                            Создайте параметр товара, который можно будет назначать
-                            категориям и использовать при заполнении карточек товаров.
+                        <p
+                            class="mt-2 max-w-xl text-sm leading-6 text-gray-600 dark:text-gray-400"
+                        >
+                            Создайте параметр товара, который можно будет
+                            назначать категориям и использовать при заполнении
+                            карточек товаров.
                         </p>
                     </div>
                 </div>
 
                 <Link
                     :href="index.url()"
-                    class="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:border-gray-700 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300 sm:self-center"
+                    class="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-xl border border-gray-200 bg-white/80 px-4 py-2.5 text-sm font-medium text-gray-700 shadow-sm transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none sm:self-center dark:border-gray-700 dark:bg-gray-900/70 dark:text-gray-200 dark:hover:border-indigo-700 dark:hover:bg-indigo-950/50 dark:hover:text-indigo-300"
                 >
                     <ArrowLeft class="size-4" />
                     К списку
@@ -132,7 +135,9 @@ const submit = (): void => {
             class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-950"
             @submit.prevent="submit"
         >
-            <div class="border-b border-gray-100 px-5 py-5 dark:border-gray-800 sm:px-7">
+            <div
+                class="border-b border-gray-100 px-5 py-5 sm:px-7 dark:border-gray-800"
+            >
                 <div class="flex items-center gap-3">
                     <div
                         class="flex size-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-950/60 dark:text-indigo-400"
@@ -170,10 +175,12 @@ const submit = (): void => {
                         autofocus
                         placeholder="Например: Рабочее давление"
                         :aria-invalid="Boolean(form.errors.name)"
-                        class="w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
-                        :class="form.errors.name
-                            ? 'border-red-400 dark:border-red-500'
-                            : 'border-gray-200 dark:border-gray-700'"
+                        class="w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition outline-none placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+                        :class="
+                            form.errors.name
+                                ? 'border-red-400 dark:border-red-500'
+                                : 'border-gray-200 dark:border-gray-700'
+                        "
                     />
 
                     <p
@@ -185,7 +192,8 @@ const submit = (): void => {
                     </p>
 
                     <p v-else class="text-xs text-muted-foreground">
-                        Понятное название параметра, например «Диаметр» или «Давление».
+                        Понятное название параметра, например «Диаметр» или
+                        «Давление».
                     </p>
                 </div>
 
@@ -201,9 +209,11 @@ const submit = (): void => {
 
                     <div
                         class="flex items-center overflow-hidden rounded-xl border bg-gray-50 shadow-sm transition focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10 dark:bg-gray-900"
-                        :class="form.errors.slug
-                            ? 'border-red-400 dark:border-red-500'
-                            : 'border-gray-200 dark:border-gray-700'"
+                        :class="
+                            form.errors.slug
+                                ? 'border-red-400 dark:border-red-500'
+                                : 'border-gray-200 dark:border-gray-700'
+                        "
                     >
                         <span
                             class="border-r border-gray-200 px-3 py-3 text-sm text-gray-400 dark:border-gray-700"
@@ -232,9 +242,11 @@ const submit = (): void => {
 
                     <p v-else class="text-xs text-muted-foreground">
                         Уникальный системный идентификатор на латинице, например
-                        <code class="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-800">
-                            working_pressure
-                        </code>.
+                        <code
+                            class="rounded bg-gray-100 px-1 py-0.5 dark:bg-gray-800"
+                        >
+                            working_pressure </code
+                        >.
                     </p>
                 </div>
 
@@ -253,10 +265,12 @@ const submit = (): void => {
                             id="characteristic-type"
                             v-model="form.type"
                             :aria-invalid="Boolean(form.errors.type)"
-                            class="w-full appearance-none rounded-xl border bg-white px-4 py-3 pr-11 text-sm text-gray-900 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white"
-                            :class="form.errors.type
-                                ? 'border-red-400 dark:border-red-500'
-                                : 'border-gray-200 dark:border-gray-700'"
+                            class="w-full appearance-none rounded-xl border bg-white px-4 py-3 pr-11 text-sm text-gray-900 shadow-sm transition outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white"
+                            :class="
+                                form.errors.type
+                                    ? 'border-red-400 dark:border-red-500'
+                                    : 'border-gray-200 dark:border-gray-700'
+                            "
                         >
                             <option
                                 v-for="option in typeOptions"
@@ -268,7 +282,7 @@ const submit = (): void => {
                         </select>
 
                         <ChevronDown
-                            class="pointer-events-none absolute right-4 top-1/2 size-4 -translate-y-1/2 text-gray-400"
+                            class="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-gray-400"
                         />
                     </div>
 
@@ -285,21 +299,27 @@ const submit = (): void => {
                             v-for="option in typeOptions"
                             :key="option.value"
                             class="flex items-start gap-3 rounded-xl border p-3 transition"
-                            :class="form.type === option.value
-                                ? 'border-indigo-300 bg-indigo-50/70 dark:border-indigo-800 dark:bg-indigo-950/30'
-                                : 'border-gray-200 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-900/50'"
+                            :class="
+                                form.type === option.value
+                                    ? 'border-indigo-300 bg-indigo-50/70 dark:border-indigo-800 dark:bg-indigo-950/30'
+                                    : 'border-gray-200 bg-gray-50/60 dark:border-gray-800 dark:bg-gray-900/50'
+                            "
                         >
                             <div
                                 class="flex size-9 shrink-0 items-center justify-center rounded-lg"
-                                :class="form.type === option.value
-                                    ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/70 dark:text-indigo-300'
-                                    : 'bg-white text-gray-500 dark:bg-gray-800 dark:text-gray-400'"
+                                :class="
+                                    form.type === option.value
+                                        ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/70 dark:text-indigo-300'
+                                        : 'bg-white text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                                "
                             >
                                 <component :is="option.icon" class="size-4" />
                             </div>
 
                             <div class="min-w-0">
-                                <p class="text-sm font-medium text-gray-800 dark:text-gray-200">
+                                <p
+                                    class="text-sm font-medium text-gray-800 dark:text-gray-200"
+                                >
                                     {{ option.label }}
                                 </p>
                                 <p class="mt-0.5 text-xs text-muted-foreground">
@@ -318,7 +338,9 @@ const submit = (): void => {
                     >
                         <Ruler class="size-4 text-gray-400" />
                         Единица измерения
-                        <span class="font-normal text-muted-foreground">(необязательно)</span>
+                        <span class="font-normal text-muted-foreground"
+                            >(необязательно)</span
+                        >
                     </label>
 
                     <input
@@ -327,10 +349,12 @@ const submit = (): void => {
                         type="text"
                         placeholder="бар, мм, кг"
                         :aria-invalid="Boolean(form.errors.unit)"
-                        class="w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 shadow-sm outline-none transition placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
-                        :class="form.errors.unit
-                            ? 'border-red-400 dark:border-red-500'
-                            : 'border-gray-200 dark:border-gray-700'"
+                        class="w-full rounded-xl border bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition outline-none placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white dark:placeholder:text-gray-500"
+                        :class="
+                            form.errors.unit
+                                ? 'border-red-400 dark:border-red-500'
+                                : 'border-gray-200 dark:border-gray-700'
+                        "
                     />
 
                     <p
@@ -342,13 +366,14 @@ const submit = (): void => {
                     </p>
 
                     <p v-else class="text-xs text-muted-foreground">
-                        Укажите единицу измерения для числовых характеристик, если она нужна.
+                        Укажите единицу измерения для числовых характеристик,
+                        если она нужна.
                     </p>
                 </div>
 
                 <!-- Статус -->
                 <div
-                    class="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4 dark:border-gray-800 dark:bg-gray-900/50 sm:flex-row sm:items-center sm:justify-between"
+                    class="flex flex-col gap-4 rounded-xl border border-gray-200 bg-gray-50/70 p-4 sm:flex-row sm:items-center sm:justify-between dark:border-gray-800 dark:bg-gray-900/50"
                 >
                     <div class="flex items-start gap-3">
                         <div
@@ -358,17 +383,24 @@ const submit = (): void => {
                         </div>
 
                         <div>
-                            <p class="text-sm font-medium text-gray-900 dark:text-white">
+                            <p
+                                class="text-sm font-medium text-gray-900 dark:text-white"
+                            >
                                 Активная характеристика
                             </p>
                             <p class="mt-1 text-sm text-muted-foreground">
-                                Активные характеристики доступны для использования в категориях.
+                                Активные характеристики доступны для
+                                использования в категориях.
                             </p>
                         </div>
                     </div>
 
-                    <label class="inline-flex shrink-0 cursor-pointer items-center gap-3 self-start sm:self-center">
-                        <span class="text-sm font-medium text-gray-700 dark:text-gray-300">
+                    <label
+                        class="inline-flex shrink-0 cursor-pointer items-center gap-3 self-start sm:self-center"
+                    >
+                        <span
+                            class="text-sm font-medium text-gray-700 dark:text-gray-300"
+                        >
                             {{ form.is_active ? 'Активна' : 'Неактивна' }}
                         </span>
 
@@ -379,10 +411,10 @@ const submit = (): void => {
                         />
 
                         <span
-                            class="relative h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-indigo-600 peer-focus-visible:outline-none peer-focus-visible:ring-4 peer-focus-visible:ring-indigo-500/20 dark:bg-gray-700"
+                            class="relative h-6 w-11 rounded-full bg-gray-300 transition peer-checked:bg-indigo-600 peer-focus-visible:ring-4 peer-focus-visible:ring-indigo-500/20 peer-focus-visible:outline-none dark:bg-gray-700"
                         >
                             <span
-                                class="absolute left-0.5 top-0.5 size-5 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5"
+                                class="absolute top-0.5 left-0.5 size-5 rounded-full bg-white shadow-sm transition peer-checked:translate-x-5"
                             />
                         </span>
                     </label>
@@ -391,7 +423,7 @@ const submit = (): void => {
 
             <!-- Действия -->
             <div
-                class="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/70 px-5 py-5 dark:border-gray-800 dark:bg-gray-900/40 sm:flex-row sm:items-center sm:justify-between sm:px-7"
+                class="flex flex-col-reverse gap-3 border-t border-gray-100 bg-gray-50/70 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-gray-800 dark:bg-gray-900/40"
             >
                 <p class="text-xs text-muted-foreground">
                     <span class="text-red-500">*</span>
@@ -401,7 +433,7 @@ const submit = (): void => {
                 <div class="flex flex-col-reverse gap-3 sm:flex-row">
                     <Link
                         :href="index.url()"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100 focus-visible:ring-2 focus-visible:ring-gray-400 focus-visible:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:bg-gray-800"
                     >
                         <X class="size-4" />
                         Отмена
@@ -410,14 +442,18 @@ const submit = (): void => {
                     <button
                         type="submit"
                         :disabled="form.processing"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition hover:from-indigo-700 hover:to-violet-700 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-indigo-500/30 disabled:cursor-not-allowed disabled:opacity-60"
+                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition hover:from-indigo-700 hover:to-violet-700 focus-visible:ring-4 focus-visible:ring-indigo-500/30 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60"
                     >
                         <span
                             v-if="form.processing"
                             class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
                         />
                         <Save v-else class="size-4" />
-                        {{ form.processing ? 'Сохранение...' : 'Создать характеристику' }}
+                        {{
+                            form.processing
+                                ? 'Сохранение...'
+                                : 'Создать характеристику'
+                        }}
                     </button>
                 </div>
             </div>

@@ -1,8 +1,7 @@
-
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
-import { computed, ref } from 'vue'
-import { toast } from 'vue-sonner'
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import {
     Folder,
     FolderOpen,
@@ -17,110 +16,111 @@ import {
     Layers3,
     Search,
     X,
-} from '@lucide/vue'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { create, edit, destroy } from '@/routes/admin/categories'
-import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue'
+} from '@lucide/vue';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { create, edit, destroy } from '@/routes/admin/categories';
+import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Category {
-    id: number
-    name: string
-    slug: string
-    is_active: boolean
-    products_count: number
-    product_types_count: number
-    characteristics_count: number
+    id: number;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    products_count: number;
+    product_types_count: number;
+    characteristics_count: number;
 }
 
 interface PaginationLink {
-    url: string | null
-    label: string
-    active: boolean
+    url: string | null;
+    label: string;
+    active: boolean;
 }
 
 interface PaginatedCategories {
-    data: Category[]
-    links: PaginationLink[]
-    current_page: number
-    last_page: number
-    total: number
+    data: Category[];
+    links: PaginationLink[];
+    current_page: number;
+    last_page: number;
+    total: number;
 }
 
 const props = defineProps<{
-    categories: PaginatedCategories
-}>()
+    categories: PaginatedCategories;
+}>();
 
 const deleteDialog = ref({
     open: false,
     id: null as number | null,
     name: '',
     loading: false,
-})
+});
 
-const search = ref('')
+const search = ref('');
 
 const filteredCategories = computed(() => {
-    const query = search.value.trim().toLowerCase()
+    const query = search.value.trim().toLowerCase();
 
     if (!query) {
-        return props.categories.data
+        return props.categories.data;
     }
 
     return props.categories.data.filter((category) =>
         [category.name, category.slug].some((value) =>
             value.toLowerCase().includes(query),
         ),
-    )
-})
+    );
+});
 
 const activeCategories = computed(
     () => props.categories.data.filter((category) => category.is_active).length,
-)
+);
 
 const inactiveCategories = computed(
-    () => props.categories.data.filter((category) => !category.is_active).length,
-)
+    () =>
+        props.categories.data.filter((category) => !category.is_active).length,
+);
 
 const totalProducts = computed(() =>
     props.categories.data.reduce(
         (total, category) => total + category.products_count,
         0,
     ),
-)
+);
 
 const openDeleteDialog = (category: Category): void => {
     if (category.products_count > 0) {
-        toast.error('Нельзя удалить категорию, в которой есть товары.')
-        return
+        toast.error('Нельзя удалить категорию, в которой есть товары.');
+        return;
     }
 
-    deleteDialog.value.id = category.id
-    deleteDialog.value.name = category.name
-    deleteDialog.value.open = true
-}
+    deleteDialog.value.id = category.id;
+    deleteDialog.value.name = category.name;
+    deleteDialog.value.open = true;
+};
 
 const confirmDelete = (): void => {
-    if (deleteDialog.value.id === null) return
+    if (deleteDialog.value.id === null) return;
 
-    deleteDialog.value.loading = true
+    deleteDialog.value.loading = true;
 
     router.delete(destroy.url(deleteDialog.value.id), {
         onSuccess: () => {
-            toast.success('Категория удалена.')
+            toast.success('Категория удалена.');
         },
         onError: () => {
-            toast.error('Не удалось удалить категорию.')
+            toast.error('Не удалось удалить категорию.');
         },
         onFinish: () => {
-            deleteDialog.value.loading = false
-            deleteDialog.value.open = false
+            deleteDialog.value.loading = false;
+            deleteDialog.value.open = false;
         },
-    })
-}
+    });
+};
 </script>
 
 <template>
@@ -132,10 +132,10 @@ const confirmDelete = (): void => {
             class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-6 shadow-lg sm:px-8 sm:py-8"
         >
             <div
-                class="pointer-events-none absolute -right-12 -top-20 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"
+                class="pointer-events-none absolute -top-20 -right-12 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"
             />
             <div
-                class="pointer-events-none absolute -bottom-24 right-1/3 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
+                class="pointer-events-none absolute right-1/3 -bottom-24 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
             />
 
             <div
@@ -163,15 +163,18 @@ const confirmDelete = (): void => {
                             Категории товаров
                         </h1>
 
-                        <p class="mt-2 max-w-xl text-sm leading-6 text-slate-300">
-                            Управление категориями, типами товаров и их характеристиками.
+                        <p
+                            class="mt-2 max-w-xl text-sm leading-6 text-slate-300"
+                        >
+                            Управление категориями, типами товаров и их
+                            характеристиками.
                         </p>
                     </div>
                 </div>
 
                 <Link
                     :href="create.url()"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus:outline-none focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-slate-900"
+                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-slate-900 focus:outline-none"
                 >
                     <Plus :size="17" />
                     Добавить категорию
@@ -186,10 +189,14 @@ const confirmDelete = (): void => {
             >
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <p
+                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
+                        >
                             Всего категорий
                         </p>
-                        <p class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <p
+                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
+                        >
                             {{ categories.total }}
                         </p>
                     </div>
@@ -209,10 +216,14 @@ const confirmDelete = (): void => {
             >
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <p
+                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
+                        >
                             Активные
                         </p>
-                        <p class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <p
+                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
+                        >
                             {{ activeCategories }}
                         </p>
                     </div>
@@ -232,10 +243,14 @@ const confirmDelete = (): void => {
             >
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <p
+                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
+                        >
                             Неактивные
                         </p>
-                        <p class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <p
+                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
+                        >
                             {{ inactiveCategories }}
                         </p>
                     </div>
@@ -255,10 +270,14 @@ const confirmDelete = (): void => {
             >
                 <div class="flex items-center justify-between gap-3">
                     <div>
-                        <p class="text-sm font-medium text-slate-500 dark:text-slate-400">
+                        <p
+                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
+                        >
                             Товары
                         </p>
-                        <p class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                        <p
+                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
+                        >
                             {{ totalProducts }}
                         </p>
                     </div>
@@ -279,10 +298,12 @@ const confirmDelete = (): void => {
             class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
         >
             <div
-                class="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700"
             >
                 <div>
-                    <h2 class="text-lg font-semibold text-slate-900 dark:text-white">
+                    <h2
+                        class="text-lg font-semibold text-slate-900 dark:text-white"
+                    >
                         Список категорий
                     </h2>
                     <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -293,19 +314,19 @@ const confirmDelete = (): void => {
                 <div class="relative w-full sm:max-w-xs">
                     <Search
                         :size="17"
-                        class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
                     />
                     <input
                         v-model="search"
                         type="search"
                         placeholder="Поиск по названию или slug..."
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-sm text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500 dark:focus:bg-slate-800"
+                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-10 pl-10 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500 dark:focus:bg-slate-800"
                     />
                     <button
                         v-if="search"
                         type="button"
                         aria-label="Очистить поиск"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-white"
+                        class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-white"
                         @click="search = ''"
                     >
                         <X :size="16" />
@@ -314,99 +335,105 @@ const confirmDelete = (): void => {
             </div>
 
             <div class="overflow-x-auto">
-                <table class="min-w-[850px] w-full">
+                <table class="w-full min-w-[850px]">
                     <thead>
-                    <tr
-                        class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/60"
-                    >
-                        <th
-                            class="px-6 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
+                        <tr
+                            class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/60"
                         >
-                            Категория
-                        </th>
-                        <th
-                            class="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Товары
-                        </th>
-                        <th
-                            class="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Типы
-                        </th>
-                        <th
-                            class="px-4 py-4 text-center text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Характеристики
-                        </th>
-                        <th
-                            class="px-4 py-4 text-left text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Статус
-                        </th>
-                        <th
-                            class="px-6 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400"
-                        >
-                            Действия
-                        </th>
-                    </tr>
+                            <th
+                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Категория
+                            </th>
+                            <th
+                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Товары
+                            </th>
+                            <th
+                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Типы
+                            </th>
+                            <th
+                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Характеристики
+                            </th>
+                            <th
+                                class="px-4 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Статус
+                            </th>
+                            <th
+                                class="px-6 py-4 text-right text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                            >
+                                Действия
+                            </th>
+                        </tr>
                     </thead>
 
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    <tr
-                        v-for="category in filteredCategories"
-                        :key="category.id"
-                        class="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                    <tbody
+                        class="divide-y divide-slate-100 dark:divide-slate-800"
                     >
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div
-                                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:group-hover:bg-indigo-500/20"
-                                >
-                                    <FolderOpen :size="19" />
+                        <tr
+                            v-for="category in filteredCategories"
+                            :key="category.id"
+                            class="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                        >
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:group-hover:bg-indigo-500/20"
+                                    >
+                                        <FolderOpen :size="19" />
+                                    </div>
+                                    <div class="min-w-0">
+                                        <p
+                                            class="font-semibold text-slate-900 dark:text-white"
+                                        >
+                                            {{ category.name }}
+                                        </p>
+                                        <p
+                                            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
+                                        >
+                                            {{ category.slug }}
+                                        </p>
+                                    </div>
                                 </div>
-                                <div class="min-w-0">
-                                    <p class="font-semibold text-slate-900 dark:text-white">
-                                        {{ category.name }}
-                                    </p>
-                                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                                        {{ category.slug }}
-                                    </p>
-                                </div>
-                            </div>
-                        </td>
+                            </td>
 
-                        <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-blue-50 px-2.5 py-1.5 text-sm font-semibold tabular-nums text-blue-700 dark:bg-blue-500/10 dark:text-blue-300"
+                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-700 tabular-nums dark:bg-blue-500/10 dark:text-blue-300"
                                 >
                                     {{ category.products_count }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-violet-50 px-2.5 py-1.5 text-sm font-semibold tabular-nums text-violet-700 dark:bg-violet-500/10 dark:text-violet-300"
+                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700 tabular-nums dark:bg-violet-500/10 dark:text-violet-300"
                                 >
                                     {{ category.product_types_count }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="px-4 py-4 text-center">
+                            <td class="px-4 py-4 text-center">
                                 <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm font-semibold tabular-nums text-amber-700 dark:bg-amber-500/10 dark:text-amber-300"
+                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm font-semibold text-amber-700 tabular-nums dark:bg-amber-500/10 dark:text-amber-300"
                                 >
                                     {{ category.characteristics_count }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="px-4 py-4">
+                            <td class="px-4 py-4">
                                 <span
                                     class="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-semibold"
                                     :class="
                                         category.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20 dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20'
-                                            : 'bg-slate-100 text-slate-600 ring-1 ring-inset ring-slate-500/20 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-600/30'
+                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 ring-inset dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20'
+                                            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20 ring-inset dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-600/30'
                                     "
                                 >
                                     <span
@@ -417,87 +444,105 @@ const confirmDelete = (): void => {
                                                 : 'bg-slate-400'
                                         "
                                     />
-                                    {{ category.is_active ? 'Активна' : 'Неактивна' }}
+                                    {{
+                                        category.is_active
+                                            ? 'Активна'
+                                            : 'Неактивна'
+                                    }}
                                 </span>
-                        </td>
+                            </td>
 
-                        <td class="px-6 py-4">
-                            <div class="flex items-center justify-end gap-1.5">
-                                <Link
-                                    :href="`/admin/categories/${category.id}/characteristics`"
-                                    title="Управление характеристиками"
-                                    class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                            <td class="px-6 py-4">
+                                <div
+                                    class="flex items-center justify-end gap-1.5"
                                 >
-                                    <Settings2 :size="15" />
-                                    <span class="hidden xl:inline">Характеристики</span>
-                                </Link>
+                                    <Link
+                                        :href="`/admin/categories/${category.id}/characteristics`"
+                                        title="Управление характеристиками"
+                                        class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                                    >
+                                        <Settings2 :size="15" />
+                                        <span class="hidden xl:inline"
+                                            >Характеристики</span
+                                        >
+                                    </Link>
 
-                                <Link
-                                    :href="edit.url(category.id)"
-                                    title="Изменить категорию"
-                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                                    <Link
+                                        :href="edit.url(category.id)"
+                                        title="Изменить категорию"
+                                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                                    >
+                                        <Pencil :size="15" />
+                                        <span class="hidden xl:inline"
+                                            >Изменить</span
+                                        >
+                                    </Link>
+
+                                    <button
+                                        type="button"
+                                        title="Удалить категорию"
+                                        :disabled="category.products_count > 0"
+                                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700"
+                                        @click="openDeleteDialog(category)"
+                                    >
+                                        <Trash2 :size="15" />
+                                        <span class="hidden xl:inline"
+                                            >Удалить</span
+                                        >
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+
+                        <tr v-if="filteredCategories.length === 0">
+                            <td colspan="6" class="px-6 py-16 text-center">
+                                <div
+                                    class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
                                 >
-                                    <Pencil :size="15" />
-                                    <span class="hidden xl:inline">Изменить</span>
-                                </Link>
+                                    <Search v-if="search" :size="28" />
+                                    <Folder v-else :size="28" />
+                                </div>
+
+                                <h3
+                                    class="mt-4 text-sm font-semibold text-slate-900 dark:text-white"
+                                >
+                                    {{
+                                        search
+                                            ? 'Ничего не найдено'
+                                            : 'Категорий пока нет'
+                                    }}
+                                </h3>
+
+                                <p
+                                    class="mx-auto mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400"
+                                >
+                                    {{
+                                        search
+                                            ? 'Попробуйте изменить поисковый запрос.'
+                                            : 'Создайте первую категорию, чтобы организовать товары склада.'
+                                    }}
+                                </p>
 
                                 <button
+                                    v-if="search"
                                     type="button"
-                                    title="Удалить категорию"
-                                    :disabled="category.products_count > 0"
-                                    class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/20 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700"
-                                    @click="openDeleteDialog(category)"
+                                    class="mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                                    @click="search = ''"
                                 >
-                                    <Trash2 :size="15" />
-                                    <span class="hidden xl:inline">Удалить</span>
+                                    <X :size="15" />
+                                    Очистить поиск
                                 </button>
-                            </div>
-                        </td>
-                    </tr>
 
-                    <tr v-if="filteredCategories.length === 0">
-                        <td colspan="6" class="px-6 py-16 text-center">
-                            <div
-                                class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                            >
-                                <Search v-if="search" :size="28" />
-                                <Folder v-else :size="28" />
-                            </div>
-
-                            <h3
-                                class="mt-4 text-sm font-semibold text-slate-900 dark:text-white"
-                            >
-                                {{ search ? 'Ничего не найдено' : 'Категорий пока нет' }}
-                            </h3>
-
-                            <p class="mx-auto mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400">
-                                {{
-                                    search
-                                        ? 'Попробуйте изменить поисковый запрос.'
-                                        : 'Создайте первую категорию, чтобы организовать товары склада.'
-                                }}
-                            </p>
-
-                            <button
-                                v-if="search"
-                                type="button"
-                                class="mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                                @click="search = ''"
-                            >
-                                <X :size="15" />
-                                Очистить поиск
-                            </button>
-
-                            <Link
-                                v-else
-                                :href="create.url()"
-                                class="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-                            >
-                                <Plus :size="16" />
-                                Добавить категорию
-                            </Link>
-                        </td>
-                    </tr>
+                                <Link
+                                    v-else
+                                    :href="create.url()"
+                                    class="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                                >
+                                    <Plus :size="16" />
+                                    Добавить категорию
+                                </Link>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -505,7 +550,7 @@ const confirmDelete = (): void => {
             <!-- Пагинация -->
             <div
                 v-if="categories.last_page > 1"
-                class="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 dark:border-slate-700 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+                class="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700"
             >
                 <p class="text-sm text-slate-500 dark:text-slate-400">
                     Страница
@@ -516,17 +561,22 @@ const confirmDelete = (): void => {
                     <span class="font-semibold text-slate-900 dark:text-white">
                         {{ categories.last_page }}
                     </span>
-                    <span class="mx-1 text-slate-300 dark:text-slate-600">·</span>
+                    <span class="mx-1 text-slate-300 dark:text-slate-600"
+                        >·</span
+                    >
                     Всего: {{ categories.total }}
                 </p>
 
                 <div class="flex flex-wrap items-center gap-1.5">
-                    <template v-for="(link, index) in categories.links" :key="index">
+                    <template
+                        v-for="(link, index) in categories.links"
+                        :key="index"
+                    >
                         <Link
                             v-if="link.url"
                             :href="link.url"
                             preserve-scroll
-                            class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
+                            class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium transition focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
                             :class="
                                 link.active
                                     ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'

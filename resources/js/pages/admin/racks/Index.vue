@@ -1,23 +1,22 @@
-
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3'
-import { computed, ref, watch } from 'vue'
-import type { Component } from 'vue'
-import { toast } from 'vue-sonner'
-import AdminLayout from '@/layouts/AdminLayout.vue'
-import { create, destroy, edit } from '@/routes/admin/racks'
+import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
+import type { Component } from 'vue';
+import { toast } from 'vue-sonner';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import { create, destroy, edit } from '@/routes/admin/racks';
 import {
     destroy as destroyLocation,
     store as storeLocation,
-} from '@/routes/admin/racks/locations'
+} from '@/routes/admin/racks/locations';
 import {
     Dialog,
     DialogContent,
     DialogDescription,
     DialogHeader,
     DialogTitle,
-} from '@/components/ui/dialog'
-import ProductSelect from '@/components/admin/ProductSelect.vue'
+} from '@/components/ui/dialog';
+import ProductSelect from '@/components/admin/ProductSelect.vue';
 import {
     PackagePlus,
     ArrowDownToLine,
@@ -25,86 +24,86 @@ import {
     RotateCcw,
     ClipboardCheck,
     X,
-} from '@lucide/vue'
+} from '@lucide/vue';
 
 defineOptions({
     layout: AdminLayout,
-})
+});
 
 interface Location {
-    id: number
-    rack_id: number
-    number: number
-    code: string
-    stock_quantity: number | string | null
-    incoming_movements_count: number
-    outgoing_movements_count: number
+    id: number;
+    rack_id: number;
+    number: number;
+    code: string;
+    stock_quantity: number | string | null;
+    incoming_movements_count: number;
+    outgoing_movements_count: number;
 }
 
 interface Rack {
-    id: number
-    code: string
-    name: string | null
-    locations_count: number
-    locations: Location[]
+    id: number;
+    code: string;
+    name: string | null;
+    locations_count: number;
+    locations: Location[];
 }
 
 interface Product {
-    id: number
-    name: string
-    sku: string | null
-    unit: string
-    characteristics?: string
-    category_id?: number | null
+    id: number;
+    name: string;
+    sku: string | null;
+    unit: string;
+    characteristics?: string;
+    category_id?: number | null;
 }
 
 interface LocationProduct {
-    id: number
-    name: string
-    sku: string | null
-    quantity: string | number
+    id: number;
+    name: string;
+    sku: string | null;
+    quantity: string | number;
 }
 
 interface ProductStockLocation {
-    id: number
-    number: number
-    code: string | null
-    quantity: string | number
+    id: number;
+    number: number;
+    code: string | null;
+    quantity: string | number;
 }
 
 interface ProductDetails {
-    id: number
-    name: string
-    sku: string | null
-    quantity: string | number
+    id: number;
+    name: string;
+    sku: string | null;
+    quantity: string | number;
 }
 
 interface Props {
-    racks: Rack[]
-    allProducts: Product[]
+    racks: Rack[];
+    allProducts: Product[];
     allLocations: {
-        id: number
-        code: string
-        rack_name: string | null
-    }[]
+        id: number;
+        code: string;
+        rack_name: string | null;
+    }[];
     categories?: {
-        id: number
-        name: string
-    }[]
+        id: number;
+        name: string;
+    }[];
 }
 
-type Operation = 'receipt' | 'write_off' | 'transfer' | 'return' | 'inventory'
+type Operation = 'receipt' | 'write_off' | 'transfer' | 'return' | 'inventory';
 
 interface OperationButton {
-    value: Operation
-    label: string
-    description: string
-    icon: Component
-    active: string
-    iconClass: string
+    value: Operation;
+    label: string;
+    description: string;
+    icon: Component;
+    active: string;
+    iconClass: string;
 }
 
-const props = defineProps<Props>()
+const props = defineProps<Props>();
 
 const operationButtons: OperationButton[] = [
     {
@@ -113,7 +112,8 @@ const operationButtons: OperationButton[] = [
         description: 'Приход товара',
         icon: PackagePlus,
         active: 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-400 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-        iconClass: 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300',
+        iconClass:
+            'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300',
     },
     {
         value: 'write_off',
@@ -121,7 +121,8 @@ const operationButtons: OperationButton[] = [
         description: 'Расход товара',
         icon: ArrowDownToLine,
         active: 'border-rose-300 bg-rose-50 text-rose-800 hover:border-rose-400 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-300',
-        iconClass: 'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
+        iconClass:
+            'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
     },
     {
         value: 'transfer',
@@ -129,7 +130,8 @@ const operationButtons: OperationButton[] = [
         description: 'Между ячейками',
         icon: ArrowLeftRight,
         active: 'border-blue-300 bg-blue-50 text-blue-800 hover:border-blue-400 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300',
-        iconClass: 'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300',
+        iconClass:
+            'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300',
     },
     {
         value: 'return',
@@ -137,7 +139,8 @@ const operationButtons: OperationButton[] = [
         description: 'Возврат товара',
         icon: RotateCcw,
         active: 'border-violet-300 bg-violet-50 text-violet-800 hover:border-violet-400 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-300',
-        iconClass: 'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300',
+        iconClass:
+            'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300',
     },
     {
         value: 'inventory',
@@ -145,9 +148,10 @@ const operationButtons: OperationButton[] = [
         description: 'Проверка остатка',
         icon: ClipboardCheck,
         active: 'border-amber-300 bg-amber-50 text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300',
-        iconClass: 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300',
+        iconClass:
+            'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300',
     },
-]
+];
 
 const locationModal = ref({
     open: false,
@@ -158,7 +162,7 @@ const locationModal = ref({
     error: '',
     operation: null as Operation | null,
     operationLoading: false,
-})
+});
 
 const operationForm = ref({
     product_id: '',
@@ -166,7 +170,7 @@ const operationForm = ref({
     comment: '',
     to_location_id: '',
     current_quantity: null as number | null,
-})
+});
 
 const productDetailsModal = ref({
     open: false,
@@ -175,7 +179,7 @@ const productDetailsModal = ref({
     product: null as ProductDetails | null,
     locations: [] as ProductStockLocation[],
     totalQuantity: 0,
-})
+});
 
 const deleteConfirmation = ref({
     open: false,
@@ -183,7 +187,7 @@ const deleteConfirmation = ref({
     rack: null as Rack | null,
     location: null as Location | null,
     loading: false,
-})
+});
 
 const productsForSelect = computed(() =>
     props.allProducts.map((product) => ({
@@ -193,7 +197,7 @@ const productsForSelect = computed(() =>
         unit: product.unit,
         characteristics: product.characteristics,
     })),
-)
+);
 
 const locationProductsForSelect = computed(() =>
     locationModal.value.products.map((product) => ({
@@ -202,32 +206,30 @@ const locationProductsForSelect = computed(() =>
         sku: product.sku,
         unit: 'шт.',
     })),
-)
+);
 
 const operationProducts = computed(() => {
-    const operation = locationModal.value.operation
+    const operation = locationModal.value.operation;
 
     if (operation === 'receipt' || operation === 'return') {
-        return productsForSelect.value
+        return productsForSelect.value;
     }
 
-    return locationProductsForSelect.value
-})
+    return locationProductsForSelect.value;
+});
 
 const locationQuantity = (location: Location): number => {
-    const quantity = Number(location.stock_quantity ?? 0)
-    return Number.isFinite(quantity) ? quantity : 0
-}
+    const quantity = Number(location.stock_quantity ?? 0);
+    return Number.isFinite(quantity) ? quantity : 0;
+};
 
-const formatQuantity = (
-    value: string | number | null | undefined,
-): string => {
-    const quantity = Number(value ?? 0)
+const formatQuantity = (value: string | number | null | undefined): string => {
+    const quantity = Number(value ?? 0);
 
     return Number.isFinite(quantity)
         ? quantity.toLocaleString('ru-RU', { maximumFractionDigits: 3 })
-        : '0'
-}
+        : '0';
+};
 
 const occupiedLocationsCount = computed(() =>
     props.racks.reduce(
@@ -238,45 +240,45 @@ const occupiedLocationsCount = computed(() =>
             ).length,
         0,
     ),
-)
+);
 
-const addingLocationRackId = ref<number | null>(null)
-const newLocationNumber = ref<Record<number, string>>({})
+const addingLocationRackId = ref<number | null>(null);
+const newLocationNumber = ref<Record<number, string>>({});
 
 const editRack = (rack: Rack): void => {
-    router.visit(edit(rack.id).url)
-}
+    router.visit(edit(rack.id).url);
+};
 
 const viewRackLocations = (rack: Rack): void => {
-    router.visit(edit(rack.id).url)
-}
+    router.visit(edit(rack.id).url);
+};
 
 const startAddLocation = (rackId: number): void => {
-    const rack = props.racks.find((item) => item.id === rackId)
+    const rack = props.racks.find((item) => item.id === rackId);
 
-    if (!rack) return
+    if (!rack) return;
 
-    const existingNumbers = rack.locations.map((location) => location.number)
-    let nextNumber = 1
+    const existingNumbers = rack.locations.map((location) => location.number);
+    let nextNumber = 1;
 
     while (existingNumbers.includes(nextNumber)) {
-        nextNumber++
+        nextNumber++;
     }
 
-    newLocationNumber.value[rackId] = String(nextNumber)
-    addingLocationRackId.value = rackId
-}
+    newLocationNumber.value[rackId] = String(nextNumber);
+    addingLocationRackId.value = rackId;
+};
 
 const cancelAddLocation = (): void => {
-    addingLocationRackId.value = null
-}
+    addingLocationRackId.value = null;
+};
 
 const addLocation = (rack: Rack): void => {
-    const value = Number(newLocationNumber.value[rack.id])
+    const value = Number(newLocationNumber.value[rack.id]);
 
     if (!Number.isInteger(value) || value < 1) {
-        toast.error('Укажите корректный номер ячейки.')
-        return
+        toast.error('Укажите корректный номер ячейки.');
+        return;
     }
 
     router.post(
@@ -285,18 +287,18 @@ const addLocation = (rack: Rack): void => {
         {
             preserveScroll: true,
             onSuccess: () => {
-                addingLocationRackId.value = null
-                toast.success('Ячейка добавлена.')
+                addingLocationRackId.value = null;
+                toast.success('Ячейка добавлена.');
             },
             onError: (errors) => {
                 toast.error(
                     Object.values(errors).flat().join(', ') ||
-                    'Не удалось добавить ячейку.',
-                )
+                        'Не удалось добавить ячейку.',
+                );
             },
         },
-    )
-}
+    );
+};
 
 const deleteRack = (rack: Rack): void => {
     deleteConfirmation.value = {
@@ -305,8 +307,8 @@ const deleteRack = (rack: Rack): void => {
         rack,
         location: null,
         loading: false,
-    }
-}
+    };
+};
 
 const deleteLocation = (rack: Rack, location: Location): void => {
     deleteConfirmation.value = {
@@ -315,22 +317,22 @@ const deleteLocation = (rack: Rack, location: Location): void => {
         rack,
         location,
         loading: false,
-    }
-}
+    };
+};
 
 const closeDeleteConfirmation = (): void => {
-    if (deleteConfirmation.value.loading) return
+    if (deleteConfirmation.value.loading) return;
 
-    deleteConfirmation.value.open = false
-    deleteConfirmation.value.type = null
-    deleteConfirmation.value.rack = null
-    deleteConfirmation.value.location = null
-}
+    deleteConfirmation.value.open = false;
+    deleteConfirmation.value.type = null;
+    deleteConfirmation.value.rack = null;
+    deleteConfirmation.value.location = null;
+};
 
 const confirmDelete = (): void => {
-    const confirmation = deleteConfirmation.value
+    const confirmation = deleteConfirmation.value;
 
-    if (confirmation.loading || !confirmation.type) return
+    if (confirmation.loading || !confirmation.type) return;
 
     const options = {
         preserveScroll: true,
@@ -339,27 +341,27 @@ const confirmDelete = (): void => {
                 confirmation.type === 'rack'
                     ? 'Стеллаж успешно удалён.'
                     : 'Ячейка успешно удалена.',
-            )
+            );
 
-            deleteConfirmation.value.open = false
+            deleteConfirmation.value.open = false;
         },
         onError: () => {
             toast.error(
                 confirmation.type === 'rack'
                     ? 'Не удалось удалить стеллаж. Проверьте остатки и историю движений.'
                     : 'Не удалось удалить ячейку. Возможно, в ней есть остатки или история движений.',
-            )
+            );
         },
         onFinish: () => {
-            deleteConfirmation.value.loading = false
+            deleteConfirmation.value.loading = false;
         },
-    }
+    };
 
-    confirmation.loading = true
+    confirmation.loading = true;
 
     if (confirmation.type === 'rack' && confirmation.rack) {
-        router.delete(destroy(confirmation.rack.id).url, options)
-        return
+        router.delete(destroy(confirmation.rack.id).url, options);
+        return;
     }
 
     if (
@@ -373,20 +375,20 @@ const confirmDelete = (): void => {
                 location: confirmation.location.id,
             }).url,
             options,
-        )
-        return
+        );
+        return;
     }
 
-    confirmation.loading = false
-}
+    confirmation.loading = false;
+};
 
 const viewLocationProducts = async (location: Location): Promise<void> => {
-    locationModal.value.open = true
-    locationModal.value.locationCode = location.code
-    locationModal.value.locationId = location.id
-    locationModal.value.loading = true
-    locationModal.value.error = ''
-    locationModal.value.products = []
+    locationModal.value.open = true;
+    locationModal.value.locationCode = location.code;
+    locationModal.value.locationId = location.id;
+    locationModal.value.loading = true;
+    locationModal.value.error = '';
+    locationModal.value.products = [];
 
     try {
         const response = await fetch(
@@ -397,45 +399,45 @@ const viewLocationProducts = async (location: Location): Promise<void> => {
                     'X-Requested-With': 'XMLHttpRequest',
                 },
             },
-        )
+        );
 
         if (!response.ok) {
-            throw new Error('Не удалось загрузить товары ячейки.')
+            throw new Error('Не удалось загрузить товары ячейки.');
         }
 
-        const data: unknown = await response.json()
+        const data: unknown = await response.json();
 
         if (!Array.isArray(data)) {
-            throw new Error('Сервер вернул некорректный список товаров.')
+            throw new Error('Сервер вернул некорректный список товаров.');
         }
 
         // Не отображаем товары с нулевым остатком.
         locationModal.value.products = (data as LocationProduct[]).filter(
             (product) => Number(product.quantity) > 0,
-        )
+        );
     } catch (error) {
-        console.error('Failed to load location products:', error)
+        console.error('Failed to load location products:', error);
         locationModal.value.error =
-            'Не удалось загрузить товары. Попробуйте ещё раз.'
+            'Не удалось загрузить товары. Попробуйте ещё раз.';
     } finally {
-        locationModal.value.loading = false
+        locationModal.value.loading = false;
     }
-}
+};
 
 const closeLocationModal = (): void => {
-    if (locationModal.value.operationLoading) return
+    if (locationModal.value.operationLoading) return;
 
-    locationModal.value.open = false
-    locationModal.value.products = []
-    locationModal.value.operation = null
-    locationModal.value.error = ''
-}
+    locationModal.value.open = false;
+    locationModal.value.products = [];
+    locationModal.value.operation = null;
+    locationModal.value.error = '';
+};
 
 const startOperation = (
     operation: Operation,
     product?: LocationProduct,
 ): void => {
-    locationModal.value.operation = operation
+    locationModal.value.operation = operation;
 
     operationForm.value = {
         product_id: product ? String(product.id) : '',
@@ -446,116 +448,114 @@ const startOperation = (
         comment: '',
         to_location_id: '',
         current_quantity: product ? Number(product.quantity) : null,
-    }
-}
+    };
+};
 
 const closeOperation = (): void => {
-    if (locationModal.value.operationLoading) return
+    if (locationModal.value.operationLoading) return;
 
-    locationModal.value.operation = null
+    locationModal.value.operation = null;
     operationForm.value = {
         product_id: '',
         quantity: '1',
         comment: '',
         to_location_id: '',
         current_quantity: null,
-    }
-}
+    };
+};
 
 watch(
     () => operationForm.value.product_id,
     (productId) => {
         const product = locationModal.value.products.find(
             (item) => item.id === Number(productId),
-        )
+        );
 
         operationForm.value.current_quantity = product
             ? Number(product.quantity)
-            : null
+            : null;
 
         if (locationModal.value.operation === 'inventory' && product) {
-            operationForm.value.quantity = String(product.quantity)
+            operationForm.value.quantity = String(product.quantity);
         }
     },
-)
+);
 
 const submitOperation = async (): Promise<void> => {
-    const locationId = locationModal.value.locationId
-    const operation = locationModal.value.operation
+    const locationId = locationModal.value.locationId;
+    const operation = locationModal.value.operation;
 
-    if (!locationId || !operation) return
+    if (!locationId || !operation) return;
 
-    const quantity = Number(operationForm.value.quantity)
+    const quantity = Number(operationForm.value.quantity);
 
     if (!operationForm.value.product_id) {
-        toast.error('Выберите товар.')
-        return
+        toast.error('Выберите товар.');
+        return;
     }
 
     if (!Number.isFinite(quantity) || quantity < 0) {
-        toast.error('Укажите корректное количество.')
-        return
+        toast.error('Укажите корректное количество.');
+        return;
     }
 
     if (operation !== 'inventory' && quantity <= 0) {
-        toast.error('Количество должно быть больше нуля.')
-        return
+        toast.error('Количество должно быть больше нуля.');
+        return;
     }
 
     if (
         operation === 'transfer' &&
-        (
-            !operationForm.value.to_location_id ||
-            Number(operationForm.value.to_location_id) === locationId
-        )
+        (!operationForm.value.to_location_id ||
+            Number(operationForm.value.to_location_id) === locationId)
     ) {
-        toast.error('Выберите другую ячейку назначения.')
-        return
+        toast.error('Выберите другую ячейку назначения.');
+        return;
     }
 
-    locationModal.value.operationLoading = true
+    locationModal.value.operationLoading = true;
 
     try {
-        const formData = new FormData()
-        formData.append('product_id', operationForm.value.product_id)
-        formData.append('comment', operationForm.value.comment)
+        const formData = new FormData();
+        formData.append('product_id', operationForm.value.product_id);
+        formData.append('comment', operationForm.value.comment);
 
-        let url: string
+        let url: string;
 
         switch (operation) {
             case 'receipt':
-                url = '/admin/stock/receipt'
-                formData.append('location_id', String(locationId))
-                formData.append('quantity', String(quantity))
-                break
+                url = '/admin/stock/receipt';
+                formData.append('location_id', String(locationId));
+                formData.append('quantity', String(quantity));
+                break;
 
             case 'write_off':
-                url = '/admin/stock/write-off'
-                formData.append('location_id', String(locationId))
-                formData.append('quantity', String(quantity))
-                break
+                url = '/admin/stock/write-off';
+                formData.append('location_id', String(locationId));
+                formData.append('quantity', String(quantity));
+                break;
 
             case 'transfer':
-                url = '/admin/stock/transfer'
-                formData.append('from_location_id', String(locationId))
+                url = '/admin/stock/transfer';
+                formData.append('from_location_id', String(locationId));
                 formData.append(
                     'to_location_id',
                     operationForm.value.to_location_id,
-                )
-                formData.append('quantity', String(quantity))
-                break
+                );
+                formData.append('quantity', String(quantity));
+                break;
 
             case 'return':
-                url = '/admin/stock/return'
-                formData.append('location_id', String(locationId))
-                formData.append('quantity', String(quantity))
-                break
+                url = '/admin/stock/return';
+                formData.append('location_id', String(locationId));
+                formData.append('quantity', String(quantity));
+                break;
 
             case 'inventory':
-                url = '/admin/stock/inventory'
-                formData.append('location_id', String(locationId))
-                formData.append('actual_quantity', String(quantity))
-                break
+                url = '/admin/stock/inventory';
+                formData.append('location_id', String(locationId));
+                formData.append('actual_quantity', String(quantity));
+                break;
         }
 
         const response = await fetch(url, {
@@ -570,53 +570,51 @@ const submitOperation = async (): Promise<void> => {
             },
             body: formData,
             credentials: 'same-origin',
-        })
+        });
 
-        const data = await response.json().catch(() => null)
+        const data = await response.json().catch(() => null);
 
         if (!response.ok) {
-            let message = data?.message || 'Ошибка при выполнении операции.'
+            let message = data?.message || 'Ошибка при выполнении операции.';
 
             if (data?.errors) {
                 message =
-                    Object.values(data.errors).flat().join(', ') || message
+                    Object.values(data.errors).flat().join(', ') || message;
             }
 
-            toast.error(message)
-            return
+            toast.error(message);
+            return;
         }
 
-        toast.success('Операция успешно выполнена.')
+        toast.success('Операция успешно выполнена.');
 
-        locationModal.value.operation = null
+        locationModal.value.operation = null;
         operationForm.value = {
             product_id: '',
             quantity: '1',
             comment: '',
             to_location_id: '',
             current_quantity: null,
-        }
+        };
 
         const location = props.racks
             .flatMap((rack) => rack.locations ?? [])
-            .find((item) => item.id === locationId)
+            .find((item) => item.id === locationId);
 
         if (location) {
-            await viewLocationProducts(location)
+            await viewLocationProducts(location);
         }
 
-        router.reload({ only: ['racks'] })
+        router.reload({ only: ['racks'] });
     } catch (error) {
-        console.error('Operation error:', error)
-        toast.error('Не удалось выполнить операцию.')
+        console.error('Operation error:', error);
+        toast.error('Не удалось выполнить операцию.');
     } finally {
-        locationModal.value.operationLoading = false
+        locationModal.value.operationLoading = false;
     }
-}
+};
 
-const showProductDetails = async (
-    product: LocationProduct,
-): Promise<void> => {
+const showProductDetails = async (product: LocationProduct): Promise<void> => {
     productDetailsModal.value = {
         open: true,
         loading: true,
@@ -629,7 +627,7 @@ const showProductDetails = async (
         },
         locations: [],
         totalQuantity: 0,
-    }
+    };
 
     try {
         const response = await fetch(
@@ -640,47 +638,53 @@ const showProductDetails = async (
                     'X-Requested-With': 'XMLHttpRequest',
                 },
             },
-        )
+        );
 
         if (!response.ok) {
-            throw new Error('Не удалось загрузить расположение товара.')
+            throw new Error('Не удалось загрузить расположение товара.');
         }
 
-        const data = await response.json()
+        const data = await response.json();
 
         const locations = (
             Array.isArray(data.locations)
                 ? (data.locations as ProductStockLocation[])
                 : []
-        ).filter((location) => Number(location.quantity) > 0)
+        ).filter((location) => Number(location.quantity) > 0);
 
-        productDetailsModal.value.locations = locations
+        productDetailsModal.value.locations = locations;
         productDetailsModal.value.totalQuantity = locations.reduce(
             (sum, location) => sum + Number(location.quantity || 0),
             0,
-        )
+        );
     } catch (error) {
-        console.error('Product details error:', error)
+        console.error('Product details error:', error);
         productDetailsModal.value.error =
-            'Не удалось загрузить расположение товара. Попробуйте ещё раз.'
+            'Не удалось загрузить расположение товара. Попробуйте ещё раз.';
     } finally {
-        productDetailsModal.value.loading = false
+        productDetailsModal.value.loading = false;
     }
-}
+};
 
 const closeProductDetails = (): void => {
-    productDetailsModal.value.open = false
-}
+    productDetailsModal.value.open = false;
+};
 </script>
 
 <template>
     <Head title="Склады и ячейки" />
 
-    <div class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 px-4 py-6 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 sm:px-6 lg:px-8">
+    <div
+        class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 px-4 py-6 sm:px-6 lg:px-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
+    >
         <div class="mx-auto max-w-7xl">
-            <div class="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-center">
+            <div
+                class="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-center"
+            >
                 <div>
-                    <h1 class="mb-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                    <h1
+                        class="mb-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
+                    >
                         Склады и ячейки
                     </h1>
                     <p class="text-sm text-slate-500 dark:text-slate-400">
@@ -698,26 +702,42 @@ const closeProductDetails = (): void => {
             </div>
 
             <div class="mb-8 grid gap-4 sm:grid-cols-3">
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">
+                <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                >
+                    <p class="text-xs tracking-wider text-slate-500 uppercase">
                         Всего стеллажей
                     </p>
-                    <p class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
+                    <p
+                        class="mt-2 text-2xl font-bold text-slate-900 dark:text-white"
+                    >
                         {{ racks.length }}
                     </p>
                 </div>
 
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">
+                <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                >
+                    <p class="text-xs tracking-wider text-slate-500 uppercase">
                         Всего ячеек
                     </p>
-                    <p class="mt-2 text-2xl font-bold text-slate-900 dark:text-white">
-                        {{ racks.reduce((sum, rack) => sum + (rack.locations_count || 0), 0) }}
+                    <p
+                        class="mt-2 text-2xl font-bold text-slate-900 dark:text-white"
+                    >
+                        {{
+                            racks.reduce(
+                                (sum, rack) =>
+                                    sum + (rack.locations_count || 0),
+                                0,
+                            )
+                        }}
                     </p>
                 </div>
 
-                <div class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900">
-                    <p class="text-xs uppercase tracking-wider text-slate-500">
+                <div
+                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
+                >
+                    <p class="text-xs tracking-wider text-slate-500 uppercase">
                         Занято ячеек
                     </p>
                     <p class="mt-2 text-2xl font-bold text-emerald-600">
@@ -737,10 +757,14 @@ const closeProductDetails = (): void => {
                 >
                     <div class="mb-5 flex items-start justify-between gap-3">
                         <div>
-                            <h2 class="text-lg font-bold text-slate-900 dark:text-white">
+                            <h2
+                                class="text-lg font-bold text-slate-900 dark:text-white"
+                            >
                                 {{ rack.name || rack.code }}
                             </h2>
-                            <p class="text-xs uppercase tracking-wider text-slate-500">
+                            <p
+                                class="text-xs tracking-wider text-slate-500 uppercase"
+                            >
                                 {{ rack.code }}
                             </p>
                         </div>
@@ -781,9 +805,11 @@ const closeProductDetails = (): void => {
                             :key="cell.id"
                             type="button"
                             class="min-w-20 rounded-xl border p-3 text-center transition hover:-translate-y-0.5"
-                            :class="locationQuantity(cell) > 0
-                                ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                                : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300'"
+                            :class="
+                                locationQuantity(cell) > 0
+                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+                                    : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300'
+                            "
                             @click="viewLocationProducts(cell)"
                         >
                             <span class="block text-sm font-bold">
@@ -802,7 +828,9 @@ const closeProductDetails = (): void => {
                         </p>
                     </div>
 
-                    <div class="mt-5 border-t border-slate-200 pt-4 dark:border-white/10">
+                    <div
+                        class="mt-5 border-t border-slate-200 pt-4 dark:border-white/10"
+                    >
                         <button
                             v-if="addingLocationRackId !== rack.id"
                             type="button"
@@ -851,7 +879,8 @@ const closeProductDetails = (): void => {
                     Стеллажи не найдены
                 </h2>
                 <p class="mt-2 text-sm text-slate-500">
-                    Создайте первый стеллаж, чтобы организовать хранение товаров.
+                    Создайте первый стеллаж, чтобы организовать хранение
+                    товаров.
                 </p>
                 <Link
                     :href="create().url"
@@ -866,7 +895,11 @@ const closeProductDetails = (): void => {
     <!-- Товары в ячейке -->
     <Dialog
         :open="locationModal.open"
-        @update:open="(open) => { if (!open) closeLocationModal() }"
+        @update:open="
+            (open) => {
+                if (!open) closeLocationModal();
+            }
+        "
     >
         <DialogContent class="max-h-[90vh] w-[95vw] max-w-3xl overflow-y-auto">
             <DialogHeader>
@@ -879,10 +912,10 @@ const closeProductDetails = (): void => {
             </DialogHeader>
 
             <div v-if="locationModal.loading" class="py-10 text-center">
-                <div class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-500"></div>
-                <p class="mt-3 text-sm text-slate-500">
-                    Загрузка товаров...
-                </p>
+                <div
+                    class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-500"
+                ></div>
+                <p class="mt-3 text-sm text-slate-500">Загрузка товаров...</p>
             </div>
 
             <div v-else-if="locationModal.error" class="py-8 text-center">
@@ -893,15 +926,17 @@ const closeProductDetails = (): void => {
                     v-if="locationModal.locationId"
                     type="button"
                     class="mt-3 rounded-lg bg-slate-100 px-4 py-2 text-sm dark:bg-slate-800 dark:text-white"
-                    @click="viewLocationProducts({
-                        id: locationModal.locationId,
-                        rack_id: 0,
-                        number: 0,
-                        code: locationModal.locationCode,
-                        stock_quantity: 0,
-                        incoming_movements_count: 0,
-                        outgoing_movements_count: 0,
-                    })"
+                    @click="
+                        viewLocationProducts({
+                            id: locationModal.locationId,
+                            rack_id: 0,
+                            number: 0,
+                            code: locationModal.locationCode,
+                            stock_quantity: 0,
+                            incoming_movements_count: 0,
+                            outgoing_movements_count: 0,
+                        })
+                    "
                 >
                     Повторить
                 </button>
@@ -916,7 +951,7 @@ const closeProductDetails = (): void => {
                         v-for="item in operationButtons"
                         :key="item.value"
                         type="button"
-                        class="group flex w-full items-center gap-3 rounded-xl border border-primary/15 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-4 py-3 text-left text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:from-primary/10 hover:to-indigo-500/10 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        class="group flex w-full items-center gap-3 rounded-xl border border-primary/15 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-4 py-3 text-left text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:from-primary/10 hover:to-indigo-500/10 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
                         :class="item.active"
                         @click="startOperation(item.value)"
                     >
@@ -939,21 +974,23 @@ const closeProductDetails = (): void => {
                     class="space-y-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-900"
                 >
                     <div class="flex items-center justify-between">
-                        <h3 class="font-semibold text-slate-900 dark:text-white">
+                        <h3
+                            class="font-semibold text-slate-900 dark:text-white"
+                        >
                             {{
-                                ({
+                                {
                                     receipt: 'Пополнение',
                                     write_off: 'Списание',
                                     transfer: 'Перемещение',
                                     return: 'Возврат',
                                     inventory: 'Инвентаризация',
-                                })[locationModal.operation]
+                                }[locationModal.operation]
                             }}
                         </h3>
 
                         <button
                             type="button"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
                             @click="closeLocationModal"
                         >
                             <X :size="16" />
@@ -962,7 +999,9 @@ const closeProductDetails = (): void => {
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+                        <label
+                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
+                        >
                             Товар
                         </label>
 
@@ -972,15 +1011,16 @@ const closeProductDetails = (): void => {
                             :categories="categories ?? []"
                             :model-value="operationForm.product_id"
                             @update:model-value="
-                                operationForm.product_id = $event !== null
-                                    ? String($event)
-                                    : ''
+                                operationForm.product_id =
+                                    $event !== null ? String($event) : ''
                             "
                         />
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+                        <label
+                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
+                        >
                             {{
                                 locationModal.operation === 'inventory'
                                     ? 'Фактическое количество'
@@ -1010,7 +1050,9 @@ const closeProductDetails = (): void => {
                     </div>
 
                     <div v-if="locationModal.operation === 'transfer'">
-                        <label class="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+                        <label
+                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
+                        >
                             Ячейка назначения
                         </label>
 
@@ -1023,7 +1065,9 @@ const closeProductDetails = (): void => {
                                 v-for="location in allLocations"
                                 :key="location.id"
                                 :value="String(location.id)"
-                                :disabled="location.id === locationModal.locationId"
+                                :disabled="
+                                    location.id === locationModal.locationId
+                                "
                             >
                                 {{ location.code }}
                                 ({{ location.rack_name || 'Без названия' }})
@@ -1032,7 +1076,9 @@ const closeProductDetails = (): void => {
                     </div>
 
                     <div>
-                        <label class="mb-1 block text-sm text-slate-600 dark:text-slate-300">
+                        <label
+                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
+                        >
                             Комментарий
                         </label>
                         <textarea
@@ -1061,7 +1107,10 @@ const closeProductDetails = (): void => {
                 </div>
 
                 <div
-                    v-if="!locationModal.operation && !locationModal.products.length"
+                    v-if="
+                        !locationModal.operation &&
+                        !locationModal.products.length
+                    "
                     class="py-8 text-center"
                 >
                     <p class="text-sm text-slate-500">
@@ -1069,10 +1118,7 @@ const closeProductDetails = (): void => {
                     </p>
                 </div>
 
-                <div
-                    v-else-if="!locationModal.operation"
-                    class="space-y-2"
-                >
+                <div v-else-if="!locationModal.operation" class="space-y-2">
                     <button
                         v-for="product in locationModal.products"
                         :key="product.id"
@@ -1081,7 +1127,9 @@ const closeProductDetails = (): void => {
                         @click="showProductDetails(product)"
                     >
                         <span class="min-w-0">
-                            <span class="block font-medium text-slate-900 dark:text-white">
+                            <span
+                                class="block font-medium text-slate-900 dark:text-white"
+                            >
                                 {{ product.name }}
                             </span>
                             <span class="block text-xs text-slate-500">
@@ -1090,7 +1138,9 @@ const closeProductDetails = (): void => {
                         </span>
 
                         <span class="shrink-0 text-right">
-                            <span class="block font-bold text-slate-900 dark:text-white">
+                            <span
+                                class="block font-bold text-slate-900 dark:text-white"
+                            >
                                 {{ formatQuantity(product.quantity) }}
                             </span>
                             <span class="text-xs text-emerald-600">
@@ -1101,7 +1151,9 @@ const closeProductDetails = (): void => {
                 </div>
             </template>
 
-            <div class="flex justify-end border-t border-slate-200 pt-4 dark:border-white/10">
+            <div
+                class="flex justify-end border-t border-slate-200 pt-4 dark:border-white/10"
+            >
                 <button
                     type="button"
                     class="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-white"
@@ -1117,12 +1169,19 @@ const closeProductDetails = (): void => {
     <!-- Распределение товара по ячейкам -->
     <Dialog
         :open="productDetailsModal.open"
-        @update:open="(open) => { if (!open) closeProductDetails() }"
+        @update:open="
+            (open) => {
+                if (!open) closeProductDetails();
+            }
+        "
     >
         <DialogContent class="max-h-[85vh] w-[95vw] max-w-xl overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>
-                    {{ productDetailsModal.product?.name || 'Расположение товара' }}
+                    {{
+                        productDetailsModal.product?.name ||
+                        'Расположение товара'
+                    }}
                 </DialogTitle>
                 <DialogDescription>
                     Остатки товара по ячейкам
@@ -1148,7 +1207,9 @@ const closeProductDetails = (): void => {
                     <p class="text-sm text-slate-600 dark:text-slate-300">
                         Общий остаток
                     </p>
-                    <p class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+                    <p
+                        class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300"
+                    >
                         {{ formatQuantity(productDetailsModal.totalQuantity) }}
                     </p>
                 </div>
@@ -1163,8 +1224,12 @@ const closeProductDetails = (): void => {
                         class="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-white/10"
                     >
                         <div>
-                            <p class="font-medium text-slate-900 dark:text-white">
-                                {{ location.code || `Ячейка ${location.number}` }}
+                            <p
+                                class="font-medium text-slate-900 dark:text-white"
+                            >
+                                {{
+                                    location.code || `Ячейка ${location.number}`
+                                }}
                             </p>
                         </div>
                         <p class="font-bold text-slate-900 dark:text-white">
@@ -1183,13 +1248,15 @@ const closeProductDetails = (): void => {
     <!-- Подтверждение удаления -->
     <Dialog
         :open="deleteConfirmation.open"
-        @update:open="(open) => { if (!open) closeDeleteConfirmation() }"
+        @update:open="
+            (open) => {
+                if (!open) closeDeleteConfirmation();
+            }
+        "
     >
         <DialogContent class="w-[95vw] max-w-md">
             <DialogHeader>
-                <DialogTitle>
-                    Подтверждение удаления
-                </DialogTitle>
+                <DialogTitle> Подтверждение удаления </DialogTitle>
                 <DialogDescription>
                     {{
                         deleteConfirmation.type === 'rack'
@@ -1200,7 +1267,8 @@ const closeProductDetails = (): void => {
             </DialogHeader>
 
             <p class="text-sm text-slate-500">
-                Удаление может быть запрещено, если существуют остатки или история складских движений.
+                Удаление может быть запрещено, если существуют остатки или
+                история складских движений.
             </p>
 
             <div class="flex justify-end gap-3">
@@ -1219,11 +1287,7 @@ const closeProductDetails = (): void => {
                     :disabled="deleteConfirmation.loading"
                     @click="confirmDelete"
                 >
-                    {{
-                        deleteConfirmation.loading
-                            ? 'Удаление...'
-                            : 'Удалить'
-                    }}
+                    {{ deleteConfirmation.loading ? 'Удаление...' : 'Удалить' }}
                 </button>
             </div>
         </DialogContent>

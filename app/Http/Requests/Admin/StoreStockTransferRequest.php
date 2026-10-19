@@ -34,7 +34,7 @@ class StoreStockTransferRequest extends FormRequest
             ],
             'quantity' => [
                 'required',
-                new ValidStockQuantity(),
+                new ValidStockQuantity,
             ],
             'comment' => [
                 'nullable',

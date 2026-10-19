@@ -1,58 +1,62 @@
 <script setup lang="ts">
-import { Link, usePage } from '@inertiajs/vue3'
-import { dashboard } from '@/routes/admin'
-import { logout as logoutRoute } from '@/routes'
-import { Menu, ExternalLink, LogOut } from '@lucide/vue'
-import { Button } from '@/components/ui/button'
+import { Link, usePage } from '@inertiajs/vue3';
+import { dashboard } from '@/routes/admin';
+import { logout as logoutRoute } from '@/routes';
+import { Menu, ExternalLink, LogOut } from '@lucide/vue';
+import { Button } from '@/components/ui/button';
 
 interface Props {
-    title?: string
+    title?: string;
 }
 
 withDefaults(defineProps<Props>(), {
     title: 'Панель управления',
-})
+});
 
 const emit = defineEmits<{
-    'toggle-sidebar': []
-}>()
+    'toggle-sidebar': [];
+}>();
 
-const page = usePage()
+const page = usePage();
 
 const submitLogout = (): void => {
-    const form = document.createElement('form')
+    const form = document.createElement('form');
 
-    form.method = 'POST'
-    form.action = logoutRoute.url()
+    form.method = 'POST';
+    form.action = logoutRoute.url();
 
     const token = document
         .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute('content')
+        ?.getAttribute('content');
 
     if (token) {
-        const input = document.createElement('input')
+        const input = document.createElement('input');
 
-        input.type = 'hidden'
-        input.name = '_token'
-        input.value = token
+        input.type = 'hidden';
+        input.name = '_token';
+        input.value = token;
 
-        form.appendChild(input)
+        form.appendChild(input);
     }
 
-    document.body.appendChild(form)
-    form.submit()
-}
+    document.body.appendChild(form);
+    form.submit();
+};
 </script>
 
 <template>
-    <header class="sticky top-0 z-30 border-b border-border/10 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 shadow-sm">
-        <div class="flex h-16 items-center justify-between px-3 sm:px-6 lg:px-8">
+    <header
+        class="sticky top-0 z-30 border-b border-border/10 bg-white/80 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-white/60"
+    >
+        <div
+            class="flex h-16 items-center justify-between px-3 sm:px-6 lg:px-8"
+        >
             <div class="flex items-center gap-2 sm:gap-3">
                 <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    class="lg:hidden text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    class="text-muted-foreground hover:bg-muted/50 hover:text-foreground lg:hidden"
                     @click="emit('toggle-sidebar')"
                     aria-label="Открыть меню"
                 >
@@ -60,15 +64,19 @@ const submitLogout = (): void => {
                 </Button>
 
                 <div class="flex items-center gap-2">
-                    <div class="hidden sm:flex h-8 w-1 rounded-full bg-gradient-to-b from-primary to-indigo-600" />
-                    <h1 class="text-base font-semibold bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent sm:text-lg">
+                    <div
+                        class="hidden h-8 w-1 rounded-full bg-gradient-to-b from-primary to-indigo-600 sm:flex"
+                    />
+                    <h1
+                        class="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-base font-semibold text-transparent sm:text-lg"
+                    >
                         {{ title }}
                     </h1>
                 </div>
             </div>
 
             <div class="flex items-center gap-1 sm:gap-2">
-                <div class="hidden text-right sm:block mr-2">
+                <div class="mr-2 hidden text-right sm:block">
                     <div class="text-sm font-medium text-foreground">
                         {{ page.props.auth?.user?.name ?? 'Пользователь' }}
                     </div>
@@ -81,7 +89,7 @@ const submitLogout = (): void => {
                 <Button
                     variant="ghost"
                     size="sm"
-                    class="hidden sm:flex text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    class="hidden text-muted-foreground hover:bg-muted/50 hover:text-foreground sm:flex"
                     as-child
                 >
                     <Link :href="dashboard.url()">
@@ -94,7 +102,7 @@ const submitLogout = (): void => {
                     type="button"
                     variant="ghost"
                     size="sm"
-                    class="text-muted-foreground hover:text-destructive hover:bg-destructive/5 transition-colors"
+                    class="text-muted-foreground transition-colors hover:bg-destructive/5 hover:text-destructive"
                     @click="submitLogout"
                 >
                     <LogOut :size="16" class="sm:mr-1.5" />

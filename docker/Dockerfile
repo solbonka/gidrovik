@@ -19,9 +19,22 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
+# Компиляция PHP-расширений (PostgreSQL, bcmath, zip, gd и т.д.)
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-xpm \
+    && docker-php-ext-install -j$(nproc) \
+        pdo_pgsql \
+        pgsql \
+        bcmath \
+        zip \
+        gd \
+        intl \
+        opcache
+
+
 # Установка Node.js через nvm
 ENV NVM_DIR=/usr/local/nvm
 ENV NODE_VERSION=22.12.0
+ENV PNPM_VERSION=9.15.0
 
 RUN mkdir -p $NVM_DIR && \
     curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash && \
@@ -35,29 +48,10 @@ RUN mkdir -p $NVM_DIR && \
     ln -sf $NVM_DIR/versions/node/v$NODE_VERSION/bin/npx  /usr/local/bin/npx && \
     ln -sf $NVM_DIR/versions/node/v$NODE_VERSION/bin/pnpm /usr/local/bin/pnpm
 
-# Установка и включение Imagick через PECL
-RUN pecl install imagick && docker-php-ext-enable imagick
-
-# Разрешаем работу с PDF в ImageMagick
-RUN mkdir -p /etc/ImageMagick-6/ /etc/ImageMagick-7/ && \
-    echo '<?xml version="1.0" encoding="UTF-8"?> \
-<policymap> \
-  <policy domain="coder" rights="read|write" pattern="PDF" /> \
-</policymap>' | tee /etc/ImageMagick-6/policy.xml /etc/ImageMagick-7/policy.xml
-
-# Установка и настройка PHP-расширений
-RUN pecl install xdebug && docker-php-ext-enable xdebug && \
-    docker-php-ext-configure gd \
-        --with-freetype \
-        --with-jpeg \
-        --with-xpm && \
-    docker-php-ext-install -j$(nproc) gd intl zip pgsql pdo_pgsql exif sockets bcmath && \
-    docker-php-ext-enable sockets
-
-# Установка Composer через официальный образ (надёжнее и быстрее)
+# Установка Composer через официальный образ
 COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 
-# Проверка версий (можно закомментировать)
+# Проверка версий
 RUN php -v && node -v && npm -v && composer -V
 
 # Создаем пользователя и группу для приложения
