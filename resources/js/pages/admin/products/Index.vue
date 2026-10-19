@@ -383,7 +383,138 @@ const confirmDelete = (): void => {
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-3 p-4 md:hidden">
+                <div
+                    v-for="product in products.data"
+                    :key="product.id"
+                    class="rounded-xl border border-border/50 bg-white p-4 shadow-sm transition-colors hover:border-primary/20"
+                >
+                    <!-- Заголовок карточки -->
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-semibold text-foreground break-words">
+                                {{ product.name }}
+                            </h3>
+                            <span
+                                class="mt-1 inline-flex items-center rounded-lg border border-primary/10 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-2 py-0.5 font-mono text-xs font-medium text-primary"
+                            >
+                    {{ product.sku }}
+                </span>
+                        </div>
+
+                        <!-- Статус -->
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                            :class="
+                    product.is_active
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : 'border-border bg-muted text-muted-foreground'
+                "
+                        >
+                <span
+                    class="h-1.5 w-1.5 rounded-full"
+                    :class="
+                        product.is_active
+                            ? 'bg-emerald-500'
+                            : 'bg-muted-foreground/50'
+                    "
+                />
+                {{ product.is_active ? 'Активен' : 'Неактивен' }}
+            </span>
+                    </div>
+
+                    <!-- Инфо-блок -->
+                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                        <div>
+                            <p class="text-xs text-muted-foreground">Категория</p>
+                            <p class="text-foreground truncate">{{ product.category.name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">Тип</p>
+                            <p class="text-foreground truncate">
+                                {{ product.product_type?.name ?? '—' }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-xs text-muted-foreground">Остаток</p>
+                            <p
+                                class="font-semibold"
+                                :class="
+                        Number(product.stock_quantity ?? 0) > 0
+                            ? 'text-foreground'
+                            : 'text-muted-foreground/60'
+                    "
+                            >
+                                {{ product.stock_quantity ?? 0 }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Действия -->
+                    <div class="mt-4 flex items-center gap-2 border-t border-border/50 pt-3">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            as-child
+                            class="flex-1 gap-1.5 rounded-lg"
+                        >
+                            <Link :href="show(product.id).url">
+                                <Eye :size="15" />
+                                Просмотр
+                            </Link>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            as-child
+                            class="flex-1 gap-1.5 rounded-lg"
+                        >
+                            <Link :href="edit(product.id).url">
+                                <Pencil :size="15" />
+                                Изменить
+                            </Link>
+                        </Button>
+
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            class="shrink-0 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"
+                            @click="openDeleteDialog(product)"
+                        >
+                            <Trash2 :size="15" />
+                            <span class="sr-only">Удалить</span>
+                        </Button>
+                    </div>
+                </div>
+
+                <!-- Пустое состояние -->
+                <div
+                    v-if="products.data.length === 0"
+                    class="rounded-xl border border-border/50 bg-white p-8 text-center"
+                >
+                    <div
+                        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
+                    >
+                        <Package :size="30" />
+                    </div>
+                    <p class="font-semibold text-foreground">Товары не найдены</p>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Измените параметры фильтров или добавьте новый товар.
+                    </p>
+                    <Link
+                        :href="create().url"
+                        class="mt-5 inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-all hover:from-primary/90 hover:to-indigo-600/90"
+                    >
+                        <Plus :size="16" />
+                        Добавить первый товар
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Таблица на десктопе -->
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full text-left text-sm">
                     <thead class="bg-muted/30">
                         <tr>
