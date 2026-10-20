@@ -68,6 +68,46 @@ const navigationGroups: NavigationGroup[] = [
         ],
     },
     {
+        title: 'Склад',
+        items: [
+            {
+                name: 'Остатки',
+                href: '/admin/stock',
+                icon: Boxes,
+            },
+            {
+                name: 'Приход товара',
+                href: '/admin/stock/receipt',
+                icon: ArrowDownToLine,
+            },
+            {
+                name: 'Перемещение',
+                href: '/admin/stock/transfer',
+                icon: ArrowLeftRight,
+            },
+            {
+                name: 'Списание',
+                href: '/admin/stock/write-off',
+                icon: PackageMinus,
+            },
+            {
+                name: 'Возврат',
+                href: '/admin/stock/return',
+                icon: RotateCcw,
+            },
+            {
+                name: 'Инвентаризация',
+                href: '/admin/stock/inventory',
+                icon: ClipboardCheck,
+            },
+            {
+                name: 'История движений',
+                href: '/admin/stock/movements',
+                icon: History,
+            },
+        ],
+    },
+    {
         title: 'Каталог',
         items: [
             {
@@ -119,46 +159,6 @@ const navigationGroups: NavigationGroup[] = [
                 name: 'Страны',
                 href: '/admin/countries',
                 icon: Globe,
-            },
-        ],
-    },
-    {
-        title: 'Склад',
-        items: [
-            {
-                name: 'Остатки',
-                href: '/admin/stock',
-                icon: Boxes,
-            },
-            {
-                name: 'Приход товара',
-                href: '/admin/stock/receipt',
-                icon: ArrowDownToLine,
-            },
-            {
-                name: 'Перемещение',
-                href: '/admin/stock/transfer',
-                icon: ArrowLeftRight,
-            },
-            {
-                name: 'Списание',
-                href: '/admin/stock/write-off',
-                icon: PackageMinus,
-            },
-            {
-                name: 'Возврат',
-                href: '/admin/stock/return',
-                icon: RotateCcw,
-            },
-            {
-                name: 'Инвентаризация',
-                href: '/admin/stock/inventory',
-                icon: ClipboardCheck,
-            },
-            {
-                name: 'История движений',
-                href: '/admin/stock/movements',
-                icon: History,
             },
         ],
     },

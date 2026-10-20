@@ -417,6 +417,18 @@ function goToPage(url: string | null): void {
                         <p class="text-[10px] text-slate-500 dark:text-slate-400">Не хватает</p>
                         <p class="font-semibold" :class="Number(product.stock_deficit) > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'">{{ formatNumber(product.stock_deficit) }} {{ product.unit }}</p>
                     </div>
+                    <div class="mt-2 text-xs">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Расположение</p>
+                        <p class="font-semibold text-slate-700 dark:text-slate-300 truncate text-[10px]">
+                            <span v-if="product.locations.length">
+                                <span v-for="location in product.locations" :key="location.id" class="mr-1.5">
+                                    {{ location.code }}
+                                    <span v-if="location.rack_code" class="text-slate-500 dark:text-slate-400 text-[9px]">({{ location.rack_code }})</span>
+                                </span>
+                            </span>
+                            <span v-else>Не размещён</span>
+                        </p>
+                    </div>
                     <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
                         <Link :href="show(product.id).url" class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"><Eye class="h-3 w-3" />Просмотр</Link>
                     </div>
