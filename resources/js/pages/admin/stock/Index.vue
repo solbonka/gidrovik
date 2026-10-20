@@ -16,6 +16,7 @@ import {
     X,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import { show } from '@/routes/admin/products';
 
 defineOptions({
     layout: AdminLayout,
