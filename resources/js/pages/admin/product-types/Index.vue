@@ -391,7 +391,135 @@ const clearFilters = (): void => {
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="productType in filteredProductTypes"
+                    :key="productType.id"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                >
+                    <!-- Заголовок карточки -->
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                                >
+                                    <Archive class="h-4 w-4" />
+                                </div>
+                                <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
+                                    {{ productType.name }}
+                                </h3>
+                            </div>
+                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                ID: {{ productType.id }}
+                            </p>
+                        </div>
+
+                        <!-- Статус -->
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium"
+                            :class="
+                                productType.is_active
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                    : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                            "
+                        >
+                            <span
+                                class="h-1 w-1 rounded-full"
+                                :class="
+                                    productType.is_active
+                                        ? 'bg-emerald-500'
+                                        : 'bg-slate-400'
+                                "
+                            />
+                            {{ productType.is_active ? 'Активен' : 'Неактивен' }}
+                        </span>
+                    </div>
+
+                    <!-- Инфо-блок -->
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Категория</p>
+                            <p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">
+                                {{ productType.category.name }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Товаров</p>
+                            <p
+                                class="font-semibold"
+                                :class="
+                                    productType.products_count > 0
+                                        ? 'text-sky-700 dark:text-sky-300'
+                                        : 'text-slate-500 dark:text-slate-400'
+                                "
+                            >
+                                {{ productType.products_count }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Slug -->
+                    <div class="mt-2">
+                        <code
+                            class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        >
+                            {{ productType.slug }}
+                        </code>
+                    </div>
+
+                    <!-- Действия -->
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
+                        <Link
+                            :href="edit(productType.id).url"
+                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                        >
+                            <Edit class="h-3 w-3" />
+                            Изменить
+                        </Link>
+
+                        <button
+                            type="button"
+                            :disabled="productType.products_count > 0"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-rose-200 text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-rose-200 disabled:hover:bg-white dark:border-rose-900/60 dark:text-rose-400 dark:hover:border-rose-700 dark:hover:bg-rose-500/10 dark:disabled:hover:bg-slate-900"
+                            @click="openDeleteDialog(productType.id, productType.name)"
+                        >
+                            <Trash2 class="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Пустое состояние -->
+                <div
+                    v-if="filteredProductTypes.length === 0"
+                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
+                >
+                    <div
+                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                    >
+                        <Search class="h-6 w-6" />
+                    </div>
+                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
+                        Типы товаров не найдены
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Измените поисковый запрос или сбросьте фильтры.
+                    </p>
+                    <button
+                        v-if="search || statusFilter !== 'all'"
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                        @click="clearFilters"
+                    >
+                        <X class="h-3 w-3" />
+                        Сбросить фильтры
+                    </button>
+                </div>
+            </div>
+
+            <!-- Таблица на десктопе -->
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[850px] text-sm">
                     <thead class="bg-slate-50 dark:bg-slate-950/60">
                         <tr
@@ -632,44 +760,9 @@ const clearFilters = (): void => {
                                 </div>
                             </td>
                         </tr>
-
-                        <tr v-if="filteredProductTypes.length === 0">
-                            <td colspan="6" class="px-5 py-16 text-center">
-                                <div
-                                    class="mx-auto flex max-w-sm flex-col items-center"
-                                >
-                                    <div
-                                        class="mb-4 rounded-2xl bg-slate-100 p-4 dark:bg-slate-800"
-                                    >
-                                        <Search
-                                            class="h-7 w-7 text-slate-400"
-                                        />
-                                    </div>
-                                    <p
-                                        class="font-semibold text-slate-900 dark:text-white"
-                                    >
-                                        Типы товаров не найдены
-                                    </p>
-                                    <p
-                                        class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                                    >
-                                        Измените поисковый запрос или сбросьте
-                                        фильтры.
-                                    </p>
-                                    <button
-                                        v-if="search || statusFilter !== 'all'"
-                                        type="button"
-                                        class="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                                        @click="clearFilters"
-                                    >
-                                        <X class="h-4 w-4" />
-                                        Сбросить фильтры
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
+            </div>
             </div>
 
             <!-- Пагинация -->
@@ -713,7 +806,6 @@ const clearFilters = (): void => {
                     </Link>
                 </div>
             </div>
-        </div>
     </div>
 
     <ConfirmDeleteDialog

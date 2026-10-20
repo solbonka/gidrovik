@@ -243,8 +243,23 @@ const save = (): void => {
                 </button>
             </div>
 
-            <!-- Таблица -->
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div v-for="(c, i) in characteristics" :key="c.id" class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-semibold text-slate-900 dark:text-white text-xs">{{ c.name }}</h3>
+                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{{ c.type }}</p>
+                        </div>
+                        <input type="checkbox" v-model="c.is_used" class="h-4 w-4" />
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Единица</p><p class="text-slate-700 dark:text-slate-300 text-[10px]">{{ c.unit || '—' }}</p></div>
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Обязательная</p><p class="text-slate-700 dark:text-slate-300 text-[10px]">{{ c.is_required ? 'Да' : 'Нет' }}</p></div>
+                    </div>
+                </div>
+            </div>
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[850px] text-left text-sm">
                     <thead>
                         <tr

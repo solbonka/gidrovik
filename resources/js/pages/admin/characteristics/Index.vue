@@ -427,7 +427,130 @@ const confirmDelete = (): void => {
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="characteristic in filteredCharacteristics"
+                    :key="characteristic.id"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                >
+                    <!-- Заголовок карточки -->
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
+                                {{ characteristic.name }}
+                            </h3>
+                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
+                                ID: {{ characteristic.id }}
+                            </p>
+                        </div>
+
+                        <!-- Статус -->
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium"
+                            :class="
+                                characteristic.is_active
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
+                                    : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                            "
+                        >
+                            <span
+                                class="h-1 w-1 rounded-full"
+                                :class="
+                                    characteristic.is_active
+                                        ? 'bg-emerald-500'
+                                        : 'bg-slate-400'
+                                "
+                            />
+                            {{ characteristic.is_active ? 'Активен' : 'Неактивен' }}
+                        </span>
+                    </div>
+
+                    <!-- Инфо-блок -->
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Тип</p>
+                            <p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">
+                                {{ characteristic.type }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Категорий</p>
+                            <p class="font-semibold text-slate-700 dark:text-slate-300">
+                                {{ characteristic.categories_count }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Slug и единица -->
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Slug</p>
+                            <code
+                                class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                                {{ characteristic.slug }}
+                            </code>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Единица</p>
+                            <p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">
+                                {{ characteristic.unit || '—' }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Действия -->
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
+                        <Link
+                            :href="edit(characteristic.id).url"
+                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                        >
+                            <Edit class="h-3 w-3" />
+                            Изменить
+                        </Link>
+
+                        <button
+                            type="button"
+                            :disabled="characteristic.categories_count > 0"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                            @click="openDeleteDialog(characteristic)"
+                        >
+                            <Trash2 class="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Пустое состояние -->
+                <div
+                    v-if="filteredCharacteristics.length === 0"
+                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
+                >
+                    <div
+                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                    >
+                        <Search class="h-6 w-6" />
+                    </div>
+                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
+                        Характеристики не найдены
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        Измените поисковый запрос или сбросьте фильтры.
+                    </p>
+                    <button
+                        v-if="search || statusFilter !== 'all'"
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                        @click="clearFilters"
+                    >
+                        <X class="h-3 w-3" />
+                        Сбросить фильтры
+                    </button>
+                </div>
+            </div>
+
+            <!-- Таблица на десктопе -->
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[950px] text-sm">
                     <thead class="bg-slate-50 dark:bg-slate-950/60">
                         <tr
@@ -678,51 +801,9 @@ const confirmDelete = (): void => {
                                 </div>
                             </td>
                         </tr>
-
-                        <tr v-if="filteredCharacteristics.length === 0">
-                            <td colspan="7" class="px-5 py-16 text-center">
-                                <div
-                                    class="mx-auto flex max-w-sm flex-col items-center"
-                                >
-                                    <div
-                                        class="mb-4 rounded-2xl bg-slate-100 p-4 dark:bg-slate-800"
-                                    >
-                                        <Search
-                                            class="h-7 w-7 text-slate-400"
-                                        />
-                                    </div>
-
-                                    <p
-                                        class="font-semibold text-slate-900 dark:text-white"
-                                    >
-                                        Характеристики не найдены
-                                    </p>
-
-                                    <p
-                                        class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                                    >
-                                        Измените поисковый запрос или сбросьте
-                                        фильтры.
-                                    </p>
-
-                                    <button
-                                        v-if="
-                                            search ||
-                                            statusFilter !== 'all' ||
-                                            typeFilter !== 'all'
-                                        "
-                                        type="button"
-                                        class="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                                        @click="clearFilters"
-                                    >
-                                        <X class="h-4 w-4" />
-                                        Сбросить фильтры
-                                    </button>
-                                </div>
-                            </td>
-                        </tr>
                     </tbody>
                 </table>
+            </div>
             </div>
 
             <!-- Пагинация -->
@@ -766,7 +847,6 @@ const confirmDelete = (): void => {
                     </Link>
                 </div>
             </div>
-        </div>
     </div>
 
     <ConfirmDeleteDialog

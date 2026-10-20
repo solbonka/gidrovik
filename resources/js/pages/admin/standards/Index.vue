@@ -220,7 +220,92 @@ const confirmDelete = (): void => {
                 </span>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="standard in standards.data"
+                    :key="standard.id"
+                    class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-violet-200 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-violet-500/40"
+                >
+                    <!-- Заголовок карточки -->
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <span
+                                class="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"
+                            >
+                                {{ standard.code }}
+                            </span>
+                            <h3 class="mt-1 font-semibold text-gray-900 dark:text-white break-words text-xs">
+                                {{ standard.name }}
+                            </h3>
+                        </div>
+
+                        <!-- Статус -->
+                        <span
+                            v-if="standard.is_active"
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
+                        >
+                            <CheckCircle2 class="h-2.5 w-2.5" />
+                            Активен
+                        </span>
+                        <span
+                            v-else
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
+                        >
+                            <XCircle class="h-2.5 w-2.5" />
+                            Неактивен
+                        </span>
+                    </div>
+
+                    <!-- Инфо-блок -->
+                    <div class="mt-2 text-xs">
+                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Связей с товарами</p>
+                        <p class="font-semibold text-gray-700 dark:text-gray-300">
+                            {{ standard.connections_count }}
+                        </p>
+                    </div>
+
+                    <!-- Действия -->
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-gray-200 pt-2 dark:border-gray-700">
+                        <Link
+                            :href="edit(standard.id).url"
+                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 dark:border-gray-700 dark:text-gray-300 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                        >
+                            <Pencil class="h-3 w-3" />
+                            Изменить
+                        </Link>
+
+                        <button
+                            type="button"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                            @click="openDeleteDialog(standard)"
+                        >
+                            <Trash2 class="h-3 w-3" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Пустое состояние -->
+                <div
+                    v-if="standards.data.length === 0"
+                    class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-900"
+                >
+                    <div
+                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
+                    >
+                        <Ruler class="h-6 w-6" />
+                    </div>
+                    <p class="font-semibold text-gray-900 dark:text-white text-xs">
+                        Стандартов пока нет
+                    </p>
+                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        Добавьте первый стандарт для начала работы.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Таблица на десктопе -->
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[720px] text-left text-sm">
                     <thead
                         class="border-b border-gray-200 bg-gray-50/80 text-xs font-semibold tracking-wider text-gray-500 uppercase dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
@@ -306,37 +391,6 @@ const confirmDelete = (): void => {
                                         <Trash2 class="h-4 w-4" />
                                     </button>
                                 </div>
-                            </td>
-                        </tr>
-
-                        <tr v-if="standards.data.length === 0">
-                            <td colspan="5" class="px-6 py-16 text-center">
-                                <div
-                                    class="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800"
-                                >
-                                    <Ruler class="h-7 w-7" />
-                                </div>
-
-                                <p
-                                    class="mt-4 font-semibold text-gray-900 dark:text-white"
-                                >
-                                    Стандартов пока нет
-                                </p>
-
-                                <p
-                                    class="mt-1 text-sm text-gray-500 dark:text-gray-400"
-                                >
-                                    Добавьте первый стандарт присоединительного
-                                    соединения.
-                                </p>
-
-                                <Link
-                                    :href="create().url"
-                                    class="mt-4 inline-flex items-center gap-2 rounded-lg bg-violet-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-violet-700"
-                                >
-                                    <Plus class="h-4 w-4" />
-                                    Добавить стандарт
-                                </Link>
                             </td>
                         </tr>
                     </tbody>

@@ -334,7 +334,142 @@ const confirmDelete = (): void => {
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="category in filteredCategories"
+                    :key="category.id"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                >
+                    <!-- Заголовок карточки -->
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center gap-2">
+                                <div
+                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                                >
+                                    <FolderOpen :size="15" />
+                                </div>
+                                <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
+                                    {{ category.name }}
+                                </h3>
+                            </div>
+                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 truncate">
+                                {{ category.slug }}
+                            </p>
+                        </div>
+
+                        <!-- Статус -->
+                        <span
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold"
+                            :class="
+                                category.is_active
+                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
+                                    : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
+                            "
+                        >
+                            <span
+                                class="h-1 w-1 rounded-full"
+                                :class="
+                                    category.is_active
+                                        ? 'bg-emerald-500'
+                                        : 'bg-slate-400'
+                                "
+                            />
+                            {{ category.is_active ? 'Активна' : 'Неактивна' }}
+                        </span>
+                    </div>
+
+                    <!-- Инфо-блок -->
+                    <div class="mt-2 grid grid-cols-3 gap-1.5 text-xs">
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Товары</p>
+                            <p class="font-semibold text-blue-700 dark:text-blue-300">
+                                {{ category.products_count }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Типы</p>
+                            <p class="font-semibold text-violet-700 dark:text-violet-300">
+                                {{ category.product_types_count }}
+                            </p>
+                        </div>
+                        <div>
+                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Хар-ки</p>
+                            <p class="font-semibold text-amber-700 dark:text-amber-300">
+                                {{ category.characteristics_count }}
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Действия -->
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
+                        <Link
+                            :href="`/admin/categories/${category.id}/characteristics`"
+                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                        >
+                            <Settings2 :size="12" />
+                            Хар-ки
+                        </Link>
+
+                        <Link
+                            :href="edit.url(category.id)"
+                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                        >
+                            <Pencil :size="12" />
+                            Изменить
+                        </Link>
+
+                        <button
+                            type="button"
+                            :disabled="category.products_count > 0"
+                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700"
+                            @click="openDeleteDialog(category)"
+                        >
+                            <Trash2 :size="12" />
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Пустое состояние -->
+                <div
+                    v-if="filteredCategories.length === 0"
+                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
+                >
+                    <div
+                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
+                    >
+                        <Search v-if="search" :size="22" />
+                        <Folder v-else :size="22" />
+                    </div>
+                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
+                        {{ search ? 'Ничего не найдено' : 'Категорий пока нет' }}
+                    </p>
+                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {{ search ? 'Попробуйте изменить поисковый запрос.' : 'Создайте первую категорию.' }}
+                    </p>
+                    <button
+                        v-if="search"
+                        type="button"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
+                        @click="search = ''"
+                    >
+                        <X :size="12" />
+                        Очистить поиск
+                    </button>
+                    <Link
+                        v-else
+                        :href="create.url()"
+                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
+                    >
+                        <Plus :size="12" />
+                        Добавить категорию
+                    </Link>
+                </div>
+            </div>
+
+            <!-- Таблица на десктопе -->
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full min-w-[850px]">
                     <thead>
                         <tr

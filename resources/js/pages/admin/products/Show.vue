@@ -737,8 +737,22 @@ const connectionTitle = (connection: Connection): string => {
                 </span>
             </div>
 
-            <div v-if="product.locations.length" class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
+            <div v-if="product.locations.length">
+                <!-- Карточки на мобильных -->
+                <div class="space-y-2 p-3 md:hidden">
+                    <div v-for="location in product.locations" :key="location.id" class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
+                        <div class="flex items-center gap-2">
+                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><MapPin class="h-4 w-4" /></div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900 dark:text-white text-xs">{{ location.code }}</h3>
+                                <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ location.rack_code || '—' }}</p>
+                            </div>
+                        </div>
+                        <div class="mt-2 text-xs"><p class="text-[10px] text-gray-500 dark:text-gray-400">Количество</p><p class="font-semibold text-gray-900 dark:text-white">{{ location.quantity }}</p></div>
+                    </div>
+                </div>
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full text-left text-sm">
                     <thead
                         class="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50"
                     >
@@ -839,6 +853,7 @@ const connectionTitle = (connection: Connection): string => {
                         </tr>
                     </tfoot>
                 </table>
+            </div>
             </div>
 
             <div

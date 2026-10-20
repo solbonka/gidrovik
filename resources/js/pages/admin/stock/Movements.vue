@@ -322,7 +322,31 @@ const confirmDelete = (): void => {
         <div
             class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
         >
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="movement in movements.data"
+                    :key="movement.id"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                >
+                    <div class="flex items-start justify-between gap-2">
+                        <div class="min-w-0 flex-1">
+                            <span class="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-300">{{ movement.type_label }}</span>
+                            <h3 class="mt-1 font-semibold text-slate-900 dark:text-white break-words text-xs">{{ movement.product.name }}</h3>
+                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">{{ movement.created_at ?? '—' }}</p>
+                        </div>
+                    </div>
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Количество</p><p class="font-semibold text-slate-700 dark:text-slate-300">{{ movement.quantity }}</p></div>
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Пользователь</p><p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">{{ movement.user_name }}</p></div>
+                    </div>
+                    <div v-if="movement.comment" class="mt-2 text-xs"><p class="text-[10px] text-slate-500 dark:text-slate-400">Комментарий</p><p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">{{ movement.comment }}</p></div>
+                </div>
+                <div v-if="movements.data.length === 0" class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900">
+                    <p class="font-semibold text-slate-900 dark:text-white text-xs">Движений нет</p>
+                </div>
+            </div>
+            <div class="hidden overflow-x-auto md:block">
                 <table class="w-full text-left text-sm">
                     <thead
                         class="border-b border-slate-200 bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:border-slate-800 dark:bg-slate-950/60 dark:text-slate-400"
@@ -409,15 +433,6 @@ const confirmDelete = (): void => {
                                 >
                                     <Trash2 class="h-4 w-4" />
                                 </button>
-                            </td>
-                        </tr>
-
-                        <tr v-if="movements.data.length === 0">
-                            <td
-                                colspan="8"
-                                class="px-5 py-12 text-center text-slate-500 dark:text-slate-400"
-                            >
-                                Движения по заданным условиям не найдены.
                             </td>
                         </tr>
                     </tbody>

@@ -398,7 +398,34 @@ function goToPage(url: string | null): void {
                 </p>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- Карточки на мобильных -->
+            <div class="space-y-2 p-3 md:hidden">
+                <div
+                    v-for="product in props.products.data"
+                    :key="product.id"
+                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                    :class="Number(product.stock_deficit) > 0 ? 'bg-rose-50/50 dark:bg-rose-500/5' : ''"
+                >
+                    <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">{{ product.name }}</h3>
+                    <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">Артикул: {{ product.sku || '—' }}</p>
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Категория</p><p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">{{ product.category || '—' }}</p></div>
+                        <div><p class="text-[10px] text-slate-500 dark:text-slate-400">Всего</p><p class="font-semibold" :class="Number(product.stock_quantity) > 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'">{{ formatNumber(product.stock_quantity) }} {{ product.unit }}</p></div>
+                    </div>
+                    <div class="mt-2 text-xs">
+                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Не хватает</p>
+                        <p class="font-semibold" :class="Number(product.stock_deficit) > 0 ? 'text-rose-700 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'">{{ formatNumber(product.stock_deficit) }} {{ product.unit }}</p>
+                    </div>
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
+                        <Link :href="show(product.id).url" class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"><Eye class="h-3 w-3" />Просмотр</Link>
+                    </div>
+                </div>
+                <div v-if="props.products.data.length === 0" class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900">
+                    <div class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"><Package class="h-6 w-6" /></div>
+                    <p class="font-semibold text-slate-900 dark:text-white text-xs">Товары не найдены</p>
+                </div>
+            </div>
+            <div class="hidden overflow-x-auto md:block">
                 <table
                     class="w-full min-w-[1050px] divide-y divide-slate-100 text-sm dark:divide-slate-800"
                 >
@@ -545,23 +572,6 @@ function goToPage(url: string | null): void {
                                 >
                                     Открыть
                                 </Link>
-                            </td>
-                        </tr>
-
-                        <tr v-if="props.products.data.length === 0">
-                            <td colspan="7" class="px-5 py-12 text-center">
-                                <p
-                                    class="font-medium text-slate-900 dark:text-white"
-                                >
-                                    Товары не найдены
-                                </p>
-
-                                <p
-                                    class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                                >
-                                    Измените параметры поиска или сбросьте
-                                    фильтры.
-                                </p>
                             </td>
                         </tr>
                     </tbody>

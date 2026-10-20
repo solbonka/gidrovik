@@ -384,20 +384,20 @@ const confirmDelete = (): void => {
             </div>
 
             <!-- Карточки на мобильных -->
-            <div class="space-y-3 p-4 md:hidden">
+            <div class="space-y-2 p-3 md:hidden">
                 <div
                     v-for="product in products.data"
                     :key="product.id"
-                    class="rounded-xl border border-border/50 bg-white p-4 shadow-sm transition-colors hover:border-primary/20"
+                    class="rounded-lg border border-border/50 bg-white p-3 shadow-sm transition-colors hover:border-primary/20"
                 >
                     <!-- Заголовок карточки -->
-                    <div class="flex items-start justify-between gap-3">
+                    <div class="flex items-start justify-between gap-2">
                         <div class="min-w-0 flex-1">
-                            <h3 class="font-semibold text-foreground break-words">
+                            <h3 class="font-semibold text-foreground break-words text-xs">
                                 {{ product.name }}
                             </h3>
                             <span
-                                class="mt-1 inline-flex items-center rounded-lg border border-primary/10 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-2 py-0.5 font-mono text-xs font-medium text-primary"
+                                class="mt-0.5 inline-flex items-center rounded-md border border-primary/10 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-1.5 py-0.5 font-mono text-[10px] font-medium text-primary"
                             >
                     {{ product.sku }}
                 </span>
@@ -405,7 +405,7 @@ const confirmDelete = (): void => {
 
                         <!-- Статус -->
                         <span
-                            class="inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold"
                             :class="
                     product.is_active
                         ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -413,7 +413,7 @@ const confirmDelete = (): void => {
                 "
                         >
                 <span
-                    class="h-1.5 w-1.5 rounded-full"
+                    class="h-1 w-1 rounded-full"
                     :class="
                         product.is_active
                             ? 'bg-emerald-500'
@@ -425,19 +425,19 @@ const confirmDelete = (): void => {
                     </div>
 
                     <!-- Инфо-блок -->
-                    <div class="mt-3 grid grid-cols-2 gap-2 text-sm">
+                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                         <div>
-                            <p class="text-xs text-muted-foreground">Категория</p>
+                            <p class="text-[10px] text-muted-foreground">Категория</p>
                             <p class="text-foreground truncate">{{ product.category.name }}</p>
                         </div>
                         <div>
-                            <p class="text-xs text-muted-foreground">Тип</p>
+                            <p class="text-[10px] text-muted-foreground">Тип</p>
                             <p class="text-foreground truncate">
                                 {{ product.product_type?.name ?? '—' }}
                             </p>
                         </div>
                         <div>
-                            <p class="text-xs text-muted-foreground">Остаток</p>
+                            <p class="text-[10px] text-muted-foreground">Остаток</p>
                             <p
                                 class="font-semibold"
                                 :class="
@@ -452,15 +452,15 @@ const confirmDelete = (): void => {
                     </div>
 
                     <!-- Действия -->
-                    <div class="mt-4 flex items-center gap-2 border-t border-border/50 pt-3">
+                    <div class="mt-3 flex items-center gap-1.5 border-t border-border/50 pt-2">
                         <Button
                             variant="outline"
                             size="sm"
                             as-child
-                            class="flex-1 gap-1.5 rounded-lg"
+                            class="flex-1 gap-1 rounded-md text-xs h-8"
                         >
                             <Link :href="show(product.id).url">
-                                <Eye :size="15" />
+                                <Eye :size="13" />
                                 Просмотр
                             </Link>
                         </Button>
@@ -469,10 +469,10 @@ const confirmDelete = (): void => {
                             variant="outline"
                             size="sm"
                             as-child
-                            class="flex-1 gap-1.5 rounded-lg"
+                            class="flex-1 gap-1 rounded-md text-xs h-8"
                         >
                             <Link :href="edit(product.id).url">
-                                <Pencil :size="15" />
+                                <Pencil :size="13" />
                                 Изменить
                             </Link>
                         </Button>
@@ -480,10 +480,10 @@ const confirmDelete = (): void => {
                         <Button
                             variant="outline"
                             size="icon"
-                            class="shrink-0 rounded-lg text-red-600 hover:bg-red-50 hover:text-red-700"
+                            class="shrink-0 rounded-md text-red-600 hover:bg-red-50 hover:text-red-700 h-8 w-8"
                             @click="openDeleteDialog(product)"
                         >
-                            <Trash2 :size="15" />
+                            <Trash2 :size="13" />
                             <span class="sr-only">Удалить</span>
                         </Button>
                     </div>
