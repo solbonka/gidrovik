@@ -92,9 +92,15 @@ class StockBalanceController extends Controller
         }
 
         if ($rackId !== null && $rackId !== '') {
-            $productsQuery->whereHas('locations', function (Builder $query) use ($rackId): void {
-                $query->where('racks.id', $rackId);
-            });
+            $productsQuery->whereHas(
+                'locations',
+                function (Builder $query) use ($rackId): void {
+                    $query->whereHas(
+                        'rack',
+                        fn (Builder $rackQuery) => $rackQuery->whereKey($rackId),
+                    );
+                },
+            );
         }
 
         switch ($stock) {
