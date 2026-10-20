@@ -67,11 +67,23 @@ class StockBalanceController extends Controller
             ]);
 
         if ($search !== '') {
-            $search = addcslashes($search, '%_');
-            $productsQuery->where(function (Builder $query) use ($search): void {
-                $query
-                    ->where('products.name', 'ilike', "%{$search}%")
-                    ->orWhere('products.sku', 'ilike', "%{$search}%");
+            $words = preg_split(
+                '/\s+/u',
+                mb_strtolower($search, 'UTF-8'),
+                -1,
+                PREG_SPLIT_NO_EMPTY,
+            );
+
+            $productsQuery->where(function (Builder $query) use ($words): void {
+                foreach ($words as $word) {
+                    $word = addcslashes($word, '%_\\');
+
+                    $query->where(function (Builder $query) use ($word): void {
+                        $query
+                            ->where('products.name', 'ilike', "%{$word}%")
+                            ->orWhere('products.sku', 'ilike', "%{$word}%");
+                    });
+                }
             });
         }
 

@@ -9,6 +9,7 @@ import {
     destroy as destroyLocation,
     store as storeLocation,
 } from '@/routes/admin/racks/locations';
+import { Button } from '@/components/ui/button';
 import {
     Dialog,
     DialogContent,
@@ -18,11 +19,21 @@ import {
 } from '@/components/ui/dialog';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
 import {
-    PackagePlus,
-    ArrowDownToLine,
-    ArrowLeftRight,
-    RotateCcw,
+    ArrowLeft,
+    ChevronRight,
     ClipboardCheck,
+    Grid2X2,
+    Loader2,
+    PackageCheck,
+    PackageMinus,
+    PackagePlus,
+    Pencil,
+    Plus,
+    RotateCcw,
+    ArrowLeftRight,
+    Trash2,
+    Boxes,
+    Package,
     X,
 } from '@lucide/vue';
 
@@ -54,7 +65,11 @@ interface Product {
     sku: string | null;
     unit: string;
     characteristics?: string;
-    category_id?: number | null;
+    category_id?: number | string | null;
+    category?: {
+        id: number | string;
+        name?: string;
+    } | null;
 }
 
 interface LocationProduct {
@@ -99,8 +114,7 @@ interface OperationButton {
     label: string;
     description: string;
     icon: Component;
-    active: string;
-    iconClass: string;
+    tone: string;
 }
 
 const props = defineProps<Props>();
@@ -111,47 +125,49 @@ const operationButtons: OperationButton[] = [
         label: 'Пополнение',
         description: 'Приход товара',
         icon: PackagePlus,
-        active: 'border-emerald-300 bg-emerald-50 text-emerald-800 hover:border-emerald-400 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
-        iconClass:
-            'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-300',
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     },
     {
         value: 'write_off',
         label: 'Списание',
         description: 'Расход товара',
-        icon: ArrowDownToLine,
-        active: 'border-rose-300 bg-rose-50 text-rose-800 hover:border-rose-400 dark:border-rose-700 dark:bg-rose-950 dark:text-rose-300',
-        iconClass:
-            'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-300',
+        icon: PackageMinus,
+        tone: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
     },
     {
         value: 'transfer',
         label: 'Перемещение',
         description: 'Между ячейками',
         icon: ArrowLeftRight,
-        active: 'border-blue-300 bg-blue-50 text-blue-800 hover:border-blue-400 dark:border-blue-700 dark:bg-blue-950 dark:text-blue-300',
-        iconClass:
-            'bg-blue-100 text-blue-600 dark:bg-blue-500/20 dark:text-blue-300',
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
     },
     {
         value: 'return',
         label: 'Возврат',
         description: 'Возврат товара',
         icon: RotateCcw,
-        active: 'border-violet-300 bg-violet-50 text-violet-800 hover:border-violet-400 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-300',
-        iconClass:
-            'bg-violet-100 text-violet-600 dark:bg-violet-500/20 dark:text-violet-300',
+        tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
     },
     {
         value: 'inventory',
         label: 'Инвентаризация',
         description: 'Проверка остатка',
         icon: ClipboardCheck,
-        active: 'border-amber-300 bg-amber-50 text-amber-800 hover:border-amber-400 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-300',
-        iconClass:
-            'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300',
+        tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     },
 ];
+
+// Общий стиль для нативных полей формы
+const fieldClass =
+    'w-full rounded-xl border border-input bg-background px-3 py-2.5 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30';
+
+const emptyOperationForm = () => ({
+    product_id: '',
+    quantity: '1',
+    comment: '',
+    to_location_id: '',
+    current_quantity: null as number | null,
+});
 
 const locationModal = ref({
     open: false,
@@ -164,13 +180,7 @@ const locationModal = ref({
     operationLoading: false,
 });
 
-const operationForm = ref({
-    product_id: '',
-    quantity: '1',
-    comment: '',
-    to_location_id: '',
-    current_quantity: null as number | null,
-});
+const operationForm = ref(emptyOperationForm());
 
 const productDetailsModal = ref({
     open: false,
@@ -189,6 +199,13 @@ const deleteConfirmation = ref({
     loading: false,
 });
 
+const currentOperation = computed(
+    () =>
+        operationButtons.find(
+            (item) => item.value === locationModal.value.operation,
+        ) ?? null,
+);
+
 const productsForSelect = computed(() =>
     props.allProducts.map((product) => ({
         id: product.id,
@@ -196,6 +213,8 @@ const productsForSelect = computed(() =>
         sku: product.sku,
         unit: product.unit,
         characteristics: product.characteristics,
+        category_id: product.category_id ?? product.category?.id ?? null,
+        category: product.category ?? null,
     })),
 );
 
@@ -231,25 +250,56 @@ const formatQuantity = (value: string | number | null | undefined): string => {
         : '0';
 };
 
-const occupiedLocationsCount = computed(() =>
+const occupiedInRack = (rack: Rack): number =>
+    (rack.locations ?? []).filter((location) => locationQuantity(location) > 0)
+        .length;
+
+const totalLocationsCount = computed(() =>
     props.racks.reduce(
-        (sum, rack) =>
-            sum +
-            (rack.locations ?? []).filter(
-                (location) => locationQuantity(location) > 0,
-            ).length,
+        (sum, rack) => sum + (rack.locations_count || rack.locations?.length || 0),
         0,
     ),
 );
+
+const occupiedLocationsCount = computed(() =>
+    props.racks.reduce((sum, rack) => sum + occupiedInRack(rack), 0),
+);
+
+const occupancyPercent = computed(() =>
+    totalLocationsCount.value
+        ? Math.round(
+            (occupiedLocationsCount.value / totalLocationsCount.value) * 100,
+        )
+        : 0,
+);
+
+const summaryCards = computed(() => [
+    {
+        title: 'Стеллажей',
+        value: String(props.racks.length),
+        icon: Grid2X2,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    },
+    {
+        title: 'Ячеек всего',
+        value: String(totalLocationsCount.value),
+        icon: Boxes,
+        tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+    },
+    {
+        title: 'Занято ячеек',
+        value: `${occupiedLocationsCount.value} · ${occupancyPercent.value}%`,
+        icon: PackageCheck,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    },
+]);
+
+/* ---------- Ячейки ---------- */
 
 const addingLocationRackId = ref<number | null>(null);
 const newLocationNumber = ref<Record<number, string>>({});
 
 const editRack = (rack: Rack): void => {
-    router.visit(edit(rack.id).url);
-};
-
-const viewRackLocations = (rack: Rack): void => {
     router.visit(edit(rack.id).url);
 };
 
@@ -293,12 +343,14 @@ const addLocation = (rack: Rack): void => {
             onError: (errors) => {
                 toast.error(
                     Object.values(errors).flat().join(', ') ||
-                        'Не удалось добавить ячейку.',
+                    'Не удалось добавить ячейку.',
                 );
             },
         },
     );
 };
+
+/* ---------- Удаление ---------- */
 
 const deleteRack = (rack: Rack): void => {
     deleteConfirmation.value = {
@@ -306,16 +358,6 @@ const deleteRack = (rack: Rack): void => {
         type: 'rack',
         rack,
         location: null,
-        loading: false,
-    };
-};
-
-const deleteLocation = (rack: Rack, location: Location): void => {
-    deleteConfirmation.value = {
-        open: true,
-        type: 'location',
-        rack,
-        location,
         loading: false,
     };
 };
@@ -382,7 +424,11 @@ const confirmDelete = (): void => {
     confirmation.loading = false;
 };
 
-const viewLocationProducts = async (location: Location): Promise<void> => {
+/* ---------- Товары в ячейке ---------- */
+
+const viewLocationProducts = async (
+    location: Pick<Location, 'id' | 'code'>,
+): Promise<void> => {
     locationModal.value.open = true;
     locationModal.value.locationCode = location.code;
     locationModal.value.locationId = location.id;
@@ -440,28 +486,22 @@ const startOperation = (
     locationModal.value.operation = operation;
 
     operationForm.value = {
+        ...emptyOperationForm(),
         product_id: product ? String(product.id) : '',
         quantity:
             operation === 'inventory' && product
                 ? String(product.quantity)
                 : '1',
-        comment: '',
-        to_location_id: '',
         current_quantity: product ? Number(product.quantity) : null,
     };
 };
 
+// Возврат к списку операций, не закрывая окно ячейки
 const closeOperation = (): void => {
     if (locationModal.value.operationLoading) return;
 
     locationModal.value.operation = null;
-    operationForm.value = {
-        product_id: '',
-        quantity: '1',
-        comment: '',
-        to_location_id: '',
-        current_quantity: null,
-    };
+    operationForm.value = emptyOperationForm();
 };
 
 watch(
@@ -589,21 +629,12 @@ const submitOperation = async (): Promise<void> => {
         toast.success('Операция успешно выполнена.');
 
         locationModal.value.operation = null;
-        operationForm.value = {
-            product_id: '',
-            quantity: '1',
-            comment: '',
-            to_location_id: '',
-            current_quantity: null,
-        };
+        operationForm.value = emptyOperationForm();
 
-        const location = props.racks
-            .flatMap((rack) => rack.locations ?? [])
-            .find((item) => item.id === locationId);
-
-        if (location) {
-            await viewLocationProducts(location);
-        }
+        await viewLocationProducts({
+            id: locationId,
+            code: locationModal.value.locationCode,
+        });
 
         router.reload({ only: ['racks'] });
     } catch (error) {
@@ -613,6 +644,8 @@ const submitOperation = async (): Promise<void> => {
         locationModal.value.operationLoading = false;
     }
 };
+
+/* ---------- Расположение товара ---------- */
 
 const showProductDetails = async (product: LocationProduct): Promise<void> => {
     productDetailsModal.value = {
@@ -674,171 +707,178 @@ const closeProductDetails = (): void => {
 <template>
     <Head title="Склады и ячейки" />
 
-    <div
-        class="min-h-screen bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 px-4 py-6 sm:px-6 lg:px-8 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800"
-    >
-        <div class="mx-auto max-w-7xl">
-            <div
-                class="mb-8 flex flex-col justify-between gap-6 md:flex-row md:items-center"
-            >
+    <div class="space-y-8">
+        <!-- Заголовок -->
+        <header
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
+                >
+                    <Grid2X2 :size="24" />
+                </div>
                 <div>
-                    <h1
-                        class="mb-1 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
-                    >
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
                         Склады и ячейки
                     </h1>
-                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                    <p class="mt-1 text-sm text-muted-foreground">
                         Управление стеллажами, ячейками и остатками товаров
                     </p>
                 </div>
+            </div>
 
-                <Link
-                    :href="create().url"
-                    class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-700"
-                >
-                    <span class="text-lg">+</span>
+            <Button as-child class="w-full sm:w-auto">
+                <Link :href="create().url">
+                    <Plus :size="18" class="mr-2" />
                     Добавить стеллаж
                 </Link>
-            </div>
+            </Button>
+        </header>
 
-            <div class="mb-8 grid gap-4 sm:grid-cols-3">
-                <div
-                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
-                >
-                    <p class="text-xs tracking-wider text-slate-500 uppercase">
-                        Всего стеллажей
-                    </p>
-                    <p
-                        class="mt-2 text-2xl font-bold text-slate-900 dark:text-white"
-                    >
-                        {{ racks.length }}
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
-                >
-                    <p class="text-xs tracking-wider text-slate-500 uppercase">
-                        Всего ячеек
-                    </p>
-                    <p
-                        class="mt-2 text-2xl font-bold text-slate-900 dark:text-white"
-                    >
-                        {{
-                            racks.reduce(
-                                (sum, rack) =>
-                                    sum + (rack.locations_count || 0),
-                                0,
-                            )
-                        }}
-                    </p>
-                </div>
-
-                <div
-                    class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-white/10 dark:bg-slate-900"
-                >
-                    <p class="text-xs tracking-wider text-slate-500 uppercase">
-                        Занято ячеек
-                    </p>
-                    <p class="mt-2 text-2xl font-bold text-emerald-600">
-                        {{ occupiedLocationsCount }}
-                    </p>
-                </div>
-            </div>
-
+        <!-- Сводка -->
+        <section class="grid gap-4 sm:grid-cols-3" aria-label="Сводка">
             <div
-                v-if="racks.length"
-                class="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                v-for="card in summaryCards"
+                :key="card.title"
+                class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm"
             >
-                <article
-                    v-for="rack in racks"
-                    :key="rack.id"
-                    class="rounded-3xl border border-slate-200 bg-white/90 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg dark:border-white/10 dark:bg-slate-900/90"
+                <div
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                    :class="card.tone"
                 >
-                    <div class="mb-5 flex items-start justify-between gap-3">
-                        <div>
-                            <h2
-                                class="text-lg font-bold text-slate-900 dark:text-white"
-                            >
-                                {{ rack.name || rack.code }}
-                            </h2>
-                            <p
-                                class="text-xs tracking-wider text-slate-500 uppercase"
-                            >
-                                {{ rack.code }}
-                            </p>
-                        </div>
+                    <component :is="card.icon" :size="22" />
+                </div>
+                <div>
+                    <p class="text-sm text-muted-foreground">
+                        {{ card.title }}
+                    </p>
+                    <p class="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">
+                        {{ card.value }}
+                    </p>
+                </div>
+            </div>
+        </section>
 
-                        <div class="flex gap-1">
-                            <button
-                                type="button"
-                                title="Просмотреть ячейки"
-                                class="rounded-lg bg-slate-100 px-2.5 py-2 text-slate-600 hover:bg-emerald-100 dark:bg-slate-800 dark:text-slate-300"
-                                @click="viewRackLocations(rack)"
-                            >
-                                <span aria-hidden="true">⌕</span>
-                            </button>
-
-                            <button
-                                type="button"
-                                title="Редактировать"
-                                class="rounded-lg bg-slate-100 px-2.5 py-2 text-slate-600 hover:bg-blue-100 dark:bg-slate-800 dark:text-slate-300"
-                                @click="editRack(rack)"
-                            >
-                                ✎
-                            </button>
-
-                            <button
-                                type="button"
-                                title="Удалить"
-                                class="rounded-lg bg-slate-100 px-2.5 py-2 text-red-600 hover:bg-red-100 dark:bg-slate-800"
-                                @click="deleteRack(rack)"
-                            >
-                                ×
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="flex flex-wrap gap-2">
-                        <button
-                            v-for="cell in rack.locations || []"
-                            :key="cell.id"
-                            type="button"
-                            class="min-w-20 rounded-xl border p-3 text-center transition hover:-translate-y-0.5"
-                            :class="
-                                locationQuantity(cell) > 0
-                                    ? 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-                                    : 'border-slate-200 bg-slate-50 text-slate-600 dark:border-white/10 dark:bg-slate-800 dark:text-slate-300'
-                            "
-                            @click="viewLocationProducts(cell)"
-                        >
-                            <span class="block text-sm font-bold">
-                                {{ cell.code || cell.number }}
-                            </span>
-                            <span class="mt-1 block text-xs">
-                                {{ formatQuantity(cell.stock_quantity) }} шт.
-                            </span>
-                        </button>
-
+        <!-- Стеллажи -->
+        <section
+            v-if="racks.length"
+            class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+            aria-label="Стеллажи"
+        >
+            <article
+                v-for="rack in racks"
+                :key="rack.id"
+                class="flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md"
+            >
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <h2 class="truncate text-lg font-bold">
+                            {{ rack.name || rack.code }}
+                        </h2>
                         <p
-                            v-if="!rack.locations?.length"
-                            class="w-full py-3 text-center text-sm text-slate-400"
+                            class="mt-0.5 text-xs font-medium tracking-wider text-muted-foreground uppercase"
                         >
-                            Ячеек пока нет
+                            {{ rack.code }}
                         </p>
                     </div>
 
+                    <div class="flex shrink-0 gap-1">
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-9 text-muted-foreground hover:text-foreground"
+                            title="Редактировать"
+                            aria-label="Редактировать стеллаж"
+                            @click="editRack(rack)"
+                        >
+                            <Pencil :size="16" />
+                        </Button>
+
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            class="size-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            title="Удалить"
+                            aria-label="Удалить стеллаж"
+                            @click="deleteRack(rack)"
+                        >
+                            <Trash2 :size="16" />
+                        </Button>
+                    </div>
+                </div>
+
+                <!-- Заполненность -->
+                <div class="mt-4">
                     <div
-                        class="mt-5 border-t border-slate-200 pt-4 dark:border-white/10"
+                        class="mb-1.5 flex items-center justify-between text-xs text-muted-foreground"
                     >
-                        <button
+                        <span>Занято ячеек</span>
+                        <span class="font-medium text-foreground tabular-nums">
+                            {{ occupiedInRack(rack) }} из
+                            {{ rack.locations_count || rack.locations?.length || 0 }}
+                        </span>
+                    </div>
+                    <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                            class="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+                            :style="{
+                                width: `${
+                                    (rack.locations_count || rack.locations?.length)
+                                        ? (occupiedInRack(rack) /
+                                              (rack.locations_count ||
+                                                  rack.locations.length)) *
+                                          100
+                                        : 0
+                                }%`,
+                            }"
+                        />
+                    </div>
+                </div>
+
+                <!-- Ячейки -->
+                <div class="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                    <button
+                        v-for="cell in rack.locations || []"
+                        :key="cell.id"
+                        type="button"
+                        class="rounded-xl border px-2 py-2.5 text-center transition hover:-translate-y-0.5 focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                        :class="
+                            locationQuantity(cell) > 0
+                                ? 'border-emerald-500/30 bg-emerald-500/10 text-emerald-800 hover:border-emerald-500/60 dark:text-emerald-300'
+                                : 'border-border bg-muted/40 text-muted-foreground hover:border-primary/30'
+                        "
+                        :title="`Ячейка ${cell.code || cell.number}`"
+                        @click="viewLocationProducts(cell)"
+                    >
+                        <span class="block truncate text-sm font-bold">
+                            {{ cell.code || cell.number }}
+                        </span>
+                        <span class="mt-0.5 block text-[11px] tabular-nums">
+                            {{ formatQuantity(cell.stock_quantity) }} шт.
+                        </span>
+                    </button>
+
+                    <p
+                        v-if="!rack.locations?.length"
+                        class="col-span-full py-4 text-center text-sm text-muted-foreground"
+                    >
+                        Ячеек пока нет
+                    </p>
+                </div>
+
+                <!-- Добавление ячейки -->
+                <div class="mt-auto border-t pt-4">
+                    <div class="mt-1">
+                        <Button
                             v-if="addingLocationRackId !== rack.id"
-                            type="button"
-                            class="w-full rounded-xl border border-dashed border-slate-300 px-3 py-2.5 text-sm text-slate-600 hover:bg-slate-50 dark:border-white/20 dark:text-slate-300 dark:hover:bg-slate-800"
+                            variant="outline"
+                            class="w-full border-dashed"
                             @click="startAddLocation(rack.id)"
                         >
-                            + Добавить ячейку
-                        </button>
+                            <Plus :size="16" class="mr-2" />
+                            Добавить ячейку
+                        </Button>
 
                         <div v-else class="flex gap-2">
                             <input
@@ -847,49 +887,51 @@ const closeProductDetails = (): void => {
                                 min="1"
                                 step="1"
                                 placeholder="№ ячейки"
-                                class="min-w-0 flex-1 rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                                aria-label="Номер ячейки"
+                                class="min-w-0 flex-1"
+                                :class="fieldClass"
                                 @keydown.enter="addLocation(rack)"
+                                @keydown.esc="cancelAddLocation"
                             />
 
-                            <button
-                                type="button"
-                                class="rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
-                                @click="addLocation(rack)"
-                            >
+                            <Button @click="addLocation(rack)">
                                 Добавить
-                            </button>
+                            </Button>
 
-                            <button
-                                type="button"
-                                class="rounded-xl bg-slate-100 px-3 py-2 dark:bg-slate-800 dark:text-white"
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                aria-label="Отмена"
                                 @click="cancelAddLocation"
                             >
-                                ×
-                            </button>
+                                <X :size="16" />
+                            </Button>
                         </div>
                     </div>
-                </article>
-            </div>
+                </div>
+            </article>
+        </section>
 
+        <section
+            v-else
+            class="rounded-2xl border border-dashed bg-card px-6 py-16 text-center"
+        >
             <div
-                v-else
-                class="rounded-2xl border border-dashed border-slate-300 py-16 text-center dark:border-white/10"
+                class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted"
             >
-                <h2 class="text-xl font-bold text-slate-900 dark:text-white">
-                    Стеллажи не найдены
-                </h2>
-                <p class="mt-2 text-sm text-slate-500">
-                    Создайте первый стеллаж, чтобы организовать хранение
-                    товаров.
-                </p>
-                <Link
-                    :href="create().url"
-                    class="mt-5 inline-flex rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
+                <Grid2X2 :size="30" class="text-muted-foreground" />
+            </div>
+            <h2 class="text-xl font-bold">Стеллажи не найдены</h2>
+            <p class="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                Создайте первый стеллаж, чтобы организовать хранение товаров.
+            </p>
+            <Button as-child class="mt-6">
+                <Link :href="create().url">
+                    <Plus :size="16" class="mr-2" />
                     Создать стеллаж
                 </Link>
-            </div>
-        </div>
+            </Button>
+        </section>
     </div>
 
     <!-- Товары в ячейке -->
@@ -901,112 +943,83 @@ const closeProductDetails = (): void => {
             }
         "
     >
-        <DialogContent class="max-h-[90vh] w-[95vw] max-w-3xl overflow-y-auto">
+        <DialogContent class="max-h-[90vh] w-[95vw] max-w-2xl overflow-y-auto">
             <DialogHeader>
                 <DialogTitle>
-                    Товары в ячейке {{ locationModal.locationCode }}
+                    Ячейка {{ locationModal.locationCode }}
                 </DialogTitle>
                 <DialogDescription>
                     Остатки товаров и складские операции
                 </DialogDescription>
             </DialogHeader>
 
-            <div v-if="locationModal.loading" class="py-10 text-center">
-                <div
-                    class="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-slate-200 border-t-emerald-500"
-                ></div>
-                <p class="mt-3 text-sm text-slate-500">Загрузка товаров...</p>
+            <div
+                v-if="locationModal.loading"
+                class="flex flex-col items-center gap-3 py-12"
+            >
+                <Loader2 :size="28" class="animate-spin text-primary" />
+                <p class="text-sm text-muted-foreground">Загрузка товаров...</p>
             </div>
 
             <div v-else-if="locationModal.error" class="py-8 text-center">
-                <p class="text-sm text-red-600">
+                <p class="text-sm text-destructive">
                     {{ locationModal.error }}
                 </p>
-                <button
+                <Button
                     v-if="locationModal.locationId"
-                    type="button"
-                    class="mt-3 rounded-lg bg-slate-100 px-4 py-2 text-sm dark:bg-slate-800 dark:text-white"
+                    variant="outline"
+                    class="mt-4"
                     @click="
                         viewLocationProducts({
                             id: locationModal.locationId,
-                            rack_id: 0,
-                            number: 0,
                             code: locationModal.locationCode,
-                            stock_quantity: 0,
-                            incoming_movements_count: 0,
-                            outgoing_movements_count: 0,
                         })
                     "
                 >
                     Повторить
-                </button>
+                </Button>
             </div>
 
             <template v-else>
+                <!-- Форма операции -->
                 <div
-                    v-if="!locationModal.operation"
-                    class="flex flex-col gap-2 border-b border-slate-200 pb-5 dark:border-white/10"
+                    v-if="currentOperation"
+                    class="space-y-4 rounded-2xl border bg-muted/30 p-4 sm:p-5"
                 >
-                    <button
-                        v-for="item in operationButtons"
-                        :key="item.value"
-                        type="button"
-                        class="group flex w-full items-center gap-3 rounded-xl border border-primary/15 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-4 py-3 text-left text-sm font-semibold text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30 hover:from-primary/10 hover:to-indigo-500/10 hover:shadow-md focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
-                        :class="item.active"
-                        @click="startOperation(item.value)"
-                    >
-                        <span
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary transition-colors group-hover:from-primary/20 group-hover:to-indigo-500/20"
-                        >
-                            <component
-                                :is="item.icon"
-                                :size="20"
-                                :stroke-width="1.8"
-                            />
-                        </span>
+                    <div class="flex items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span
+                                class="flex size-10 items-center justify-center rounded-xl"
+                                :class="currentOperation.tone"
+                            >
+                                <component :is="currentOperation.icon" :size="20" />
+                            </span>
+                            <div>
+                                <h3 class="font-semibold">
+                                    {{ currentOperation.label }}
+                                </h3>
+                                <p class="text-xs text-muted-foreground">
+                                    {{ currentOperation.description }}
+                                </p>
+                            </div>
+                        </div>
 
-                        <span>{{ item.label }}</span>
-                    </button>
-                </div>
-
-                <div
-                    v-if="locationModal.operation"
-                    class="space-y-4 rounded-xl bg-slate-50 p-4 dark:bg-slate-900"
-                >
-                    <div class="flex items-center justify-between">
-                        <h3
-                            class="font-semibold text-slate-900 dark:text-white"
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            :disabled="locationModal.operationLoading"
+                            @click="closeOperation"
                         >
-                            {{
-                                {
-                                    receipt: 'Пополнение',
-                                    write_off: 'Списание',
-                                    transfer: 'Перемещение',
-                                    return: 'Возврат',
-                                    inventory: 'Инвентаризация',
-                                }[locationModal.operation]
-                            }}
-                        </h3>
-
-                        <button
-                            type="button"
-                            class="inline-flex items-center justify-center gap-2 rounded-xl border border-primary/20 bg-gradient-to-r from-primary/5 to-indigo-500/5 px-5 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-all hover:border-primary/40 hover:from-primary/10 hover:to-indigo-500/10 focus-visible:ring-2 focus-visible:ring-primary/50 focus-visible:outline-none"
-                            @click="closeLocationModal"
-                        >
-                            <X :size="16" />
-                            Отмена
-                        </button>
+                            <ArrowLeft :size="16" class="mr-1.5" />
+                            Назад
+                        </Button>
                     </div>
 
-                    <div>
-                        <label
-                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
-                        >
-                            Товар
-                        </label>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium">Товар</label>
 
                         <ProductSelect
-                            :key="locationModal.operation"
+                            :key="locationModal.operation ?? undefined"
                             :products="operationProducts"
                             :categories="categories ?? []"
                             :model-value="operationForm.product_id"
@@ -1017,10 +1030,8 @@ const closeProductDetails = (): void => {
                         />
                     </div>
 
-                    <div>
-                        <label
-                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
-                        >
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium">
                             {{
                                 locationModal.operation === 'inventory'
                                     ? 'Фактическое количество'
@@ -1033,7 +1044,7 @@ const closeProductDetails = (): void => {
                             type="number"
                             min="0"
                             step="0.001"
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                            :class="fieldClass"
                         />
 
                         <p
@@ -1042,32 +1053,33 @@ const closeProductDetails = (): void => {
                                 locationModal.operation !== 'receipt' &&
                                 locationModal.operation !== 'return'
                             "
-                            class="mt-1 text-xs text-slate-500"
+                            class="text-xs text-muted-foreground"
                         >
                             Текущий остаток:
-                            {{ formatQuantity(operationForm.current_quantity) }}
+                            <span class="font-medium text-foreground">
+                                {{ formatQuantity(operationForm.current_quantity) }}
+                            </span>
                         </p>
                     </div>
 
-                    <div v-if="locationModal.operation === 'transfer'">
-                        <label
-                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
-                        >
+                    <div
+                        v-if="locationModal.operation === 'transfer'"
+                        class="space-y-1.5"
+                    >
+                        <label class="text-sm font-medium">
                             Ячейка назначения
                         </label>
 
                         <select
                             v-model="operationForm.to_location_id"
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                            :class="fieldClass"
                         >
                             <option value="">Выберите ячейку</option>
                             <option
                                 v-for="location in allLocations"
                                 :key="location.id"
                                 :value="String(location.id)"
-                                :disabled="
-                                    location.id === locationModal.locationId
-                                "
+                                :disabled="location.id === locationModal.locationId"
                             >
                                 {{ location.code }}
                                 ({{ location.rack_name || 'Без названия' }})
@@ -1075,93 +1087,127 @@ const closeProductDetails = (): void => {
                         </select>
                     </div>
 
-                    <div>
-                        <label
-                            class="mb-1 block text-sm text-slate-600 dark:text-slate-300"
-                        >
-                            Комментарий
-                        </label>
+                    <div class="space-y-1.5">
+                        <label class="text-sm font-medium">Комментарий</label>
                         <textarea
                             v-model="operationForm.comment"
                             rows="2"
-                            class="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm dark:border-white/10 dark:bg-slate-800 dark:text-white"
+                            :class="fieldClass"
                             placeholder="Необязательно"
                         />
                     </div>
 
-                    <button
-                        type="button"
+                    <Button
+                        class="w-full"
                         :disabled="
                             locationModal.operationLoading ||
                             !operationForm.product_id
                         "
-                        class="w-full rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
                         @click="submitOperation"
                     >
+                        <Loader2
+                            v-if="locationModal.operationLoading"
+                            :size="16"
+                            class="mr-2 animate-spin"
+                        />
                         {{
                             locationModal.operationLoading
                                 ? 'Выполнение...'
                                 : 'Выполнить операцию'
                         }}
-                    </button>
+                    </Button>
                 </div>
 
-                <div
-                    v-if="
-                        !locationModal.operation &&
-                        !locationModal.products.length
-                    "
-                    class="py-8 text-center"
-                >
-                    <p class="text-sm text-slate-500">
-                        В ячейке пока нет товаров
-                    </p>
-                </div>
-
-                <div v-else-if="!locationModal.operation" class="space-y-2">
-                    <button
-                        v-for="product in locationModal.products"
-                        :key="product.id"
-                        type="button"
-                        class="flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 text-left transition hover:bg-slate-50 dark:border-white/10 dark:bg-slate-900 dark:hover:bg-slate-800"
-                        @click="showProductDetails(product)"
-                    >
-                        <span class="min-w-0">
+                <template v-else>
+                    <!-- Выбор операции -->
+                    <div class="grid gap-2 sm:grid-cols-2">
+                        <button
+                            v-for="item in operationButtons"
+                            :key="item.value"
+                            type="button"
+                            class="group flex items-center gap-3 rounded-xl border bg-card px-3.5 py-3 text-left transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-sm focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
+                            @click="startOperation(item.value)"
+                        >
                             <span
-                                class="block font-medium text-slate-900 dark:text-white"
+                                class="flex size-10 shrink-0 items-center justify-center rounded-xl transition group-hover:scale-105"
+                                :class="item.tone"
                             >
-                                {{ product.name }}
+                                <component :is="item.icon" :size="20" />
                             </span>
-                            <span class="block text-xs text-slate-500">
-                                {{ product.sku || 'Без артикула' }}
+                            <span class="min-w-0 flex-1">
+                                <span class="block text-sm font-semibold">
+                                    {{ item.label }}
+                                </span>
+                                <span class="block text-xs text-muted-foreground">
+                                    {{ item.description }}
+                                </span>
                             </span>
-                        </span>
+                        </button>
+                    </div>
 
-                        <span class="shrink-0 text-right">
-                            <span
-                                class="block font-bold text-slate-900 dark:text-white"
+                    <!-- Товары -->
+                    <div>
+                        <h3
+                            class="mb-2 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                        >
+                            Товары в ячейке
+                        </h3>
+
+                        <div
+                            v-if="!locationModal.products.length"
+                            class="flex flex-col items-center gap-2 rounded-xl border border-dashed py-8 text-center"
+                        >
+                            <Package :size="24" class="text-muted-foreground" />
+                            <p class="text-sm text-muted-foreground">
+                                В ячейке пока нет товаров
+                            </p>
+                        </div>
+
+                        <div v-else class="space-y-2">
+                            <button
+                                v-for="product in locationModal.products"
+                                :key="product.id"
+                                type="button"
+                                class="group flex w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left transition hover:border-primary/30 hover:bg-muted/40"
+                                @click="showProductDetails(product)"
                             >
-                                {{ formatQuantity(product.quantity) }}
-                            </span>
-                            <span class="text-xs text-emerald-600">
-                                Подробнее →
-                            </span>
-                        </span>
-                    </button>
-                </div>
+                                <span class="min-w-0">
+                                    <span class="block truncate font-medium">
+                                        {{ product.name }}
+                                    </span>
+                                    <span class="block text-xs text-muted-foreground">
+                                        {{ product.sku || 'Без артикула' }}
+                                    </span>
+                                </span>
+
+                                <span class="flex shrink-0 items-center gap-3">
+                                    <span class="text-right">
+                                        <span class="block font-bold tabular-nums">
+                                            {{ formatQuantity(product.quantity) }}
+                                        </span>
+                                        <span class="text-xs text-muted-foreground">
+                                            шт.
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        :size="18"
+                                        class="text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary"
+                                    />
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </template>
             </template>
 
-            <div
-                class="flex justify-end border-t border-slate-200 pt-4 dark:border-white/10"
-            >
-                <button
-                    type="button"
-                    class="rounded-xl bg-slate-100 px-5 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-white"
+            <div class="flex justify-end border-t pt-4">
+                <Button
+                    variant="outline"
                     :disabled="locationModal.operationLoading"
                     @click="closeLocationModal"
                 >
                     Закрыть
-                </button>
+                </Button>
             </div>
         </DialogContent>
     </Dialog>
@@ -1184,31 +1230,34 @@ const closeProductDetails = (): void => {
                     }}
                 </DialogTitle>
                 <DialogDescription>
-                    Остатки товара по ячейкам
+                    {{
+                        productDetailsModal.product?.sku
+                            ? `Артикул: ${productDetailsModal.product.sku} · остатки по ячейкам`
+                            : 'Остатки товара по ячейкам'
+                    }}
                 </DialogDescription>
             </DialogHeader>
 
             <div
                 v-if="productDetailsModal.loading"
-                class="py-8 text-center text-sm text-slate-500"
+                class="flex flex-col items-center gap-3 py-10"
             >
-                Загрузка...
+                <Loader2 :size="26" class="animate-spin text-primary" />
+                <p class="text-sm text-muted-foreground">Загрузка...</p>
             </div>
 
             <p
                 v-else-if="productDetailsModal.error"
-                class="py-6 text-sm text-red-600"
+                class="py-6 text-center text-sm text-destructive"
             >
                 {{ productDetailsModal.error }}
             </p>
 
             <template v-else>
-                <div class="rounded-xl bg-emerald-50 p-4 dark:bg-emerald-950">
-                    <p class="text-sm text-slate-600 dark:text-slate-300">
-                        Общий остаток
-                    </p>
+                <div class="rounded-xl bg-emerald-500/10 p-4">
+                    <p class="text-sm text-muted-foreground">Общий остаток</p>
                     <p
-                        class="mt-1 text-2xl font-bold text-emerald-700 dark:text-emerald-300"
+                        class="mt-1 text-3xl font-bold text-emerald-700 tabular-nums dark:text-emerald-300"
                     >
                         {{ formatQuantity(productDetailsModal.totalQuantity) }}
                     </p>
@@ -1216,29 +1265,23 @@ const closeProductDetails = (): void => {
 
                 <div
                     v-if="productDetailsModal.locations.length"
-                    class="mt-4 space-y-2"
+                    class="space-y-2"
                 >
                     <div
                         v-for="location in productDetailsModal.locations"
                         :key="location.id"
-                        class="flex items-center justify-between rounded-xl border border-slate-200 p-3 dark:border-white/10"
+                        class="flex items-center justify-between rounded-xl border bg-card p-3"
                     >
-                        <div>
-                            <p
-                                class="font-medium text-slate-900 dark:text-white"
-                            >
-                                {{
-                                    location.code || `Ячейка ${location.number}`
-                                }}
-                            </p>
-                        </div>
-                        <p class="font-bold text-slate-900 dark:text-white">
+                        <p class="font-medium">
+                            {{ location.code || `Ячейка ${location.number}` }}
+                        </p>
+                        <p class="font-bold tabular-nums">
                             {{ formatQuantity(location.quantity) }}
                         </p>
                     </div>
                 </div>
 
-                <p v-else class="py-6 text-center text-sm text-slate-500">
+                <p v-else class="py-6 text-center text-sm text-muted-foreground">
                     Положительных остатков не найдено.
                 </p>
             </template>
@@ -1256,7 +1299,7 @@ const closeProductDetails = (): void => {
     >
         <DialogContent class="w-[95vw] max-w-md">
             <DialogHeader>
-                <DialogTitle> Подтверждение удаления </DialogTitle>
+                <DialogTitle>Подтверждение удаления</DialogTitle>
                 <DialogDescription>
                     {{
                         deleteConfirmation.type === 'rack'
@@ -1266,29 +1309,32 @@ const closeProductDetails = (): void => {
                 </DialogDescription>
             </DialogHeader>
 
-            <p class="text-sm text-slate-500">
+            <p class="text-sm text-muted-foreground">
                 Удаление может быть запрещено, если существуют остатки или
                 история складских движений.
             </p>
 
             <div class="flex justify-end gap-3">
-                <button
-                    type="button"
-                    class="rounded-xl bg-slate-100 px-4 py-2.5 text-sm dark:bg-slate-800 dark:text-white"
+                <Button
+                    variant="outline"
                     :disabled="deleteConfirmation.loading"
                     @click="closeDeleteConfirmation"
                 >
                     Отмена
-                </button>
+                </Button>
 
-                <button
-                    type="button"
-                    class="rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-50"
+                <Button
+                    variant="destructive"
                     :disabled="deleteConfirmation.loading"
                     @click="confirmDelete"
                 >
+                    <Loader2
+                        v-if="deleteConfirmation.loading"
+                        :size="16"
+                        class="mr-2 animate-spin"
+                    />
                     {{ deleteConfirmation.loading ? 'Удаление...' : 'Удалить' }}
-                </button>
+                </Button>
             </div>
         </DialogContent>
     </Dialog>

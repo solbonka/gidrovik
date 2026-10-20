@@ -1,443 +1,776 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { dashboard, login } from '@/routes';
-import { register } from '@/routes';
+import { Head, Link } from '@inertiajs/vue3'
+import {
+    ArrowDownToLine,
+    ArrowLeftRight,
+    ArrowRight,
+    ArrowUpFromLine,
+    Bell,
+    Boxes,
+    Check,
+    Clock3,
+    History,
+    MapPin,
+    Package,
+    ShieldCheck,
+    TrendingDown,
+    Undo2,
+    Warehouse,
+} from '@lucide/vue'
+import type { Component } from 'vue'
+import { computed } from 'vue'
+
+import { login, register } from '@/routes'
+import { Button } from '@/components/ui/button'
+
+interface Statistic {
+    products: number
+    total_quantity: string
+    low_stock: number
+}
+
+interface Movement {
+    id: number
+    product_name: string
+    sku: string | null
+    type: string
+    type_label: string
+    quantity: number | string
+    from_location: string | null
+    to_location: string | null
+    created_at: string | null
+}
+
+interface LowStockProduct {
+    id: number
+    name: string
+    sku: string | null
+    unit: string
+    quantity: string | number
+    minimum_stock: number | string | null
+    locations: Array<{
+        code: string | null
+        rack_code: string | null
+    }>
+}
+
+const props = defineProps<{
+    statistics: Statistic
+    recent_movements: Movement[]
+    low_stock_products: LowStockProduct[]
+}>()
+
+/* ---------- Движения ---------- */
+
+type MovementKind = 'receipt' | 'transfer' | 'writeoff' | 'return' | 'other'
+
+const movementStyles: Record<MovementKind, { tone: string; icon: Component }> = {
+    receipt: { tone: 'bg-emerald-50 text-emerald-700 ring-emerald-600/15', icon: ArrowDownToLine },
+    transfer: { tone: 'bg-sky-50 text-sky-700 ring-sky-600/15', icon: ArrowLeftRight },
+    writeoff: { tone: 'bg-rose-50 text-rose-700 ring-rose-600/15', icon: ArrowUpFromLine },
+    return: { tone: 'bg-violet-50 text-violet-700 ring-violet-600/15', icon: Undo2 },
+    other: { tone: 'bg-slate-100 text-slate-700 ring-slate-500/15', icon: ArrowLeftRight },
+}
+
+function movementKind(movement: Movement): MovementKind {
+    const text = `${movement.type} ${movement.type_label}`.toLowerCase()
+
+    if (/receipt|income|приход|поступ/.test(text)) return 'receipt'
+    if (/transfer|перемещ/.test(text)) return 'transfer'
+    if (/write|issue|спис|расход|отгруз/.test(text)) return 'writeoff'
+    if (/return|возврат/.test(text)) return 'return'
+
+    return 'other'
+}
+
+const style = (movement: Movement) => movementStyles[movementKind(movement)]
+
+function locationLabel(location: string | null) {
+    return location?.trim() || '—'
+}
+
+const numberFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 3 })
+
+function formatNumber(value: number | string | null | undefined) {
+    if (value === null || value === undefined || value === '') return '—'
+
+    const number = Number(value)
+
+    return Number.isNaN(number) ? String(value) : numberFormat.format(number)
+}
+
+/* ---------- Остатки ---------- */
+
+function stockPercent(product: LowStockProduct) {
+    const quantity = Number(product.quantity)
+    const minimum = Number(product.minimum_stock)
+
+    if (!Number.isFinite(quantity) || !Number.isFinite(minimum) || minimum <= 0) return 0
+
+    return Math.max(0, Math.min(100, (quantity / minimum) * 100))
+}
+
+function stockState(product: LowStockProduct) {
+    const quantity = Number(product.quantity)
+    const percent = stockPercent(product)
+    if (quantity <= 0) {
+        return { label: 'Нет в наличии', badge: 'bg-rose-100 text-rose-800', bar: 'bg-rose-500', value: 'text-rose-700' }
+    }
+    if (percent < 50) {
+        return { label: 'Критично', badge: 'bg-orange-100 text-orange-800', bar: 'bg-orange-500', value: 'text-orange-700' }
+    }
+    return { label: 'Мало', badge: 'bg-amber-100 text-amber-800', bar: 'bg-amber-500', value: 'text-amber-700' }
+}
+
+function locationText(product: LowStockProduct) {
+    return (
+        product.locations
+            .map((location) => [location.rack_code, location.code].filter(Boolean).join(' · '))
+            .filter(Boolean)
+            .join(', ') || 'Не указано'
+    )
+}
+
+const hasLowStock = computed(() => props.statistics.low_stock > 0)
+const previewMovements = computed(() => props.recent_movements.slice(0, 3))
+
+/* ---------- Статичный контент ---------- */
+
+const navItems = [
+    { href: '#features', label: 'Возможности' },
+    { href: '#movements', label: 'Движения' },
+    { href: '#low-stock', label: 'Остатки' },
+]
+
+const features = [
+    {
+        icon: Boxes,
+        title: 'Каталог товаров',
+        text: 'Артикулы, единицы измерения и минимальные остатки — всё в одной карточке.',
+    },
+    {
+        icon: MapPin,
+        title: 'Адресное хранение',
+        text: 'Стеллажи и ячейки: всегда понятно, где лежит товар и сколько его в каждой ячейке.',
+    },
+    {
+        icon: History,
+        title: 'История операций',
+        text: 'Поступления, перемещения, списания и возвраты фиксируются и не теряются.',
+    },
+    {
+        icon: Bell,
+        title: 'Контроль минимума',
+        text: 'Система сама показывает позиции, которые пора пополнить, до того как они закончатся.',
+    },
+]
+
+const year = new Date().getFullYear()
 </script>
 
 <template>
-    <Head title="Welcome">
-        <link rel="preconnect" href="https://rsms.me/" />
-        <link rel="stylesheet" href="https://rsms.me/inter/inter.css" />
-    </Head>
-    <div
-        class="flex min-h-screen flex-col items-center bg-[#FDFDFC] p-6 text-[#1b1b18] lg:justify-center lg:p-8 dark:bg-[#0a0a0a]"
-    >
-        <header
-            class="mb-6 w-full max-w-[335px] text-sm not-has-[nav]:hidden lg:max-w-4xl"
+    <Head title="Гидровик — управление складом" />
+
+    <div class="min-h-screen overflow-x-hidden bg-white text-slate-900 antialiased">
+        <a
+            href="#main"
+            class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-lg focus:bg-emerald-600 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white"
         >
-            <nav class="flex items-center justify-end gap-4">
-                <Link
-                    v-if="$page.props.auth.user"
-                    :href="dashboard()"
-                    class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
-                >
-                    Dashboard
+            Перейти к содержимому
+        </a>
+
+        <!-- Header -->
+        <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/90 backdrop-blur-xl">
+            <div class="mx-auto flex h-[68px] max-w-7xl items-center justify-between gap-4 px-5 sm:px-8 lg:px-10">
+                <Link href="/" class="flex shrink-0 items-center gap-3" aria-label="Гидровик — на главную">
+                    <div class="flex size-10 items-center justify-center rounded-[14px] bg-emerald-600 text-white shadow-lg shadow-emerald-600/20">
+                        <Warehouse :size="22" :stroke-width="1.8" />
+                    </div>
+                    <div>
+                        <div class="text-[19px] font-extrabold leading-tight tracking-tight">Гидровик</div>
+                        <div class="mt-0.5 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">
+                            Система складского учёта
+                        </div>
+                    </div>
                 </Link>
-                <template v-else>
-                    <Link
-                        :href="login()"
-                        class="inline-block rounded-sm border border-transparent px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#19140035] dark:text-[#EDEDEC] dark:hover:border-[#3E3E3A]"
+
+                <nav class="hidden items-center gap-8 md:flex" aria-label="Разделы страницы">
+                    <a
+                        v-for="item in navItems"
+                        :key="item.href"
+                        :href="item.href"
+                        class="text-sm font-medium text-slate-600 transition hover:text-emerald-700"
                     >
-                        Log in
-                    </Link>
-                    <Link
-                        :href="register()"
-                        class="inline-block rounded-sm border border-[#19140035] px-5 py-1.5 text-sm leading-normal text-[#1b1b18] hover:border-[#1915014a] dark:border-[#3E3E3A] dark:text-[#EDEDEC] dark:hover:border-[#62605b]"
+                        {{ item.label }}
+                    </a>
+                </nav>
+
+                <div class="flex shrink-0 items-center gap-2">
+                    <Button variant="ghost" as-child class="text-slate-600 hover:text-emerald-700">
+                        <Link :href="login().url">Войти</Link>
+                    </Button>
+
+                    <Button
+                        as-child
+                        class="hidden h-10 rounded-xl bg-emerald-600 px-4 font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:inline-flex"
                     >
-                        Register
-                    </Link>
-                </template>
+                        <Link :href="register().url">
+                            Начать работу
+                            <ArrowRight :size="16" class="ml-2" />
+                        </Link>
+                    </Button>
+                </div>
+            </div>
+
+            <!-- Мобильная навигация -->
+            <nav class="flex gap-5 overflow-x-auto border-t border-slate-100 px-5 py-2.5 md:hidden" aria-label="Разделы страницы">
+                <a
+                    v-for="item in navItems"
+                    :key="item.href"
+                    :href="item.href"
+                    class="shrink-0 text-xs font-semibold text-slate-600 hover:text-emerald-700"
+                >
+                    {{ item.label }}
+                </a>
             </nav>
         </header>
-        <div
-            class="flex w-full items-center justify-center opacity-100 transition-opacity duration-750 lg:grow starting:opacity-0"
-        >
-            <main
-                class="flex w-full max-w-[335px] flex-col-reverse overflow-hidden rounded-lg lg:max-w-4xl lg:flex-row"
-            >
-                <div
-                    class="flex-1 rounded-br-lg rounded-bl-lg bg-white p-6 pb-12 text-[13px] leading-[20px] shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-tl-lg lg:rounded-br-none lg:p-20 dark:bg-[#161615] dark:text-[#EDEDEC] dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
-                >
-                    <h1 class="mb-1 font-medium">Let's get started</h1>
-                    <p class="mb-2 text-[#706f6c] dark:text-[#A1A09A]">
-                        Laravel has an incredibly rich ecosystem. <br />We
-                        suggest starting with the following.
-                    </p>
-                    <ul class="mb-4 flex flex-col lg:mb-6">
-                        <li
-                            class="relative flex items-center gap-4 py-2 before:absolute before:top-1/2 before:bottom-0 before:left-[0.4rem] before:border-l before:border-[#e3e3e0] dark:before:border-[#3E3E3A]"
-                        >
-                            <span
-                                class="relative bg-white py-1 dark:bg-[#161615]"
-                            >
-                                <span
-                                    class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#e3e3e0] bg-[#FDFDFC] shadow-[0px_0px_1px_0px_rgba(0,0,0,0.03),0px_1px_2px_0px_rgba(0,0,0,0.06)] dark:border-[#3E3E3A] dark:bg-[#161615]"
-                                >
-                                    <span
-                                        class="h-1.5 w-1.5 rounded-full bg-[#dbdbd7] dark:bg-[#3E3E3A]"
-                                    />
-                                </span>
-                            </span>
-                            <span>
-                                Read the
-                                <a
-                                    href="https://laravel.com/docs"
-                                    target="_blank"
-                                    class="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
-                                >
-                                    <span>Documentation</span>
-                                    <svg
-                                        width="10"
-                                        height="11"
-                                        viewBox="0 0 10 11"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-2.5 w-2.5"
-                                    >
-                                        <path
-                                            d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
-                                            stroke="currentColor"
-                                            stroke-linecap="square"
-                                        />
-                                    </svg>
-                                </a>
-                            </span>
-                        </li>
-                        <li
-                            class="relative flex items-center gap-4 py-2 before:absolute before:top-0 before:bottom-1/2 before:left-[0.4rem] before:border-l before:border-[#e3e3e0] dark:before:border-[#3E3E3A]"
-                        >
-                            <span
-                                class="relative bg-white py-1 dark:bg-[#161615]"
-                            >
-                                <span
-                                    class="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[#e3e3e0] bg-[#FDFDFC] shadow-[0px_0px_1px_0px_rgba(0,0,0,0.03),0px_1px_2px_0px_rgba(0,0,0,0.06)] dark:border-[#3E3E3A] dark:bg-[#161615]"
-                                >
-                                    <span
-                                        class="h-1.5 w-1.5 rounded-full bg-[#dbdbd7] dark:bg-[#3E3E3A]"
-                                    />
-                                </span>
-                            </span>
-                            <span>
-                                Watch video tutorials at
-                                <a
-                                    href="https://laracasts.com"
-                                    target="_blank"
-                                    class="ml-1 inline-flex items-center space-x-1 font-medium text-[#f53003] underline underline-offset-4 dark:text-[#FF4433]"
-                                >
-                                    <span>Laracasts</span>
-                                    <svg
-                                        width="10"
-                                        height="11"
-                                        viewBox="0 0 10 11"
-                                        fill="none"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        class="h-2.5 w-2.5"
-                                    >
-                                        <path
-                                            d="M7.70833 6.95834V2.79167H3.54167M2.5 8L7.5 3.00001"
-                                            stroke="currentColor"
-                                            stroke-linecap="square"
-                                        />
-                                    </svg>
-                                </a>
-                            </span>
-                        </li>
-                    </ul>
-                    <ul class="flex gap-3 text-sm leading-normal">
-                        <li>
-                            <a
-                                href="https://cloud.laravel.com"
-                                target="_blank"
-                                class="inline-block rounded-sm border border-black bg-[#1b1b18] px-5 py-1.5 text-sm leading-normal text-white hover:border-black hover:bg-black dark:border-[#eeeeec] dark:bg-[#eeeeec] dark:text-[#1C1C1A] dark:hover:border-white dark:hover:bg-white"
-                            >
-                                Deploy now
-                            </a>
-                        </li>
-                    </ul>
+
+        <main id="main">
+            <!-- Hero -->
+            <section class="relative isolate overflow-hidden">
+                <div class="pointer-events-none absolute inset-0 -z-10" aria-hidden="true">
+                    <div class="absolute -right-48 -top-40 size-[620px] rounded-full bg-emerald-100/60 blur-3xl" />
+                    <div class="absolute -left-40 top-64 size-[420px] rounded-full bg-slate-100/80 blur-3xl" />
+                    <div class="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200 to-transparent" />
                 </div>
-                <div
-                    class="relative -mb-px aspect-[335/364] w-full shrink-0 overflow-hidden rounded-t-lg bg-[#fff2f2] lg:mb-0 lg:-ml-px lg:aspect-auto lg:w-[438px] lg:rounded-t-none lg:rounded-r-lg dark:bg-[#1D0002]"
-                >
-                    <!-- Laravel Logo -->
-                    <svg
-                        class="w-full max-w-none translate-y-0 text-[#F53003] opacity-100 transition-all duration-750 dark:text-[#F61500] starting:opacity-0 motion-safe:starting:translate-y-6"
-                        viewBox="0 0 438 104"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <path
-                            d="M17.2036 -3H0V102.197H49.5189V86.7187H17.2036V-3Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M110.256 41.6337C108.061 38.1275 104.945 35.3731 100.905 33.3681C96.8667 31.3647 92.8016 30.3618 88.7131 30.3618C83.4247 30.3618 78.5885 31.3389 74.201 33.2923C69.8111 35.2456 66.0474 37.928 62.9059 41.3333C59.7643 44.7401 57.3198 48.6726 55.5754 53.1293C53.8287 57.589 52.9572 62.274 52.9572 67.1813C52.9572 72.1925 53.8287 76.8995 55.5754 81.3069C57.3191 85.7173 59.7636 89.6241 62.9059 93.0293C66.0474 96.4361 69.8119 99.1155 74.201 101.069C78.5885 103.022 83.4247 103.999 88.7131 103.999C92.8016 103.999 96.8667 102.997 100.905 100.994C104.945 98.9911 108.061 96.2359 110.256 92.7282V102.195H126.563V32.1642H110.256V41.6337ZM108.76 75.7472C107.762 78.4531 106.366 80.8078 104.572 82.8112C102.776 84.8161 100.606 86.4183 98.0637 87.6206C95.5202 88.823 92.7004 89.4238 89.6103 89.4238C86.5178 89.4238 83.7252 88.823 81.2324 87.6206C78.7388 86.4183 76.5949 84.8161 74.7998 82.8112C73.004 80.8078 71.6319 78.4531 70.6856 75.7472C69.7356 73.0421 69.2644 70.1868 69.2644 67.1821C69.2644 64.1758 69.7356 61.3205 70.6856 58.6154C71.6319 55.9102 73.004 53.5571 74.7998 51.5522C76.5949 49.5495 78.738 47.9451 81.2324 46.7427C83.7252 45.5404 86.5178 44.9396 89.6103 44.9396C92.7012 44.9396 95.5202 45.5404 98.0637 46.7427C100.606 47.9451 102.776 49.5487 104.572 51.5522C106.367 53.5571 107.762 55.9102 108.76 58.6154C109.756 61.3205 110.256 64.1758 110.256 67.1821C110.256 70.1868 109.756 73.0421 108.76 75.7472Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M242.805 41.6337C240.611 38.1275 237.494 35.3731 233.455 33.3681C229.416 31.3647 225.351 30.3618 221.262 30.3618C215.974 30.3618 211.138 31.3389 206.75 33.2923C202.36 35.2456 198.597 37.928 195.455 41.3333C192.314 44.7401 189.869 48.6726 188.125 53.1293C186.378 57.589 185.507 62.274 185.507 67.1813C185.507 72.1925 186.378 76.8995 188.125 81.3069C189.868 85.7173 192.313 89.6241 195.455 93.0293C198.597 96.4361 202.361 99.1155 206.75 101.069C211.138 103.022 215.974 103.999 221.262 103.999C225.351 103.999 229.416 102.997 233.455 100.994C237.494 98.9911 240.611 96.2359 242.805 92.7282V102.195H259.112V32.1642H242.805V41.6337ZM241.31 75.7472C240.312 78.4531 238.916 80.8078 237.122 82.8112C235.326 84.8161 233.156 86.4183 230.614 87.6206C228.07 88.823 225.251 89.4238 222.16 89.4238C219.068 89.4238 216.275 88.823 213.782 87.6206C211.289 86.4183 209.145 84.8161 207.35 82.8112C205.554 80.8078 204.182 78.4531 203.236 75.7472C202.286 73.0421 201.814 70.1868 201.814 67.1821C201.814 64.1758 202.286 61.3205 203.236 58.6154C204.182 55.9102 205.554 53.5571 207.35 51.5522C209.145 49.5495 211.288 47.9451 213.782 46.7427C216.275 45.5404 219.068 44.9396 222.16 44.9396C225.251 44.9396 228.07 45.5404 230.614 46.7427C233.156 47.9451 235.326 49.5487 237.122 51.5522C238.917 53.5571 240.312 55.9102 241.31 58.6154C242.306 61.3205 242.806 64.1758 242.806 67.1821C242.805 70.1868 242.305 73.0421 241.31 75.7472Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M438 -3H421.694V102.197H438V-3Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M139.43 102.197H155.735V48.2834H183.712V32.1665H139.43V102.197Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M324.49 32.1665L303.995 85.794L283.498 32.1665H266.983L293.748 102.197H314.242L341.006 32.1665H324.49Z"
-                            fill="currentColor"
-                        />
-                        <path
-                            d="M376.571 30.3656C356.603 30.3656 340.797 46.8497 340.797 67.1828C340.797 89.6597 356.094 104 378.661 104C391.29 104 399.354 99.1488 409.206 88.5848L398.189 80.0226C398.183 80.031 389.874 90.9895 377.468 90.9895C363.048 90.9895 356.977 79.3111 356.977 73.269H411.075C413.917 50.1328 398.775 30.3656 376.571 30.3656ZM357.02 61.0967C357.145 59.7487 359.023 43.3761 376.442 43.3761C393.861 43.3761 395.978 59.7464 396.099 61.0967H357.02Z"
-                            fill="currentColor"
-                        />
-                    </svg>
 
-                    <!-- 13 -->
-                    <svg
-                        class="relative -mt-[6.6rem] -ml-8 w-[438px] max-w-none [--stroke-color:#1B1B18] lg:ml-0 dark:[--stroke-color:#FF750F]"
-                        viewBox="0 0 440 392"
-                        fill="none"
-                        xmlns="http://www.w3.org/2000/svg"
-                    >
-                        <g
-                            class="text-[#1B1B18] opacity-100 mix-blend-darken transition-all delay-300 duration-750 dark:text-black dark:mix-blend-normal starting:opacity-0"
-                        >
-                            <mask
-                                id="path-1-mask"
-                                maskUnits="userSpaceOnUse"
-                                x="-0.328613"
-                                y="103"
-                                width="338"
-                                height="299"
-                                fill="black"
-                            >
-                                <rect
-                                    fill="white"
-                                    x="-0.328613"
-                                    y="103"
-                                    width="338"
-                                    height="299"
-                                />
-                                <path
-                                    d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                                />
-                                <path
-                                    d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                                />
-                            </mask>
-                            <path
-                                d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M234.936 400.8C204.136 400.8 178.936 392.4 159.336 375.6C140.136 358.8 130.536 337 130.536 310.2H200.736C200.736 318.2 203.736 324.8 209.736 330C215.736 335.2 223.736 337.8 233.736 337.8C243.336 337.8 251.136 335 257.136 329.4C263.536 323.8 266.736 316.6 266.736 307.8C266.736 299.8 263.936 293.2 258.336 288C252.736 282.8 245.536 280.2 236.736 280.2H199.536V218.4H236.736C243.536 218.4 249.336 216 254.136 211.2C258.936 206.4 261.336 200.4 261.336 193.2C261.336 184.8 258.736 178.2 253.536 173.4C248.336 168.6 241.736 166.2 233.736 166.2C226.536 166.2 220.336 168.4 215.136 172.8C210.336 177.2 207.936 182.8 207.936 189.6H141.336C141.336 164.8 150.136 144.6 167.736 129C185.336 113 207.936 105 235.536 105C263.136 105 285.536 112.2 302.736 126.6C320.336 141 329.136 160 329.136 183.6C329.136 200.8 324.536 214.8 315.336 225.6C306.136 236 294.336 243.2 279.936 247.2C297.136 252 310.736 260.2 320.736 271.8C331.136 283.4 336.336 298 336.336 315.6C336.336 340.4 326.936 360.8 308.136 376.8C289.336 392.8 264.936 400.8 234.936 400.8Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-1-mask)"
-                            />
-                            <path
-                                d="M26.8714 167.6H1.67139V105.2H94.6714V400.2H26.8714V167.6Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-1-mask)"
-                            />
-                        </g>
+                <div class="mx-auto grid max-w-7xl items-center gap-12 px-5 pb-16 pt-12 sm:px-8 sm:pb-20 sm:pt-16 lg:grid-cols-[0.9fr_1.1fr] lg:gap-14 lg:px-10 lg:pb-24 lg:pt-24">
+                    <div class="max-w-2xl">
+                        <div class="inline-flex items-center gap-2.5 rounded-full border border-emerald-200 bg-white/80 px-3.5 py-2 text-xs font-semibold text-emerald-800 shadow-sm">
+                            <span class="relative flex size-2" aria-hidden="true">
+                                <span class="absolute inline-flex size-full rounded-full bg-emerald-500 opacity-30 motion-safe:animate-ping" />
+                                <span class="relative inline-flex size-2 rounded-full bg-emerald-600" />
+                            </span>
+                            Единое пространство для вашего склада
+                        </div>
 
-                        <g
-                            class="text-[#F3BEC7] opacity-100 transition-all delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[26px]"
-                        >
-                            <mask
-                                id="path-2-mask"
-                                maskUnits="userSpaceOnUse"
-                                x="25.3357"
-                                y="103"
-                                width="338"
-                                height="299"
-                                fill="black"
-                            >
-                                <rect
-                                    fill="white"
-                                    x="25.3357"
-                                    y="103"
-                                    width="338"
-                                    height="299"
-                                />
-                                <path
-                                    d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                                />
-                                <path
-                                    d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                                />
-                            </mask>
-                            <path
-                                d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M260.6 400.8C229.8 400.8 204.6 392.4 185 375.6C165.8 358.8 156.2 337 156.2 310.2H226.4C226.4 318.2 229.4 324.8 235.4 330C241.4 335.2 249.4 337.8 259.4 337.8C269 337.8 276.8 335 282.8 329.4C289.2 323.8 292.4 316.6 292.4 307.8C292.4 299.8 289.6 293.2 284 288C278.4 282.8 271.2 280.2 262.4 280.2H225.2V218.4H262.4C269.2 218.4 275 216 279.8 211.2C284.6 206.4 287 200.4 287 193.2C287 184.8 284.4 178.2 279.2 173.4C274 168.6 267.4 166.2 259.4 166.2C252.2 166.2 246 168.4 240.8 172.8C236 177.2 233.6 182.8 233.6 189.6H167C167 164.8 175.8 144.6 193.4 129C211 113 233.6 105 261.2 105C288.8 105 311.2 112.2 328.4 126.6C346 141 354.8 160 354.8 183.6C354.8 200.8 350.2 214.8 341 225.6C331.8 236 320 243.2 305.6 247.2C322.8 252 336.4 260.2 346.4 271.8C356.8 283.4 362 298 362 315.6C362 340.4 352.6 360.8 333.8 376.8C315 392.8 290.6 400.8 260.6 400.8Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-2-mask)"
-                            />
-                            <path
-                                d="M52.5357 167.6H27.3357V105.2H120.336V400.2H52.5357V167.6Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-2-mask)"
-                            />
-                        </g>
+                        <h1 class="mt-7 text-[40px] font-extrabold leading-[1.08] tracking-[-0.045em] text-slate-950 sm:text-5xl lg:text-[60px]">
+                            Весь склад
+                            <br class="hidden sm:block" />
+                            <span class="bg-gradient-to-r from-emerald-600 to-teal-500 bg-clip-text text-transparent">под контролем.</span>
+                        </h1>
 
-                        <g
-                            class="text-[#F8B803] opacity-100 mix-blend-color transition-all delay-400 duration-750 dark:text-[#391800] dark:mix-blend-hard-light starting:opacity-0 motion-safe:starting:-translate-x-[51px]"
-                        >
-                            <mask
-                                id="path-3-mask"
-                                maskUnits="userSpaceOnUse"
-                                x="51"
-                                y="103"
-                                width="338"
-                                height="299"
-                                fill="black"
-                            >
-                                <rect
-                                    fill="white"
-                                    x="51"
-                                    y="103"
-                                    width="338"
-                                    height="299"
-                                />
-                                <path
-                                    d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                                />
-                                <path
-                                    d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                                />
-                            </mask>
-                            <path
-                                d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M286.264 400.8C255.464 400.8 230.264 392.4 210.664 375.6C191.464 358.8 181.864 337 181.864 310.2H252.064C252.064 318.2 255.064 324.8 261.064 330C267.064 335.2 275.064 337.8 285.064 337.8C294.664 337.8 302.464 335 308.464 329.4C314.864 323.8 318.064 316.6 318.064 307.8C318.064 299.8 315.264 293.2 309.664 288C304.064 282.8 296.864 280.2 288.064 280.2H250.864V218.4H288.064C294.864 218.4 300.664 216 305.464 211.2C310.264 206.4 312.664 200.4 312.664 193.2C312.664 184.8 310.064 178.2 304.864 173.4C299.664 168.6 293.064 166.2 285.064 166.2C277.864 166.2 271.664 168.4 266.464 172.8C261.664 177.2 259.264 182.8 259.264 189.6H192.664C192.664 164.8 201.464 144.6 219.064 129C236.664 113 259.264 105 286.864 105C314.464 105 336.864 112.2 354.064 126.6C371.664 141 380.464 160 380.464 183.6C380.464 200.8 375.864 214.8 366.664 225.6C357.464 236 345.664 243.2 331.264 247.2C348.464 252 362.064 260.2 372.064 271.8C382.464 283.4 387.664 298 387.664 315.6C387.664 340.4 378.264 360.8 359.464 376.8C340.664 392.8 316.264 400.8 286.264 400.8Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-3-mask)"
-                            />
-                            <path
-                                d="M78.2 167.6H53V105.2H146V400.2H78.2V167.6Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-3-mask)"
-                            />
-                        </g>
+                        <p class="mt-6 max-w-xl text-base leading-7 text-slate-600 sm:text-lg sm:leading-8">
+                            Товары, остатки, ячейки и движения — в одной системе.
+                            Принимайте решения на основе актуальных данных, а не догадок.
+                        </p>
 
-                        <g
-                            class="text-[#F3BEC7] opacity-100 mix-blend-multiply transition-all delay-400 duration-750 dark:text-[#733000] dark:mix-blend-normal starting:opacity-0 motion-safe:starting:-translate-x-[78px]"
-                        >
-                            <mask
-                                id="path-4-mask"
-                                maskUnits="userSpaceOnUse"
-                                x="76.6643"
-                                y="103"
-                                width="338"
-                                height="299"
-                                fill="black"
+                        <div class="mt-8 flex flex-col gap-3 sm:flex-row">
+                            <Button
+                                as-child
+                                size="lg"
+                                class="h-12 rounded-xl bg-emerald-600 px-6 text-base font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:-translate-y-0.5 hover:bg-emerald-700"
                             >
-                                <rect
-                                    fill="white"
-                                    x="76.6643"
-                                    y="103"
-                                    width="338"
-                                    height="299"
-                                />
-                                <path
-                                    d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                                />
-                                <path
-                                    d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                                />
-                            </mask>
-                            <path
-                                d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M311.929 400.8C281.129 400.8 255.929 392.4 236.329 375.6C217.129 358.8 207.529 337 207.529 310.2H277.729C277.729 318.2 280.729 324.8 286.729 330C292.729 335.2 300.729 337.8 310.729 337.8C320.329 337.8 328.129 335 334.129 329.4C340.529 323.8 343.729 316.6 343.729 307.8C343.729 299.8 340.929 293.2 335.329 288C329.729 282.8 322.529 280.2 313.729 280.2H276.529V218.4H313.729C320.529 218.4 326.329 216 331.129 211.2C335.929 206.4 338.329 200.4 338.329 193.2C338.329 184.8 335.729 178.2 330.529 173.4C325.329 168.6 318.729 166.2 310.729 166.2C303.529 166.2 297.329 168.4 292.129 172.8C287.329 177.2 284.929 182.8 284.929 189.6H218.329C218.329 164.8 227.129 144.6 244.729 129C262.329 113 284.929 105 312.529 105C340.129 105 362.529 112.2 379.729 126.6C397.329 141 406.129 160 406.129 183.6C406.129 200.8 401.529 214.8 392.329 225.6C383.129 236 371.329 243.2 356.929 247.2C374.129 252 387.729 260.2 397.729 271.8C408.129 283.4 413.329 298 413.329 315.6C413.329 340.4 403.929 360.8 385.129 376.8C366.329 392.8 341.929 400.8 311.929 400.8Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-4-mask)"
-                            />
-                            <path
-                                d="M103.864 167.6H78.6643V105.2H171.664V400.2H103.864V167.6Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-4-mask)"
-                            />
-                        </g>
+                                <Link :href="register().url">
+                                    Начать работу
+                                    <ArrowRight :size="18" class="ml-2" />
+                                </Link>
+                            </Button>
 
-                        <g
-                            class="text-[#F3BEC7] opacity-100 mix-blend-hard-light transition-all delay-400 duration-750 dark:text-[#4B0600] starting:opacity-0 motion-safe:starting:-translate-x-[102px]"
-                        >
-                            <mask
-                                id="path-5-mask"
-                                maskUnits="userSpaceOnUse"
-                                x="102.329"
-                                y="103"
-                                width="338"
-                                height="299"
-                                fill="black"
+                            <Button
+                                as-child
+                                variant="outline"
+                                size="lg"
+                                class="h-12 rounded-xl border-slate-300 bg-white/80 px-6 text-base font-semibold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
                             >
-                                <rect
-                                    fill="white"
-                                    x="102.329"
-                                    y="103"
-                                    width="338"
-                                    height="299"
-                                />
-                                <path
-                                    d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                                />
-                                <path
-                                    d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                                />
-                            </mask>
-                            <path
-                                d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                                fill="currentColor"
-                            />
-                            <path
-                                d="M337.593 400.8C306.793 400.8 281.593 392.4 261.993 375.6C242.793 358.8 233.193 337 233.193 310.2H303.393C303.393 318.2 306.393 324.8 312.393 330C318.393 335.2 326.393 337.8 336.393 337.8C345.993 337.8 353.793 335 359.793 329.4C366.193 323.8 369.393 316.6 369.393 307.8C369.393 299.8 366.593 293.2 360.993 288C355.393 282.8 348.193 280.2 339.393 280.2H302.193V218.4H339.393C346.193 218.4 351.993 216 356.793 211.2C361.593 206.4 363.993 200.4 363.993 193.2C363.993 184.8 361.393 178.2 356.193 173.4C350.993 168.6 344.393 166.2 336.393 166.2C329.193 166.2 322.993 168.4 317.793 172.8C312.993 177.2 310.593 182.8 310.593 189.6H243.993C243.993 164.8 252.793 144.6 270.393 129C287.993 113 310.593 105 338.193 105C365.793 105 388.193 112.2 405.393 126.6C422.993 141 431.793 160 431.793 183.6C431.793 200.8 427.193 214.8 417.993 225.6C408.793 236 396.993 243.2 382.593 247.2C399.793 252 413.393 260.2 423.393 271.8C433.793 283.4 438.993 298 438.993 315.6C438.993 340.4 429.593 360.8 410.793 376.8C391.993 392.8 367.593 400.8 337.593 400.8Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-5-mask)"
-                            />
-                            <path
-                                d="M129.529 167.6H104.329V105.2H197.329V400.2H129.529V167.6Z"
-                                stroke="var(--stroke-color)"
-                                stroke-width="2.4"
-                                mask="url(#path-5-mask)"
-                            />
-                        </g>
-                    </svg>
-                    <div
-                        class="absolute inset-0 rounded-t-lg shadow-[inset_0px_0px_0px_1px_rgba(26,26,0,0.16)] lg:rounded-t-none lg:rounded-r-lg dark:shadow-[inset_0px_0px_0px_1px_#fffaed2d]"
-                    ></div>
+                                <a href="#features">Узнать больше</a>
+                            </Button>
+                        </div>
+
+                        <ul class="mt-8 flex flex-wrap gap-x-5 gap-y-3 text-sm text-slate-600">
+                            <li v-for="item in ['Контроль остатков', 'История операций', 'Адресное хранение']" :key="item" class="flex items-center gap-2">
+                                <span class="flex size-5 items-center justify-center rounded-full bg-emerald-100 text-emerald-700">
+                                    <Check :size="12" :stroke-width="3" />
+                                </span>
+                                {{ item }}
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Живой предпросмотр -->
+                    <div class="relative mx-auto w-full max-w-[620px] lg:ml-auto">
+                        <div class="absolute -inset-5 -z-10 rounded-[32px] bg-emerald-100/70 blur-2xl" aria-hidden="true" />
+
+                        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl shadow-slate-900/[0.08]">
+                            <div class="flex items-center justify-between gap-3 border-b border-slate-100 px-5 py-4 sm:px-6">
+                                <div class="flex items-center gap-3">
+                                    <div class="flex size-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                                        <Warehouse :size="21" />
+                                    </div>
+                                    <div>
+                                        <h2 class="text-sm font-bold text-slate-900">Состояние склада</h2>
+                                        <p class="mt-0.5 text-xs text-slate-500">Актуальные показатели системы</p>
+                                    </div>
+                                </div>
+
+                                <span class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-700">
+                                    <span class="size-1.5 rounded-full bg-emerald-500" />
+                                    Онлайн
+                                </span>
+                            </div>
+
+                            <div class="space-y-4 bg-slate-50/70 p-4 sm:p-5">
+                                <div class="grid grid-cols-3 gap-2.5 sm:gap-3">
+                                    <div class="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                                        <div class="flex size-9 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                                            <Boxes :size="19" />
+                                        </div>
+                                        <div class="mt-4 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950 sm:text-3xl">
+                                            {{ formatNumber(statistics.products) }}
+                                        </div>
+                                        <div class="mt-1 text-[11px] leading-4 text-slate-500 sm:text-xs">Товаров</div>
+                                    </div>
+
+                                    <div class="rounded-xl border border-slate-200/80 bg-white p-3.5 sm:p-4">
+                                        <div class="flex size-9 items-center justify-center rounded-xl bg-sky-50 text-sky-700">
+                                            <Package :size="19" />
+                                        </div>
+                                        <div class="mt-4 break-words text-xl font-extrabold tabular-nums tracking-tight text-slate-950 sm:text-3xl">
+                                            {{ formatNumber(statistics.total_quantity) }}
+                                        </div>
+                                        <div class="mt-1 text-[11px] leading-4 text-slate-500 sm:text-xs">Единиц на складе</div>
+                                    </div>
+
+                                    <div
+                                        class="rounded-xl border p-3.5 sm:p-4"
+                                        :class="hasLowStock ? 'border-amber-200 bg-amber-50/70' : 'border-slate-200/80 bg-white'"
+                                    >
+                                        <div
+                                            class="flex size-9 items-center justify-center rounded-xl"
+                                            :class="hasLowStock ? 'bg-amber-100 text-amber-700' : 'bg-emerald-50 text-emerald-700'"
+                                        >
+                                            <TrendingDown :size="19" />
+                                        </div>
+                                        <div class="mt-4 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950 sm:text-3xl">
+                                            {{ formatNumber(statistics.low_stock) }}
+                                        </div>
+                                        <div class="mt-1 text-[11px] leading-4 text-slate-500 sm:text-xs">Требуют внимания</div>
+                                    </div>
+                                </div>
+
+                                <div class="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                                    <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+                                        <div>
+                                            <h3 class="text-sm font-bold text-slate-900">Последние операции</h3>
+                                            <p class="mt-0.5 text-xs text-slate-500">История движений</p>
+                                        </div>
+                                        <Clock3 :size="17" class="text-slate-400" />
+                                    </div>
+
+                                    <ul v-if="previewMovements.length">
+                                        <li
+                                            v-for="movement in previewMovements"
+                                            :key="movement.id"
+                                            class="flex items-center gap-3 border-b border-slate-100 px-4 py-3 last:border-b-0"
+                                        >
+                                            <div class="flex size-9 shrink-0 items-center justify-center rounded-xl" :class="style(movement).tone">
+                                                <component :is="style(movement).icon" :size="17" />
+                                            </div>
+
+                                            <div class="min-w-0 flex-1">
+                                                <div class="truncate text-xs font-semibold text-slate-800 sm:text-sm">
+                                                    {{ movement.product_name }}
+                                                </div>
+                                                <div class="mt-0.5 truncate text-[11px] text-slate-500">
+                                                    {{ movement.type_label }}<span v-if="movement.sku"> · {{ movement.sku }}</span>
+                                                </div>
+                                            </div>
+
+                                            <div class="shrink-0 text-right">
+                                                <div class="text-sm font-bold tabular-nums text-slate-900">
+                                                    {{ formatNumber(movement.quantity) }}
+                                                </div>
+                                                <div class="mt-0.5 text-[10px] text-slate-400">
+                                                    {{ movement.created_at || '—' }}
+                                                </div>
+                                            </div>
+                                        </li>
+                                    </ul>
+
+                                    <div v-else class="px-4 py-8 text-center">
+                                        <div class="mx-auto flex size-10 items-center justify-center rounded-xl bg-slate-50 text-slate-400">
+                                            <Package :size="20" />
+                                        </div>
+                                        <p class="mt-3 text-sm font-medium text-slate-700">Пока нет движений</p>
+                                        <p class="mt-1 text-xs text-slate-500">Новые операции появятся здесь</p>
+                                    </div>
+                                </div>
+
+                                <a
+                                    href="#low-stock"
+                                    class="flex items-center gap-3 rounded-xl border px-4 py-3.5 transition hover:shadow-sm"
+                                    :class="hasLowStock ? 'border-amber-200 bg-amber-50/70' : 'border-emerald-100 bg-emerald-50/70'"
+                                >
+                                    <div
+                                        class="flex size-9 shrink-0 items-center justify-center rounded-xl bg-white"
+                                        :class="hasLowStock ? 'text-amber-700' : 'text-emerald-700'"
+                                    >
+                                        <TrendingDown v-if="hasLowStock" :size="18" />
+                                        <Check v-else :size="18" />
+                                    </div>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-bold text-slate-900">
+                                            {{ hasLowStock ? 'Есть товары для пополнения' : 'Критических остатков нет' }}
+                                        </p>
+                                        <p class="mt-1 text-[11px] leading-4 text-slate-600">
+                                            {{
+                                                hasLowStock
+                                                    ? `Товаров ниже минимального остатка: ${statistics.low_stock}`
+                                                    : 'Товары с настроенным минимумом в норме'
+                                            }}
+                                        </p>
+                                    </div>
+                                    <ArrowRight :size="16" class="shrink-0 text-slate-400" />
+                                </a>
+                            </div>
+
+                            <div class="flex items-center justify-between border-t border-slate-100 bg-white px-5 py-3.5 sm:px-6">
+                                <div class="flex items-center gap-2 text-xs text-slate-500">
+                                    <ShieldCheck :size="15" class="text-emerald-600" />
+                                    Складской учёт в одном месте
+                                </div>
+                                <span class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Гидровик</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </main>
-        </div>
-        <div class="hidden h-14.5 lg:block"></div>
+            </section>
+
+            <!-- Возможности -->
+            <section id="features" class="scroll-mt-28 border-y border-slate-200 bg-slate-50/70 px-5 py-16 sm:px-8 sm:py-20 lg:px-10">
+                <div class="mx-auto max-w-7xl">
+                    <div class="max-w-2xl">
+                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Возможности</p>
+                        <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
+                            Всё, что нужно для порядка на складе
+                        </h2>
+                        <p class="mt-3 text-sm leading-6 text-slate-500 sm:text-base">
+                            Без лишних таблиц и ручных пересчётов: система хранит актуальное состояние и историю каждой операции.
+                        </p>
+                    </div>
+
+                    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <article
+                            v-for="feature in features"
+                            :key="feature.title"
+                            class="rounded-2xl border border-slate-200 bg-white p-6 transition duration-200 hover:-translate-y-0.5 hover:border-emerald-200 hover:shadow-lg hover:shadow-slate-900/[0.04]"
+                        >
+                            <div class="flex size-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700">
+                                <component :is="feature.icon" :size="22" />
+                            </div>
+                            <h3 class="mt-5 font-bold text-slate-900">{{ feature.title }}</h3>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">{{ feature.text }}</p>
+                        </article>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Движения -->
+            <section id="movements" class="scroll-mt-28 px-5 py-16 sm:px-8 sm:py-20 lg:px-10">
+                <div class="mx-auto max-w-7xl">
+                    <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-700">Прозрачность операций</p>
+                            <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Последние движения</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">История складских операций из вашей системы.</p>
+                        </div>
+
+                        <Button
+                            as-child
+                            variant="outline"
+                            class="h-10 w-fit rounded-xl border-slate-300 bg-white font-semibold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-800"
+                        >
+                            <Link href="/admin/stock/movements">
+                                Все движения
+                                <ArrowRight :size="16" class="ml-2" />
+                            </Link>
+                        </Button>
+                    </div>
+
+                    <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm shadow-slate-900/[0.02]">
+                        <template v-if="recent_movements.length">
+                            <!-- Мобильные карточки -->
+                            <ul class="divide-y divide-slate-100 md:hidden">
+                                <li v-for="movement in recent_movements" :key="movement.id" class="p-4">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <div class="min-w-0">
+                                            <p class="break-words text-sm font-semibold text-slate-900">{{ movement.product_name }}</p>
+                                            <p class="mt-0.5 text-xs text-slate-500">{{ movement.sku || 'Без артикула' }}</p>
+                                        </div>
+                                        <p class="shrink-0 text-base font-bold tabular-nums text-slate-900">
+                                            {{ formatNumber(movement.quantity) }}
+                                        </p>
+                                    </div>
+
+                                    <div class="mt-3 flex flex-wrap items-center gap-2">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                            :class="style(movement).tone"
+                                        >
+                                            <component :is="style(movement).icon" :size="13" />
+                                            {{ movement.type_label }}
+                                        </span>
+                                        <span class="text-xs text-slate-400">{{ movement.created_at || '—' }}</span>
+                                    </div>
+
+                                    <div class="mt-3 flex items-center gap-2 text-xs text-slate-600">
+                                        <span class="max-w-[42%] truncate rounded-md bg-slate-100 px-2 py-1">{{ locationLabel(movement.from_location) }}</span>
+                                        <ArrowRight :size="13" class="shrink-0 text-slate-400" />
+                                        <span class="max-w-[42%] truncate rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">{{ locationLabel(movement.to_location) }}</span>
+                                    </div>
+                                </li>
+                            </ul>
+
+                            <!-- Таблица -->
+                            <div class="hidden overflow-x-auto md:block">
+                                <table class="w-full text-left text-sm">
+                                    <thead>
+                                        <tr class="border-b border-slate-200 bg-slate-50/80">
+                                            <th scope="col" class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Дата</th>
+                                            <th scope="col" class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Товар</th>
+                                            <th scope="col" class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Операция</th>
+                                            <th scope="col" class="px-5 py-4 text-right text-xs font-semibold uppercase tracking-wider text-slate-500">Количество</th>
+                                            <th scope="col" class="px-5 py-4 text-xs font-semibold uppercase tracking-wider text-slate-500">Перемещение</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody class="divide-y divide-slate-100">
+                                        <tr v-for="movement in recent_movements" :key="movement.id" class="transition hover:bg-slate-50/80">
+                                            <td class="whitespace-nowrap px-5 py-4 text-xs text-slate-500">
+                                                {{ movement.created_at || '—' }}
+                                            </td>
+
+                                            <td class="px-5 py-4">
+                                                <div class="font-semibold text-slate-900">{{ movement.product_name }}</div>
+                                                <div class="mt-1 text-xs text-slate-500">{{ movement.sku || 'Без артикула' }}</div>
+                                            </td>
+
+                                            <td class="px-5 py-4">
+                                                <span
+                                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                                    :class="style(movement).tone"
+                                                >
+                                                    <component :is="style(movement).icon" :size="13" />
+                                                    {{ movement.type_label }}
+                                                </span>
+                                            </td>
+
+                                            <td class="whitespace-nowrap px-5 py-4 text-right font-bold tabular-nums text-slate-900">
+                                                {{ formatNumber(movement.quantity) }}
+                                            </td>
+
+                                            <td class="px-5 py-4">
+                                                <div class="flex items-center gap-2 text-xs text-slate-600">
+                                                    <span class="max-w-28 truncate rounded-md bg-slate-100 px-2 py-1">{{ locationLabel(movement.from_location) }}</span>
+                                                    <ArrowRight :size="13" class="shrink-0 text-slate-400" />
+                                                    <span class="max-w-28 truncate rounded-md bg-emerald-50 px-2 py-1 text-emerald-800">{{ locationLabel(movement.to_location) }}</span>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <div class="border-t border-slate-100 bg-slate-50/60 px-5 py-3">
+                                <p class="text-xs text-slate-500">Показаны последние операции: {{ recent_movements.length }}</p>
+                            </div>
+                        </template>
+
+                        <div v-else class="px-6 py-14 text-center">
+                            <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-slate-100 text-slate-500">
+                                <ArrowLeftRight :size="25" />
+                            </div>
+                            <h3 class="mt-4 text-base font-bold text-slate-900">Пока нет движений</h3>
+                            <p class="mx-auto mt-2 max-w-sm text-sm leading-6 text-slate-500">
+                                Когда в системе появятся поступления, перемещения или списания, они отобразятся здесь.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Низкие остатки -->
+            <section id="low-stock" class="scroll-mt-28 border-y border-slate-200 bg-slate-50/70 px-5 py-16 sm:px-8 sm:py-20 lg:px-10">
+                <div class="mx-auto max-w-7xl">
+                    <div class="mb-8 flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.16em] text-amber-700">Контроль запасов</p>
+                            <h2 class="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Требуют пополнения</h2>
+                            <p class="mt-2 text-sm leading-6 text-slate-500">Товары, остаток которых ниже установленного минимума.</p>
+                        </div>
+
+                        <div
+                            class="inline-flex w-fit items-center gap-2 rounded-xl border px-3.5 py-2 text-sm font-semibold"
+                            :class="low_stock_products.length
+                                ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                : 'border-emerald-200 bg-emerald-50 text-emerald-800'"
+                        >
+                            <TrendingDown v-if="low_stock_products.length" :size="17" />
+                            <Check v-else :size="17" />
+                            {{ low_stock_products.length ? `Позиций: ${low_stock_products.length}` : 'Всё в норме' }}
+                        </div>
+                    </div>
+
+                    <div v-if="low_stock_products.length" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        <article
+                            v-for="product in low_stock_products"
+                            :key="product.id"
+                            class="rounded-2xl border border-slate-200 bg-white p-5 transition duration-200 hover:-translate-y-0.5 hover:border-amber-200 hover:shadow-lg hover:shadow-slate-900/[0.04] sm:p-6"
+                        >
+                            <div class="flex items-start gap-3">
+                                <div class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+                                    <Package :size="21" />
+                                </div>
+
+                                <div class="min-w-0 flex-1">
+                                    <h3 class="break-words font-bold leading-5 text-slate-900">{{ product.name }}</h3>
+                                    <p class="mt-1.5 text-xs text-slate-500">Артикул: {{ product.sku || 'Не указан' }}</p>
+                                </div>
+
+                                <span class="shrink-0 rounded-full px-2 py-1 text-[10px] font-bold" :class="stockState(product).badge">
+                                    {{ stockState(product).label }}
+                                </span>
+                            </div>
+
+                            <div class="mt-6 rounded-xl bg-slate-50 p-4">
+                                <div class="flex items-end justify-between gap-3">
+                                    <div>
+                                        <p class="text-xs text-slate-500">Текущий остаток</p>
+                                        <p class="mt-1.5 text-2xl font-extrabold tabular-nums tracking-tight" :class="stockState(product).value">
+                                            {{ formatNumber(product.quantity) }}
+                                            <span class="text-xs font-semibold text-slate-500">{{ product.unit }}</span>
+                                        </p>
+                                    </div>
+
+                                    <div class="text-right">
+                                        <p class="text-xs text-slate-500">Минимум</p>
+                                        <p class="mt-2 text-sm font-bold tabular-nums text-slate-900">
+                                            {{ formatNumber(product.minimum_stock) }}
+                                            <span v-if="product.minimum_stock !== null" class="text-xs font-medium text-slate-500">
+                                                {{ product.unit }}
+                                            </span>
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-200"
+                                    role="progressbar"
+                                    aria-label="Остаток относительно минимума"
+                                    aria-valuemin="0"
+                                    aria-valuemax="100"
+                                    :aria-valuenow="Math.round(stockPercent(product))"
+                                >
+                                    <div
+                                        class="h-full rounded-full transition-[width] duration-500"
+                                        :class="stockState(product).bar"
+                                        :style="{ width: `${stockPercent(product)}%` }"
+                                    />
+                                </div>
+                                <p class="mt-2 text-[11px] text-slate-500">
+                                    {{ Math.round(stockPercent(product)) }}% от минимального остатка
+                                </p>
+                            </div>
+
+                            <div v-if="product.locations.length" class="mt-4 flex items-start gap-2.5">
+                                <MapPin :size="16" class="mt-0.5 shrink-0 text-slate-400" />
+                                <div class="min-w-0">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-400">Расположение</p>
+                                    <p class="mt-1 break-words text-xs leading-5 text-slate-700">{{ locationText(product) }}</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <div v-else class="rounded-2xl border border-emerald-200 bg-white px-6 py-12 text-center shadow-sm">
+                        <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-700">
+                            <ShieldCheck :size="27" />
+                        </div>
+                        <h3 class="mt-4 text-lg font-bold text-slate-900">Все товары в норме</h3>
+                        <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-slate-500">
+                            Сейчас нет товаров, требующих пополнения по настроенным минимальным остаткам.
+                        </p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CTA -->
+            <section class="px-5 py-16 sm:px-8 sm:py-20 lg:px-10">
+                <div class="relative mx-auto max-w-7xl overflow-hidden rounded-3xl bg-slate-950 px-6 py-12 sm:px-10 sm:py-14 lg:px-14">
+                    <div class="pointer-events-none absolute -right-20 -top-40 size-96 rounded-full bg-emerald-500/20 blur-3xl" aria-hidden="true" />
+                    <div class="pointer-events-none absolute -bottom-48 left-1/3 size-96 rounded-full bg-emerald-700/20 blur-3xl" aria-hidden="true" />
+
+                    <div class="relative flex flex-col items-start justify-between gap-8 md:flex-row md:items-center">
+                        <div class="max-w-2xl">
+                            <div class="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-semibold text-emerald-300">
+                                <ShieldCheck :size="15" />
+                                Порядок в каждой операции
+                            </div>
+
+                            <h2 class="mt-5 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+                                Склад под контролем.
+                                <span class="text-emerald-400">Работа — по плану.</span>
+                            </h2>
+
+                            <p class="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">
+                                Управляйте запасами, находите товары по ячейкам и контролируйте складские операции в одном месте.
+                            </p>
+                        </div>
+
+                        <div class="flex shrink-0 flex-col gap-3 sm:flex-row">
+                            <Button
+                                as-child
+                                size="lg"
+                                class="h-12 rounded-xl bg-emerald-500 px-6 font-bold text-white shadow-lg shadow-emerald-950/30 hover:bg-emerald-400"
+                            >
+                                <Link :href="register().url">
+                                    Создать аккаунт
+                                    <ArrowRight :size="18" class="ml-2" />
+                                </Link>
+                            </Button>
+
+                            <Button
+                                as-child
+                                variant="ghost"
+                                size="lg"
+                                class="h-12 rounded-xl px-6 font-semibold text-slate-200 hover:bg-white/10 hover:text-white"
+                            >
+                                <Link :href="login().url">Уже есть аккаунт</Link>
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="border-t border-slate-200 bg-white">
+            <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-5 py-7 sm:flex-row sm:px-8 lg:px-10">
+                <Link href="/" class="flex items-center gap-2.5">
+                    <div class="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
+                        <Warehouse :size="17" />
+                    </div>
+                    <span class="text-sm font-extrabold text-slate-900">Гидровик</span>
+                </Link>
+
+                <p class="text-center text-xs leading-5 text-slate-500">
+                    © {{ year }} Гидровик · Система управления складскими запасами
+                </p>
+
+                <div class="flex items-center gap-2 text-xs font-medium text-slate-500">
+                    <ShieldCheck :size="15" class="text-emerald-600" />
+                    Учёт. Контроль. Порядок.
+                </div>
+            </div>
+        </footer>
     </div>
 </template>

@@ -1,21 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
-import {
-    ArrowLeft,
-    Check,
-    CirclePlus,
-    FileText,
-    Info,
-    LoaderCircle,
-    Package,
-    Save,
-    Trash2,
-} from '@lucide/vue';
 import { toast } from 'vue-sonner';
+import { LoaderCircle, PackageMinus } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
 import LocationSelect from '@/components/admin/LocationSelect.vue';
+import StockPageHeader from '@/components/admin/stock/StockPageHeader.vue';
+import StockField from '@/components/admin/stock/StockField.vue';
+import QuantityField from '@/components/admin/stock/QuantityField.vue';
+import CommentField from '@/components/admin/stock/CommentField.vue';
+import OperationSummary from '@/components/admin/stock/OperationSummary.vue';
+import { Button } from '@/components/ui/button';
 
 defineOptions({ layout: AdminLayout });
 
@@ -27,6 +23,7 @@ interface ProductOption {
     stock_quantity?: number;
     minimum_stock?: number | null;
     characteristics?: string;
+    category_id?: number | string | null;
 }
 
 interface LocationOption {
@@ -53,17 +50,48 @@ const form = useForm({
     comment: '',
 });
 
+const numberFormat = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 3,
+});
+
 const selectedProduct = computed(() =>
     props.products.find((product) => String(product.id) === form.product_id),
 );
 
-const isIntegerUnit = computed(() =>
-    ['шт.', 'упаковка', 'комплект'].includes(selectedProduct.value?.unit ?? ''),
-);
+const locationText = computed(() => {
+    const location = props.locations.find(
+        (item) => String(item.id) === String(form.location_id),
+    );
 
-const quantityStep = computed(() => (isIntegerUnit.value ? '1' : '0.001'));
+    if (!location) return null;
 
-const quantityMin = computed(() => (isIntegerUnit.value ? '1' : '0.001'));
+    return [location.rack_name, location.code].filter(Boolean).join(' · ');
+});
+
+const quantityText = computed(() => {
+    if (!form.quantity) return null;
+
+    return `−${form.quantity} ${selectedProduct.value?.unit ?? ''}`.trim();
+});
+
+const totalStockText = computed(() => {
+    const product = selectedProduct.value;
+
+    if (!product || product.stock_quantity === undefined) return null;
+
+    return `${numberFormat.format(Number(product.stock_quantity))} ${product.unit}`;
+});
+
+// Предупреждаем, если списываем больше общего остатка товара
+const overStockWarning = computed(() => {
+    const product = selectedProduct.value;
+
+    if (!product || product.stock_quantity === undefined) return undefined;
+
+    return Number(form.quantity) > Number(product.stock_quantity)
+        ? `Количество больше общего остатка товара (${totalStockText.value}).`
+        : undefined;
+});
 
 watch(
     () => form.product_id,
@@ -79,6 +107,9 @@ const submit = (): void => {
             toast.success('Списание товара успешно оформлено.');
             form.reset();
         },
+        onError: () => {
+            toast.error('Не удалось оформить списание. Проверьте поля формы.');
+        },
     });
 };
 </script>
@@ -86,100 +117,35 @@ const submit = (): void => {
 <template>
     <Head title="Списание товара" />
 
-    <div class="space-y-6 p-4 sm:p-6">
-        <!-- Заголовок -->
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
-        >
-            <div
-                class="pointer-events-none absolute -top-16 -right-10 h-52 w-52 rounded-full bg-violet-400/20 blur-3xl"
-            />
+    <div class="mx-auto max-w-5xl space-y-6">
+        <StockPageHeader
+            title="Списание товара"
+            description="Списываемое количество будет вычтено из остатка выбранной ячейки"
+            back-href="/admin/stock"
+            back-label="К остаткам"
+            :icon="PackageMinus"
+            tone="danger"
+        />
 
-            <div class="relative">
-                <Link
-                    href="/admin/stock/movements"
-                    class="mb-5 inline-flex items-center gap-2 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-sm text-indigo-100 transition hover:bg-white/20 hover:text-white"
-                >
-                    <ArrowLeft class="h-4 w-4" />
-                    Журнал движений
-                </Link>
-
-                <div class="flex items-center gap-4">
-                    <div
-                        class="hidden rounded-2xl border border-white/15 bg-white/10 p-3 sm:block"
-                    >
-                        <Trash2 class="h-8 w-8 text-indigo-200" />
-                    </div>
-
-                    <div>
-                        <div
-                            class="mb-2 flex items-center gap-2 text-sm text-indigo-200"
-                        >
-                            <Package class="h-4 w-4" />
-                            Склад
-                        </div>
-
-                        <h1
-                            class="text-2xl font-bold tracking-tight sm:text-3xl"
-                        >
-                            Списание товара
-                        </h1>
-
-                        <p
-                            class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base"
-                        >
-                            Списываемое количество будет вычтено из остатка
-                            выбранной ячейки.
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div
-            class="grid grid-cols-1 items-start gap-6 xl:grid-cols-[minmax(0,1fr)_300px]"
-        >
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
             <form
-                class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
+                class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+                novalidate
                 @submit.prevent="submit"
             >
-                <div
-                    class="border-b border-slate-200 px-5 py-5 sm:px-7 dark:border-slate-800"
-                >
-                    <div class="flex items-center gap-3">
-                        <div
-                            class="rounded-xl bg-rose-50 p-2.5 dark:bg-rose-500/10"
-                        >
-                            <Trash2
-                                class="h-5 w-5 text-rose-600 dark:text-rose-400"
-                            />
-                        </div>
-
-                        <div>
-                            <h2
-                                class="font-semibold text-slate-900 dark:text-white"
-                            >
-                                Данные списания
-                            </h2>
-                            <p
-                                class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                            >
-                                Заполните обязательные поля формы.
-                            </p>
-                        </div>
-                    </div>
+                <div class="border-b px-5 py-4 sm:px-6">
+                    <h2 class="font-semibold">Данные списания</h2>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Заполните обязательные поля формы
+                    </p>
                 </div>
 
-                <div class="space-y-6 p-5 sm:p-7">
-                    <div>
-                        <label
-                            for="product_id"
-                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                            Товар
-                            <span class="text-rose-500">*</span>
-                        </label>
-
+                <div class="space-y-6 p-5 sm:p-6">
+                    <StockField
+                        label="Товар"
+                        required
+                        :error="form.errors.product_id"
+                    >
                         <ProductSelect
                             :products="products"
                             :categories="categories"
@@ -190,162 +156,87 @@ const submit = (): void => {
                                     $event !== null ? String($event) : ''
                             "
                         />
+                    </StockField>
 
-                        <p
-                            v-if="form.errors.product_id"
-                            class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
-                        >
-                            <Info class="h-4 w-4 shrink-0" />
-                            {{ form.errors.product_id }}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label
-                            for="location_id"
-                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                            Ячейка
-                            <span class="text-rose-500">*</span>
-                        </label>
-
+                    <StockField
+                        label="Ячейка"
+                        required
+                        :error="form.errors.location_id"
+                    >
                         <LocationSelect
                             :locations="locations"
                             :model-value="form.location_id"
                             @update:model-value="form.location_id = $event"
                         />
+                    </StockField>
 
-                        <p
-                            v-if="form.errors.location_id"
-                            class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
-                        >
-                            <Info class="h-4 w-4 shrink-0" />
-                            {{ form.errors.location_id }}
-                        </p>
-                    </div>
+                    <QuantityField
+                        id="quantity"
+                        v-model="form.quantity"
+                        :unit="selectedProduct?.unit"
+                        :error="form.errors.quantity"
+                        :warning="overStockWarning"
+                    />
 
-                    <div>
-                        <label
-                            for="quantity"
-                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                            Количество
-                            <template v-if="selectedProduct">
-                                ({{ selectedProduct.unit }})
-                            </template>
-                            <span class="text-rose-500">*</span>
-                        </label>
-
-                        <input
-                            id="quantity"
-                            v-model="form.quantity"
-                            type="number"
-                            inputmode="decimal"
-                            :min="quantityMin"
-                            max="999999999.999"
-                            :step="quantityStep"
-                            required
-                            class="w-full rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
-                            :class="{
-                                'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500':
-                                    form.errors.quantity,
-                                'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 dark:border-slate-700':
-                                    !form.errors.quantity,
-                            }"
-                        />
-
-                        <p
-                            v-if="selectedProduct"
-                            class="mt-2 text-xs text-slate-500 dark:text-slate-400"
-                        >
-                            <template v-if="isIntegerUnit">
-                                Для этой единицы измерения допускаются только
-                                целые количества.
-                            </template>
-                            <template v-else>
-                                Можно указать до трёх знаков после десятичного
-                                разделителя.
-                            </template>
-                        </p>
-
-                        <p
-                            v-if="form.errors.quantity"
-                            class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
-                        >
-                            <Info class="h-4 w-4 shrink-0" />
-                            {{ form.errors.quantity }}
-                        </p>
-                    </div>
-
-                    <div>
-                        <label
-                            for="comment"
-                            class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                        >
-                            Причина списания
-                            <span class="text-rose-500">*</span>
-                        </label>
-
-                        <textarea
-                            id="comment"
-                            v-model="form.comment"
-                            rows="3"
-                            maxlength="5000"
-                            required
-                            placeholder="Например, брак или повреждение"
-                            class="w-full resize-y rounded-xl border bg-slate-50 px-4 py-3 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
-                            :class="{
-                                'border-rose-400 focus:border-rose-500 focus:ring-rose-500/10 dark:border-rose-500':
-                                    form.errors.comment,
-                                'border-slate-200 focus:border-indigo-500 focus:ring-indigo-500/10 dark:border-slate-700':
-                                    !form.errors.comment,
-                            }"
-                        />
-
-                        <p
-                            v-if="form.errors.comment"
-                            class="mt-2 flex items-center gap-1.5 text-sm text-rose-600 dark:text-rose-400"
-                        >
-                            <Info class="h-4 w-4 shrink-0" />
-                            {{ form.errors.comment }}
-                        </p>
-                    </div>
+                    <CommentField
+                        id="comment"
+                        v-model="form.comment"
+                        label="Причина списания"
+                        required
+                        placeholder="Например, брак или повреждение"
+                        :error="form.errors.comment"
+                    />
                 </div>
 
                 <div
-                    class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex-row sm:justify-end sm:px-7 dark:border-slate-800 dark:bg-slate-950/40"
+                    class="flex flex-col-reverse gap-3 border-t bg-muted/30 px-5 py-4 sm:flex-row sm:justify-end sm:px-6"
                 >
-                    <Link
-                        href="/admin/stock/movements"
-                        class="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    <Button
+                        as-child
+                        variant="outline"
+                        :disabled="form.processing"
                     >
-                        <ArrowLeft class="h-4 w-4" />
-                        Отмена
-                    </Link>
+                        <Link href="/admin/stock">Отмена</Link>
+                    </Button>
 
-                    <button
+                    <Button
                         type="submit"
+                        variant="destructive"
                         :disabled="
                             form.processing ||
                             !products.length ||
                             !locations.length
                         "
-                        class="inline-flex items-center justify-center gap-2 rounded-xl bg-rose-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 dark:focus-visible:ring-offset-slate-900"
                     >
                         <LoaderCircle
                             v-if="form.processing"
-                            class="h-4 w-4 animate-spin"
+                            :size="17"
+                            class="mr-2 animate-spin"
                         />
-                        <Trash2 v-else class="h-4 w-4" />
-
+                        <PackageMinus v-else :size="17" class="mr-2" />
                         {{
                             form.processing
                                 ? 'Сохранение...'
                                 : 'Оформить списание'
                         }}
-                    </button>
+                    </Button>
                 </div>
             </form>
+
+            <aside class="lg:sticky lg:top-6">
+                <OperationSummary
+                    :rows="[
+                        { label: 'Товар', value: selectedProduct?.name },
+                        { label: 'Ячейка', value: locationText },
+                        { label: 'Общий остаток', value: totalStockText },
+                        { label: 'Списывается', value: quantityText, tone: 'negative' },
+                    ]"
+                    :tips="[
+                        'Нельзя списать больше, чем лежит в выбранной ячейке.',
+                        'Причина списания сохранится в журнале движений.',
+                    ]"
+                />
+            </aside>
         </div>
     </div>
 </template>

@@ -32,16 +32,32 @@ class ProductController extends Controller
             ])
             ->when(
                 $request->filled('search'),
-                fn ($query) => $query->where(function ($query) use ($request) {
-                    $search = addcslashes(
+                function ($query) use ($request) {
+                    $search = mb_strtolower(
                         $request->string('search')->trim()->toString(),
-                        '%_'
+                        'UTF-8',
                     );
 
-                    $query
-                        ->where('name', 'like', "%{$search}%")
-                        ->orWhere('sku', 'like', "%{$search}%");
-                }),
+                    $words = preg_split('/\s+/u', $search, -1, PREG_SPLIT_NO_EMPTY);
+
+                    $query->where(function ($query) use ($words) {
+                        foreach ($words as $word) {
+                            $word = addcslashes($word, '%_\\');
+
+                            $query->where(function ($query) use ($word) {
+                                $query
+                                    ->whereRaw(
+                                        'LOWER(name) LIKE ?',
+                                        ["%{$word}%"],
+                                    )
+                                    ->orWhereRaw(
+                                        'LOWER(sku) LIKE ?',
+                                        ["%{$word}%"],
+                                    );
+                            });
+                        }
+                    });
+                },
             )
             ->when(
                 $request->filled('category_id'),

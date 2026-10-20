@@ -1,23 +1,28 @@
 <script setup lang="ts">
-import { Link } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
+import type { Component } from 'vue';
+import { computed } from 'vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import {
+    AlertTriangle,
     ArrowDownToLine,
     ArrowLeftRight,
+    ArrowRight,
+    ArrowUpFromLine,
     Boxes,
     ClipboardCheck,
+    Grid2X2,
+    History,
     LayoutDashboard,
+    MapPin,
     Package,
     PackageMinus,
     PackagePlus,
     RotateCcw,
     Tags,
-    History,
-    Grid2X2,
-    AlertTriangle,
-    ArrowRight,
+    Undo2,
+    Warehouse,
 } from '@lucide/vue';
 
 defineOptions({
@@ -45,7 +50,7 @@ interface Movement {
     sku: string | null;
     type: string;
     type_label: string;
-    quantity: number;
+    quantity: number | string;
     from_location: string | null;
     from_rack: string | null;
     to_location: string | null;
@@ -59,47 +64,72 @@ interface Props {
     movements: Movement[];
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
+
+/* ---------- Форматирование ---------- */
+
+const numberFormat = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 3,
+});
+
+function formatNumber(value: number | string | null | undefined): string {
+    if (value === null || value === undefined || value === '') return '—';
+
+    const number = Number(value);
+
+    return Number.isNaN(number) ? String(value) : numberFormat.format(number);
+}
+
+/* ---------- Карточки показателей ---------- */
 
 interface StatisticCard {
-    key: Exclude<keyof Statistics, 'stock_by_unit'>;
+    key: 'products' | 'categories' | 'racks' | 'locations';
     title: string;
     description: string;
-    icon: typeof LayoutDashboard;
+    icon: Component;
+    tone: string;
 }
 
 const statisticCards: StatisticCard[] = [
     {
         key: 'products',
         title: 'Товары',
-        description: 'Активных товаров',
+        description: 'Активных в каталоге',
         icon: Package,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     },
     {
         key: 'categories',
         title: 'Категории',
         description: 'Активных категорий',
         icon: Tags,
+        tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
     },
     {
         key: 'racks',
         title: 'Стеллажи',
         description: 'Всего стеллажей',
         icon: Grid2X2,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
     },
     {
         key: 'locations',
         title: 'Места хранения',
-        description: 'Всего мест',
+        description: 'Всего ячеек',
         icon: Boxes,
-    },
-    {
-        key: 'products_with_stock',
-        title: 'Товары на складе',
-        description: 'Позиций с ненулевым остатком',
-        icon: Boxes,
+        tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     },
 ];
+
+const stockCoverage = computed(() => {
+    const { products, products_with_stock } = props.statistics;
+
+    if (!products) return 0;
+
+    return Math.min(100, Math.round((products_with_stock / products) * 100));
+});
+
+/* ---------- Быстрые действия ---------- */
 
 const quickActions = [
     {
@@ -107,88 +137,174 @@ const quickActions = [
         description: 'Создать товар в каталоге',
         href: '/admin/products/create',
         icon: PackagePlus,
+        tone: 'bg-primary/10 text-primary',
     },
     {
         title: 'Приход товара',
         description: 'Поступление на склад',
         href: '/admin/stock/receipt',
         icon: ArrowDownToLine,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
     },
     {
         title: 'Перемещение',
-        description: 'Переместить между ячейками',
+        description: 'Между ячейками и стеллажами',
         href: '/admin/stock/transfer',
         icon: ArrowLeftRight,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
     },
     {
         title: 'Списание',
         description: 'Списать товар с остатка',
         href: '/admin/stock/write-off',
         icon: PackageMinus,
+        tone: 'bg-rose-500/10 text-rose-600 dark:text-rose-400',
     },
     {
         title: 'Возврат',
         description: 'Оформить возврат товара',
         href: '/admin/stock/return',
         icon: RotateCcw,
+        tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
     },
     {
         title: 'Инвентаризация',
         description: 'Сверить фактический остаток',
         href: '/admin/stock/inventory',
         icon: ClipboardCheck,
+        tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
     },
 ];
 
-function formatNumber(value: number | string): string {
-    return Number(value).toLocaleString('ru-RU', {
-        maximumFractionDigits: 3,
-    });
+/* ---------- Движения ---------- */
+
+type MovementKind = 'receipt' | 'transfer' | 'writeoff' | 'return' | 'other';
+
+const movementStyles: Record<
+    MovementKind,
+    { tone: string; icon: Component }
+> = {
+    receipt: {
+        tone: 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400',
+        icon: ArrowDownToLine,
+    },
+    transfer: {
+        tone: 'bg-sky-500/10 text-sky-700 ring-sky-600/20 dark:text-sky-400',
+        icon: ArrowLeftRight,
+    },
+    writeoff: {
+        tone: 'bg-rose-500/10 text-rose-700 ring-rose-600/20 dark:text-rose-400',
+        icon: ArrowUpFromLine,
+    },
+    return: {
+        tone: 'bg-violet-500/10 text-violet-700 ring-violet-600/20 dark:text-violet-400',
+        icon: Undo2,
+    },
+    other: {
+        tone: 'bg-muted text-muted-foreground ring-border',
+        icon: ArrowLeftRight,
+    },
+};
+
+function movementKind(movement: Movement): MovementKind {
+    const text = `${movement.type} ${movement.type_label}`.toLowerCase();
+
+    if (/receipt|income|приход|поступ/.test(text)) return 'receipt';
+    if (/transfer|перемещ/.test(text)) return 'transfer';
+    if (/write|issue|спис|расход/.test(text)) return 'writeoff';
+    if (/return|возврат/.test(text)) return 'return';
+
+    return 'other';
 }
 
-function movementLocation(movement: Movement): string {
-    if (movement.from_location && movement.to_location) {
-        return `${movement.from_location} → ${movement.to_location}`;
-    }
+const style = (movement: Movement) => movementStyles[movementKind(movement)];
 
-    if (movement.to_location) {
-        return `→ ${movement.to_location}`;
-    }
+function place(rack: string | null, location: string | null): string | null {
+    const parts = [rack, location].filter(Boolean);
 
-    if (movement.from_location) {
-        return `${movement.from_location} → списание`;
-    }
+    return parts.length ? parts.join(' · ') : null;
+}
 
-    return 'Место не указано';
+function route(movement: Movement): { from: string; to: string } {
+    const kind = movementKind(movement);
+
+    return {
+        from:
+            place(movement.from_rack, movement.from_location) ??
+            (kind === 'receipt' ? 'Поступление' : '—'),
+        to:
+            place(movement.to_rack, movement.to_location) ??
+            (kind === 'writeoff' ? 'Списание' : '—'),
+    };
 }
 </script>
 
 <template>
+    <Head title="Обзор склада" />
+
     <div class="space-y-8">
-        <header class="mb-8">
-            <div class="mb-2 flex items-center gap-3">
+        <!-- Заголовок -->
+        <header
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
+        >
+            <div class="flex items-center gap-4">
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg"
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
                 >
                     <LayoutDashboard :size="24" />
                 </div>
                 <div>
-                    <h1
-                        class="bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-3xl font-bold text-transparent"
-                    >
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
                         Обзор склада
                     </h1>
                     <p class="mt-1 text-sm text-muted-foreground">
-                        Основные показатели, операции и последние движения
-                        товара.
+                        Показатели, быстрые операции и последние движения товара
                     </p>
                 </div>
             </div>
+
+            <Button as-child class="w-full sm:w-auto">
+                <Link href="/admin/stock/receipt">
+                    <PackagePlus :size="18" class="mr-2" />
+                    Оформить приход
+                </Link>
+            </Button>
         </header>
 
-        <section>
-            <div class="mb-6 flex items-center justify-between gap-4">
-                <h2 class="text-xl font-semibold text-foreground">
+        <!-- Предупреждение об остатках -->
+        <Link
+            v-if="statistics.products_below_minimum > 0"
+            href="/admin/stock?stock=below_minimum"
+            class="group flex items-center gap-4 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 transition hover:border-amber-500/50 hover:bg-amber-500/15 sm:p-5"
+        >
+            <div
+                class="flex size-12 shrink-0 items-center justify-center rounded-xl bg-amber-500 text-white shadow-sm"
+            >
+                <AlertTriangle :size="24" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+                <h2 class="font-semibold text-amber-900 dark:text-amber-200">
+                    Ниже минимального остатка:
+                    {{ formatNumber(statistics.products_below_minimum) }}
+                </h2>
+                <p class="mt-0.5 text-sm text-amber-800/80 dark:text-amber-300/80">
+                    Эти товары нужно пополнить, чтобы не остаться без запаса.
+                </p>
+            </div>
+
+            <span
+                class="hidden shrink-0 items-center gap-1 text-sm font-medium text-amber-900 group-hover:underline sm:inline-flex dark:text-amber-200"
+            >
+                Посмотреть
+                <ArrowRight :size="16" />
+            </span>
+        </Link>
+
+        <!-- Показатели -->
+        <section aria-labelledby="stats-title">
+            <div class="mb-4 flex items-center justify-between gap-4">
+                <h2 id="stats-title" class="text-lg font-semibold">
                     Показатели склада
                 </h2>
 
@@ -201,175 +317,164 @@ function movementLocation(movement: Movement): string {
                 </Link>
             </div>
 
-            <div
-                class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5"
-            >
+            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 <div
                     v-for="card in statisticCards"
                     :key="card.key"
-                    class="group relative overflow-hidden rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-6 shadow-sm transition-all duration-300 hover:shadow-md"
+                    class="rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition hover:shadow-md"
                 >
-                    <div
-                        class="absolute top-0 right-0 h-32 w-32 translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/5 to-indigo-500/5 transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div class="relative">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">
+                                {{ card.title }}
+                            </p>
+                            <p
+                                class="mt-2 text-3xl font-bold tracking-tight tabular-nums"
+                            >
+                                {{ formatNumber(statistics[card.key]) }}
+                            </p>
+                        </div>
                         <div
-                            class="mb-4 flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary"
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl"
+                            :class="card.tone"
                         >
                             <component :is="card.icon" :size="20" />
                         </div>
-                        <p class="text-sm font-medium text-muted-foreground">
-                            {{ card.title }}
-                        </p>
-
-                        <p
-                            class="mt-2 bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-3xl font-bold text-transparent"
-                        >
-                            {{ formatNumber(statistics[card.key]) }}
-                        </p>
-
-                        <p class="mt-1 text-xs text-muted-foreground/70">
-                            {{ card.description }}
-                        </p>
                     </div>
+                    <p class="mt-3 text-xs text-muted-foreground">
+                        {{ card.description }}
+                    </p>
                 </div>
             </div>
 
-            <div
-                class="mt-6 rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-6 shadow-sm"
-            >
-                <h3 class="mb-4 text-sm font-semibold text-foreground">
-                    Остатки по единицам измерения
-                </h3>
-
-                <div
-                    v-if="statistics.stock_by_unit.length === 0"
-                    class="rounded-xl bg-muted/30 p-8 text-center"
-                >
-                    <div
-                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted/50"
-                    >
-                        <Package :size="24" class="text-muted-foreground/50" />
+            <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+                <!-- Товары с остатком -->
+                <div class="rounded-2xl border bg-card p-5 shadow-sm">
+                    <div class="flex items-center gap-3">
+                        <div
+                            class="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        >
+                            <Warehouse :size="20" />
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-muted-foreground">
+                                Товары на складе
+                            </p>
+                            <p class="text-2xl font-bold tabular-nums">
+                                {{ formatNumber(statistics.products_with_stock) }}
+                                <span class="text-sm font-medium text-muted-foreground">
+                                    из {{ formatNumber(statistics.products) }}
+                                </span>
+                            </p>
+                        </div>
                     </div>
-                    <p class="text-sm text-muted-foreground">
-                        На складе пока нет учтённых остатков.
+
+                    <div
+                        class="mt-4 h-2 overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-label="Доля товаров с ненулевым остатком"
+                        aria-valuemin="0"
+                        aria-valuemax="100"
+                        :aria-valuenow="stockCoverage"
+                    >
+                        <div
+                            class="h-full rounded-full bg-emerald-500 transition-[width] duration-500"
+                            :style="{ width: `${stockCoverage}%` }"
+                        />
+                    </div>
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        {{ stockCoverage }}% позиций с ненулевым остатком
                     </p>
                 </div>
 
-                <div
-                    v-else
-                    class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5"
-                >
+                <!-- Остатки по единицам -->
+                <div class="rounded-2xl border bg-card p-5 shadow-sm">
+                    <h3 class="text-sm font-semibold">
+                        Остатки по единицам измерения
+                    </h3>
+
                     <div
-                        v-for="stock in statistics.stock_by_unit"
-                        :key="stock.unit"
-                        class="group relative overflow-hidden rounded-xl bg-gradient-to-br from-muted/50 to-muted/30 p-4 transition-all duration-300 hover:from-muted/60 hover:to-muted/40"
+                        v-if="statistics.stock_by_unit.length === 0"
+                        class="mt-4 flex items-center gap-3 rounded-xl bg-muted/50 p-4"
+                    >
+                        <Package :size="20" class="text-muted-foreground" />
+                        <p class="text-sm text-muted-foreground">
+                            На складе пока нет учтённых остатков.
+                        </p>
+                    </div>
+
+                    <div
+                        v-else
+                        class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
                     >
                         <div
-                            class="absolute top-0 right-0 h-16 w-16 translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-primary/5 to-indigo-500/5"
-                        />
-                        <p
-                            class="relative text-sm font-medium text-muted-foreground"
+                            v-for="stock in statistics.stock_by_unit"
+                            :key="stock.unit"
+                            class="rounded-xl bg-muted/50 px-4 py-3"
                         >
-                            {{ stock.unit }}
-                        </p>
-
-                        <p
-                            class="relative mt-2 text-2xl font-bold text-foreground"
-                        >
-                            {{ formatNumber(stock.quantity) }}
-                        </p>
+                            <p class="text-xs font-medium text-muted-foreground">
+                                {{ stock.unit }}
+                            </p>
+                            <p class="mt-1 text-xl font-bold tabular-nums">
+                                {{ formatNumber(stock.quantity) }}
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <Link
-            v-if="statistics.products_below_minimum > 0"
-            href="/admin/stock?stock=below_minimum"
-            class="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl border border-red-200/50 bg-gradient-to-r from-red-50 to-orange-50 p-6 shadow-sm transition-all duration-300 hover:shadow-md"
-        >
-            <div
-                class="absolute inset-0 bg-gradient-to-r from-red-500/5 to-orange-500/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            />
-            <div class="relative">
-                <div class="mb-1 flex items-center gap-2">
-                    <AlertTriangle :size="20" class="text-red-600" />
-                    <h3 class="font-semibold text-red-800">
-                        Товары ниже минимального остатка
-                    </h3>
-                </div>
-
-                <p class="text-sm text-red-600/80">
-                    Товары, требующие пополнения
-                </p>
-
-                <span
-                    class="mt-3 inline-flex items-center gap-1 text-sm font-medium text-red-700 group-hover:underline"
-                >
-                    Посмотреть товары
-                    <ArrowRight :size="16" />
-                </span>
-            </div>
-
-            <div
-                class="relative flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-red-500 to-orange-500 text-white shadow-lg"
-            >
-                <span class="text-2xl font-bold">
-                    {{ formatNumber(statistics.products_below_minimum) }}
-                </span>
-            </div>
-        </Link>
-
-        <section>
-            <h2 class="mb-6 text-xl font-semibold text-foreground">
+        <!-- Быстрые действия -->
+        <section aria-labelledby="actions-title">
+            <h2 id="actions-title" class="mb-4 text-lg font-semibold">
                 Быстрые действия
             </h2>
 
-            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                 <Link
                     v-for="action in quickActions"
                     :key="action.href"
                     :href="action.href"
-                    class="group relative flex items-start gap-4 overflow-hidden rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 p-5 shadow-sm transition-all duration-300 hover:border-primary/20 hover:shadow-md"
+                    class="group flex items-center gap-4 rounded-2xl border bg-card p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md"
                 >
-                    <div
-                        class="absolute inset-0 bg-gradient-to-br from-primary/5 to-indigo-500/5 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-                    />
                     <span
-                        class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-indigo-500/10 text-primary transition duration-300 group-hover:scale-110 group-hover:from-primary/20 group-hover:to-indigo-500/20"
+                        class="flex size-12 shrink-0 items-center justify-center rounded-xl transition group-hover:scale-105"
+                        :class="action.tone"
                     >
                         <component :is="action.icon" :size="22" />
                     </span>
 
-                    <span class="relative">
-                        <span
-                            class="block font-semibold text-foreground transition-colors group-hover:text-primary"
-                        >
+                    <span class="min-w-0 flex-1">
+                        <span class="block font-semibold">
                             {{ action.title }}
                         </span>
-
-                        <span class="mt-1 block text-sm text-muted-foreground">
+                        <span class="mt-0.5 block text-sm text-muted-foreground">
                             {{ action.description }}
                         </span>
                     </span>
+
+                    <ArrowRight
+                        :size="18"
+                        class="shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary"
+                    />
                 </Link>
             </div>
         </section>
 
+        <!-- Последние движения -->
         <section
-            class="overflow-hidden rounded-2xl border border-border/10 bg-gradient-to-br from-white to-muted/30 shadow-sm"
+            aria-labelledby="movements-title"
+            class="overflow-hidden rounded-2xl border bg-card shadow-sm"
         >
             <div
-                class="flex flex-wrap items-center justify-between gap-3 border-b border-border/10 bg-white/50 px-6 py-5"
+                class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4 sm:px-6"
             >
                 <div>
-                    <h2 class="text-lg font-semibold text-foreground">
+                    <h2 id="movements-title" class="text-lg font-semibold">
                         Последние движения
                     </h2>
-
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Последние операции с товарами на складе.
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Последние операции с товарами на складе
                     </p>
                 </div>
 
@@ -384,116 +489,133 @@ function movementLocation(movement: Movement): string {
 
             <div v-if="movements.length === 0" class="px-6 py-16 text-center">
                 <div
-                    class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted/50"
+                    class="mx-auto mb-4 flex size-16 items-center justify-center rounded-full bg-muted"
                 >
-                    <History :size="32" class="text-muted-foreground/50" />
+                    <History :size="30" class="text-muted-foreground" />
                 </div>
-                <p class="font-medium text-foreground">Движений пока нет</p>
-
+                <p class="font-medium">Движений пока нет</p>
                 <p class="mt-1 text-sm text-muted-foreground">
-                    После первой складской опер��ции она появится здесь.
+                    После первой складской операции она появится здесь.
                 </p>
             </div>
 
-            <div v-else>
-                <!-- Карточки на мобильных -->
-                <div class="space-y-2 p-3 md:hidden">
-                    <div v-for="movement in movements" :key="movement.id" class="rounded-lg border border-border/50 bg-white p-3 shadow-sm dark:border-border dark:bg-card">
-                        <div class="flex items-start justify-between gap-2">
-                            <div class="min-w-0 flex-1">
-                                <h3 class="font-semibold text-foreground break-words text-xs">{{ movement.product_name }}</h3>
-                                <p class="mt-0.5 text-[10px] text-muted-foreground">{{ movement.created_at ?? '—' }}</p>
+            <template v-else>
+                <!-- Мобильные карточки -->
+                <ul class="divide-y md:hidden">
+                    <li v-for="movement in movements" :key="movement.id" class="p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="break-words text-sm font-semibold">
+                                    {{ movement.product_name }}
+                                </p>
+                                <p class="mt-0.5 text-xs text-muted-foreground">
+                                    {{ movement.sku || 'Без артикула' }}
+                                </p>
                             </div>
-                            <span class="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{{ movement.type_label }}</span>
+                            <p class="shrink-0 text-base font-bold tabular-nums">
+                                {{ formatNumber(movement.quantity) }}
+                            </p>
                         </div>
-                        <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                            <div><p class="text-[10px] text-muted-foreground">Количество</p><p class="font-semibold text-foreground">{{ movement.quantity }}</p></div>
-                            <div><p class="text-[10px] text-muted-foreground">Размещение</p><p class="text-foreground truncate text-[10px]">{{ movementLocation(movement) }}</p></div>
+
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                :class="style(movement).tone"
+                            >
+                                <component :is="style(movement).icon" :size="13" />
+                                {{ movement.type_label }}
+                            </span>
+                            <span class="text-xs text-muted-foreground">
+                                {{ movement.created_at ?? '—' }}
+                            </span>
                         </div>
-                    </div>
-                </div>
+
+                        <div class="mt-3 flex items-center gap-2 text-xs">
+                            <span class="max-w-[42%] truncate rounded-md bg-muted px-2 py-1">
+                                {{ route(movement).from }}
+                            </span>
+                            <ArrowRight :size="13" class="shrink-0 text-muted-foreground" />
+                            <span class="max-w-[42%] truncate rounded-md bg-muted px-2 py-1">
+                                {{ route(movement).to }}
+                            </span>
+                        </div>
+
+                        <p
+                            v-if="movement.comment"
+                            class="mt-3 text-xs text-muted-foreground"
+                        >
+                            {{ movement.comment }}
+                        </p>
+                    </li>
+                </ul>
+
+                <!-- Таблица -->
                 <div class="hidden overflow-x-auto md:block">
-                    <table class="min-w-full divide-y divide-border/10">
-                    <thead class="bg-muted/30">
-                        <tr>
+                    <table class="min-w-full text-sm">
+                        <thead>
+                        <tr class="border-b bg-muted/40">
                             <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                v-for="title in ['Дата', 'Товар', 'Операция', 'Количество', 'Размещение']"
+                                :key="title"
+                                scope="col"
+                                class="px-6 py-3.5 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase first:pl-6"
+                                :class="title === 'Количество' ? 'text-right' : ''"
                             >
-                                Дата
-                            </th>
-
-                            <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                            >
-                                Товар
-                            </th>
-
-                            <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                            >
-                                Операция
-                            </th>
-
-                            <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                            >
-                                Количество
-                            </th>
-
-                            <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-muted-foreground uppercase"
-                            >
-                                Размещение
+                                {{ title }}
                             </th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody class="divide-y divide-border/10">
+                        <tbody class="divide-y">
                         <tr
                             v-for="movement in movements"
                             :key="movement.id"
-                            class="transition-colors hover:bg-muted/30"
+                            class="transition-colors hover:bg-muted/40"
                         >
-                            <td
-                                class="px-6 py-4 text-sm whitespace-nowrap text-muted-foreground"
-                            >
+                            <td class="px-6 py-4 text-xs whitespace-nowrap text-muted-foreground">
                                 {{ movement.created_at ?? '—' }}
                             </td>
 
                             <td class="px-6 py-4">
-                                <div class="font-medium text-foreground">
+                                <div class="font-medium">
                                     {{ movement.product_name }}
                                 </div>
-
-                                <div class="mt-1 text-xs text-muted-foreground">
+                                <div class="mt-0.5 text-xs text-muted-foreground">
                                     Артикул: {{ movement.sku || '—' }}
                                 </div>
                             </td>
 
                             <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    class="inline-flex rounded-full border border-primary/20 bg-gradient-to-r from-primary/10 to-indigo-500/10 px-3 py-1.5 text-xs font-medium text-primary"
-                                >
-                                    {{ movement.type_label }}
-                                </span>
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                        :class="style(movement).tone"
+                                    >
+                                        <component :is="style(movement).icon" :size="13" />
+                                        {{ movement.type_label }}
+                                    </span>
                             </td>
 
-                            <td
-                                class="px-6 py-4 text-sm font-semibold whitespace-nowrap text-foreground"
-                            >
+                            <td class="px-6 py-4 text-right font-semibold whitespace-nowrap tabular-nums">
                                 {{ formatNumber(movement.quantity) }}
                             </td>
 
-                            <td
-                                class="px-6 py-4 text-sm whitespace-nowrap text-muted-foreground"
-                            >
-                                {{ movementLocation(movement) }}
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-2 text-xs">
+                                    <MapPin :size="14" class="shrink-0 text-muted-foreground" />
+                                    <span class="max-w-36 truncate rounded-md bg-muted px-2 py-1">
+                                            {{ route(movement).from }}
+                                        </span>
+                                    <ArrowRight :size="13" class="shrink-0 text-muted-foreground" />
+                                    <span class="max-w-36 truncate rounded-md bg-muted px-2 py-1">
+                                            {{ route(movement).to }}
+                                        </span>
+                                </div>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
         </section>
     </div>
 </template>

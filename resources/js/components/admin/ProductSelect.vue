@@ -1,145 +1,194 @@
+
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue';
-import { Search, Check } from '@lucide/vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue'
+import { Search, Check } from '@lucide/vue'
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from '@/components/ui/select';
+} from '@/components/ui/select'
 
 interface ProductOption {
-    id: number;
-    name: string;
-    sku: string | null;
-    unit: string;
-    stock_quantity?: number;
-    minimum_stock?: number | null;
-    characteristics?: string;
-    category_id?: number | null;
+    id: number
+    name: string
+    sku: string | null
+    unit: string
+    stock_quantity?: number
+    minimum_stock?: number | null
+    characteristics?: string
+    category_id?: number | string | null
+    category?: {
+        id: number | string
+        name?: string
+    } | null
 }
 
 interface CategoryOption {
-    id: number;
-    name: string;
+    id: number | string
+    name: string
 }
 
 interface Props {
-    products: ProductOption[];
-    categories?: CategoryOption[];
-    modelValue: string;
-    showStockQuantity?: boolean;
+    products: ProductOption[]
+    categories?: CategoryOption[]
+    modelValue: string
+    showStockQuantity?: boolean
 }
 
-const props = defineProps<Props>();
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
-    'update:modelValue': [value: string];
-}>();
+    'update:modelValue': [value: string]
+}>()
 
-const searchQuery = ref('');
-const debouncedSearchQuery = ref('');
-const selectedCategoryId = ref<number | null>(null);
-const open = ref(false);
-let debounceTimer: number | null = null;
+const searchQuery = ref('')
+const debouncedSearchQuery = ref('')
+const selectedCategoryId = ref('')
 
-// Debounce для поиска
+const open = ref(false)
+
+let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+// Задержка поиска, чтобы не фильтровать при каждом нажатии клавиши
 watch(searchQuery, (newValue) => {
     if (debounceTimer !== null) {
-        clearTimeout(debounceTimer);
+        clearTimeout(debounceTimer)
     }
-    debounceTimer = window.setTimeout(() => {
-        debouncedSearchQuery.value = newValue;
-    }, 200);
-});
 
-// Сброс категории при сбросе поиска
+    debounceTimer = setTimeout(() => {
+        debouncedSearchQuery.value = newValue
+    }, 200)
+})
+
+onBeforeUnmount(() => {
+    if (debounceTimer !== null) {
+        clearTimeout(debounceTimer)
+    }
+})
+
+// Сбрасываем категорию при полной очистке поискового запроса
 watch(debouncedSearchQuery, (newValue) => {
-    if (!newValue) {
-        selectedCategoryId.value = null;
+    if (!newValue.trim()) {
+        selectedCategoryId.value = ''
     }
-});
+})
 
+// Определяем категорию товара: из category_id или из связи category.id
+const getProductCategoryId = (
+    product: ProductOption,
+): string | null => {
+    const categoryId = product.category_id ?? product.category?.id
+
+    return categoryId == null ? null : String(categoryId)
+}
+
+// Фильтрация по категории и поисковому запросу
 const filteredProducts = computed(() => {
-    let products = props.products;
+    let result = props.products
 
-    // Фильтрация по категории
-    if (selectedCategoryId.value !== null) {
-        products = products.filter(
-            (p) => p.category_id === selectedCategoryId.value,
-        );
+    if (selectedCategoryId.value !== '') {
+        result = result.filter((product) => {
+            return (
+                getProductCategoryId(product) ===
+                String(selectedCategoryId.value)
+            )
+        })
     }
 
-    // Фильтрация по поиску
-    if (!debouncedSearchQuery.value) return products.slice(0, 50);
+    const query = debouncedSearchQuery.value.trim().toLowerCase()
 
-    const query = debouncedSearchQuery.value.toLowerCase().trim();
-    // Разбиваем запрос на слова для умного поиска
-    const searchTerms = query.split(/\s+/).filter((term) => term.length > 0);
+    if (query) {
+        const searchTerms = query.split(/\s+/).filter(Boolean)
 
-    return products.filter((product) => {
-        const name = product.name.toLowerCase();
-        const sku = product.sku?.toLowerCase() || '';
-        const characteristics = product.characteristics?.toLowerCase() || '';
+        result = result.filter((product) => {
+            const name = product.name.toLowerCase()
+            const sku = product.sku?.toLowerCase() ?? ''
+            const characteristics =
+                product.characteristics?.toLowerCase() ?? ''
 
-        // Проверяем, что ВСЕ слова из запроса есть в названии, SKU или характеристиках
-        return searchTerms.every(
-            (term) =>
-                name.includes(term) ||
-                sku.includes(term) ||
-                characteristics.includes(term),
-        );
-    });
-});
+            return searchTerms.every(
+                (term) =>
+                    name.includes(term) ||
+                    sku.includes(term) ||
+                    characteristics.includes(term),
+            )
+        })
+    }
+
+    // При пустом поиске показываем максимум 50 товаров.
+    // При выбранной категории сначала фильтруем, затем ограничиваем список.
+    if (!query && selectedCategoryId.value === '') {
+        return result.slice(0, 50)
+    }
+
+    return result.slice(0, 100)
+})
 
 const selectedProduct = computed(() =>
-    props.products.find((product) => String(product.id) === props.modelValue),
-);
+    props.products.find(
+        (product) => String(product.id) === String(props.modelValue),
+    ),
+)
 
-const formatQuantity = (quantity: number): string => {
-    if (quantity === 0) return '0';
-    // Убираем лишние нули после запятой
-    return parseFloat(quantity.toString()).toString();
-};
+const formatQuantity = (quantity: number | undefined): string => {
+    if (quantity === undefined || !Number.isFinite(Number(quantity))) {
+        return '0'
+    }
+
+    return Number(quantity).toString()
+}
 
 const getStockColorClass = (
-    quantity: number,
+    quantity: number | undefined,
     minimumStock?: number | null,
 ): string => {
-    if (quantity === 0) return 'text-red-600';
-    if (minimumStock && quantity < minimumStock) return 'text-orange-600';
-    return 'text-green-600';
-};
+    const stock = Number(quantity ?? 0)
+
+    if (stock <= 0) {
+        return 'text-red-600'
+    }
+
+    if (minimumStock != null && stock < Number(minimumStock)) {
+        return 'text-orange-600'
+    }
+
+    return 'text-emerald-600'
+}
 
 const handleSelect = (value: string): void => {
-    emit('update:modelValue', value);
-    open.value = false;
-    searchQuery.value = '';
-};
+    emit('update:modelValue', value)
+    open.value = false
+    searchQuery.value = ''
+    debouncedSearchQuery.value = ''
+    selectedCategoryId.value = ''
+}
 </script>
 
 <template>
     <Select
         :model-value="modelValue"
-        @update:model-value="handleSelect"
         :open="open"
+        @update:model-value="handleSelect"
         @update:open="open = $event"
     >
-        <SelectTrigger class="w-full">
-            <SelectValue :placeholder="'Выберите товар'">
+        <SelectTrigger class="w-full min-h-10">
+            <SelectValue placeholder="Выберите товар">
                 <template v-if="selectedProduct">
-                    <div class="flex flex-col">
-                        <span class="font-medium">{{
-                            selectedProduct.name
-                        }}</span>
-                        <div class="flex items-center gap-2 text-xs">
+                    <div class="flex min-w-0 flex-col text-left">
+                        <span class="truncate font-medium">
+                            {{ selectedProduct.name }}
+                        </span>
+
+                        <div class="flex flex-wrap items-center gap-x-2 text-xs">
                             <span
                                 v-if="selectedProduct.sku"
-                                class="text-gray-500"
+                                class="text-muted-foreground"
                             >
                                 {{ selectedProduct.sku }}
                             </span>
+
                             <span
                                 v-if="
                                     showStockQuantity &&
@@ -152,12 +201,7 @@ const handleSelect = (value: string): void => {
                                     ) + ' font-medium'
                                 "
                             >
-                                •
-                                {{
-                                    formatQuantity(
-                                        selectedProduct.stock_quantity,
-                                    )
-                                }}
+                                {{ formatQuantity(selectedProduct.stock_quantity) }}
                                 {{ selectedProduct.unit }}
                             </span>
                         </div>
@@ -167,19 +211,31 @@ const handleSelect = (value: string): void => {
         </SelectTrigger>
 
         <SelectContent class="max-h-96">
-            <div class="border-b px-3 py-2">
+            <div class="border-b p-3">
                 <!-- Фильтр по категориям -->
-                <div v-if="categories && categories.length > 0" class="mb-2">
+                <div
+                    v-if="categories && categories.length > 0"
+                    class="mb-2"
+                >
+                    <label
+                        class="mb-1 block text-xs font-medium text-muted-foreground"
+                    >
+                        Категория товара
+                    </label>
+
                     <select
                         v-model="selectedCategoryId"
-                        class="w-full rounded-md border border-gray-200 px-2 py-1.5 text-sm focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                        class="w-full rounded-md border border-input bg-background px-2 py-2 text-sm outline-none focus:ring-2 focus:ring-ring"
                         @click.stop
+                        @pointerdown.stop
+                        @change.stop
                     >
-                        <option :value="null">Все категории</option>
+                        <option value="">Все категории</option>
+
                         <option
                             v-for="category in categories"
                             :key="category.id"
-                            :value="category.id"
+                            :value="String(category.id)"
                         >
                             {{ category.name }}
                         </option>
@@ -189,76 +245,110 @@ const handleSelect = (value: string): void => {
                 <!-- Поиск -->
                 <div class="relative">
                     <Search
-                        :size="14"
-                        class="absolute top-1/2 left-2 -translate-y-1/2 text-gray-400"
+                        :size="15"
+                        class="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
                     />
+
                     <input
                         v-model="searchQuery"
                         type="search"
-                        placeholder="Поиск..."
-                        class="w-full rounded-md border border-gray-200 py-1.5 pr-2 pl-8 text-sm focus:ring-2 focus:ring-gray-500 focus:outline-none"
+                        placeholder="Название, артикул или характеристика..."
+                        class="w-full rounded-md border border-input bg-background py-2 pl-8 pr-3 text-sm outline-none focus:ring-2 focus:ring-ring"
                         @click.stop
+                        @pointerdown.stop
+                        @keydown.stop
                     />
+                </div>
+
+                <div class="mt-2 text-xs text-muted-foreground">
+                    Найдено товаров: {{ filteredProducts.length }}
                 </div>
             </div>
 
-            <div class="max-h-72 overflow-y-auto">
+            <div class="max-h-64 overflow-y-auto p-1">
                 <SelectItem
                     v-for="product in filteredProducts"
                     :key="product.id"
                     :value="String(product.id)"
+                    class="py-2"
                 >
-                    <div class="flex w-full items-center justify-between pr-6">
-                        <div class="flex min-w-0 flex-1 flex-col">
-                            <span class="truncate font-medium">{{
-                                product.name
-                            }}</span>
-                            <div class="mt-0.5 flex items-center gap-2">
-                                <span
-                                    v-if="product.sku"
-                                    class="text-xs text-gray-500"
-                                >
-                                    {{ product.sku }}
-                                </span>
-                                <span
-                                    v-if="
-                                        showStockQuantity &&
-                                        product.stock_quantity !== undefined
-                                    "
-                                    :class="
-                                        'text-xs ' +
-                                        getStockColorClass(
-                                            product.stock_quantity,
-                                            product.minimum_stock,
-                                        ) +
-                                        ' font-medium'
-                                    "
-                                >
-                                    •
-                                    {{ formatQuantity(product.stock_quantity) }}
-                                    {{ product.unit }}
-                                </span>
-                            </div>
+                    <div class="flex min-w-0 flex-col">
+                        <span class="truncate font-medium">
+                            {{ product.name }}
+                        </span>
+
+                        <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
                             <span
-                                v-if="product.characteristics && searchQuery"
-                                class="mt-0.5 truncate text-xs text-gray-400"
+                                v-if="product.sku"
+                                class="text-muted-foreground"
                             >
-                                {{ product.characteristics }}
+                                {{ product.sku }}
+                            </span>
+
+                            <span
+                                v-if="
+                                    showStockQuantity &&
+                                    product.stock_quantity !== undefined
+                                "
+                                :class="
+                                    getStockColorClass(
+                                        product.stock_quantity,
+                                        product.minimum_stock,
+                                    )
+                                "
+                            >
+                                Остаток:
+                                {{ formatQuantity(product.stock_quantity) }}
+                                {{ product.unit }}
                             </span>
                         </div>
+
+                        <span
+                            v-if="
+                                product.characteristics &&
+                                debouncedSearchQuery.trim()
+                            "
+                            class="mt-1 truncate text-xs text-muted-foreground"
+                        >
+                            {{ product.characteristics }}
+                        </span>
                     </div>
+
                     <Check
-                        v-if="String(product.id) === modelValue"
-                        :size="14"
-                        class="absolute right-2 text-gray-900"
+                        v-if="String(product.id) === String(modelValue)"
+                        :size="15"
+                        class="ml-2 shrink-0"
                     />
                 </SelectItem>
 
                 <div
                     v-if="filteredProducts.length === 0"
-                    class="px-3 py-4 text-center text-sm text-gray-500"
+                    class="px-3 py-8 text-center"
                 >
-                    Товары не найдены
+                    <Search
+                        :size="24"
+                        class="mx-auto mb-2 text-muted-foreground/50"
+                    />
+
+                    <p class="text-sm font-medium">
+                        Товары не найдены
+                    </p>
+
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Попробуйте выбрать другую категорию или изменить поиск.
+                    </p>
+
+                    <button
+                        type="button"
+                        class="mt-3 text-xs font-medium text-primary hover:underline"
+                        @click.stop="
+                            selectedCategoryId = '';
+                            searchQuery = '';
+                            debouncedSearchQuery = ''
+                        "
+                    >
+                        Сбросить фильтры
+                    </button>
                 </div>
             </div>
         </SelectContent>

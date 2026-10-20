@@ -20,12 +20,13 @@ use App\Http\Controllers\Admin\StockReturnController;
 use App\Http\Controllers\Admin\StockTransferController;
 use App\Http\Controllers\Admin\StockWriteOffController;
 use App\Http\Controllers\Admin\ThreadController;
+use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::inertia('/', 'Welcome')->name('home');
+Route::get('/', WelcomeController::class)->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::inertia('dashboard', 'Dashboard')->name('dashboard');
+    Route::redirect('dashboard', '/admin')->name('dashboard');
 });
 
 require __DIR__.'/settings.php';

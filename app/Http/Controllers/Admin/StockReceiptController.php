@@ -11,6 +11,7 @@ use App\Models\Product;
 use App\Services\Admin\StockMovementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,18 +28,40 @@ class StockReceiptController extends Controller
             ->where('is_active', true)
             ->with(['characteristicValues.characteristic:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'unit', 'minimum_stock', 'category_id']);
+            ->get([
+                'id',
+                'name',
+                'sku',
+                'unit',
+                'minimum_stock',
+                'category_id',
+            ]);
 
-        $stockQuantities = \DB::table('product_location')
-            ->select('product_id', \DB::raw('SUM(quantity) as total_quantity'))
+        $stockQuantities = DB::table('product_location')
+            ->select('product_id', DB::raw('SUM(quantity) as total_quantity'))
             ->where('quantity', '>', 0)
             ->groupBy('product_id')
             ->pluck('total_quantity', 'product_id');
 
-        $products = $products->map(function (Product $product) use ($stockQuantities) {
-            $characteristics = $product->characteristicValues->map(function ($cv) {
-                return $cv->characteristic->name.': '.$cv->value;
-            })->implode(', ');
+        $products = $products->map(function (Product $product) use ($stockQuantities): array {
+            $characteristics = $product->characteristicValues
+                ->map(function ($cv): ?string {
+                    if (!$cv->characteristic) {
+                        return null;
+                    }
+
+                    return $cv->characteristic->name . ': ' . $cv->value;
+                })
+                ->filter()
+                ->implode(', ');
+
+            // Временная диагностика передачи категории.
+            if ($product->id === 49) {
+                Log::debug('Stock receipt product diagnostic', [
+                    'id' => $product->id,
+                    'category_id' => $product->category_id,
+                ]);
+            }
 
             return [
                 'id' => $product->id,
@@ -62,13 +85,21 @@ class StockReceiptController extends Controller
                     'id' => $location->id,
                     'number' => $location->number,
                     'code' => $location->code,
-                    'rack' => $location->rack ? [
-                        'id' => $location->rack->id,
-                        'code' => $location->rack->code,
-                        'name' => $location->rack->name,
-                    ] : null,
+                    'rack' => $location->rack
+                        ? [
+                            'id' => $location->rack->id,
+                            'code' => $location->rack->code,
+                            'name' => $location->rack->name,
+                        ]
+                        : null,
                 ];
             });
+
+        Log::debug('Stock receipt response diagnostic', [
+            'products_count' => $products->count(),
+            'first_product' => $products->first(),
+            'categories_count' => $categories->count(),
+        ]);
 
         return Inertia::render('admin/stock/Receipt', [
             'products' => $products,
