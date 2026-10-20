@@ -401,14 +401,14 @@ function movementLocation(movement: Movement): string {
                     <div v-for="movement in movements" :key="movement.id" class="rounded-lg border border-border/50 bg-white p-3 shadow-sm dark:border-border dark:bg-card">
                         <div class="flex items-start justify-between gap-2">
                             <div class="min-w-0 flex-1">
-                                <h3 class="font-semibold text-foreground break-words text-xs">{{ movement.product.name }}</h3>
+                                <h3 class="font-semibold text-foreground break-words text-xs">{{ movement.product_name }}</h3>
                                 <p class="mt-0.5 text-[10px] text-muted-foreground">{{ movement.created_at ?? '—' }}</p>
                             </div>
-                            <span class="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{{ movement.type }}</span>
+                            <span class="inline-flex items-center rounded-full bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">{{ movement.type_label }}</span>
                         </div>
                         <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                             <div><p class="text-[10px] text-muted-foreground">Количество</p><p class="font-semibold text-foreground">{{ movement.quantity }}</p></div>
-                            <div><p class="text-[10px] text-muted-foreground">Размещение</p><p class="text-foreground truncate text-[10px]">{{ movement.location_code || '—' }}</p></div>
+                            <div><p class="text-[10px] text-muted-foreground">Размещение</p><p class="text-foreground truncate text-[10px]">{{ movementLocation(movement) }}</p></div>
                         </div>
                     </div>
                 </div>
