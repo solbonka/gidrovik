@@ -16,14 +16,14 @@ defineProps<{
 
 defineOptions({
     layout: {
-        title: 'Create an account',
-        description: 'Enter your details below to create your account',
+        title: 'Создание аккаунта',
+        description: 'Заполните данные ниже, чтобы создать аккаунт',
     },
 });
 </script>
 
 <template>
-    <Head title="Register" />
+    <Head title="Регистрация" />
 
     <Form
         v-bind="store.form()"
@@ -33,57 +33,53 @@ defineOptions({
     >
         <div class="grid gap-6">
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">Имя</Label>
                 <Input
                     id="name"
                     type="text"
+                    name="name"
                     required
                     v-focus
-                    :tabindex="1"
                     autocomplete="name"
-                    name="name"
-                    placeholder="Full name"
+                    placeholder="Ваше имя"
                 />
                 <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Адрес email</Label>
                 <Input
                     id="email"
                     type="email"
-                    required
-                    :tabindex="2"
-                    autocomplete="email"
                     name="email"
+                    required
+                    autocomplete="email"
                     placeholder="email@example.com"
                 />
                 <InputError :message="errors.email" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password">Password</Label>
+                <Label for="password">Пароль</Label>
                 <PasswordInput
                     id="password"
-                    required
-                    :tabindex="3"
-                    autocomplete="new-password"
                     name="password"
-                    placeholder="Password"
+                    required
+                    autocomplete="new-password"
+                    placeholder="Пароль"
                     :passwordrules="passwordRules"
                 />
                 <InputError :message="errors.password" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="password_confirmation">Confirm password</Label>
+                <Label for="password_confirmation">Подтвердите пароль</Label>
                 <PasswordInput
                     id="password_confirmation"
-                    required
-                    :tabindex="4"
-                    autocomplete="new-password"
                     name="password_confirmation"
-                    placeholder="Confirm password"
+                    required
+                    autocomplete="new-password"
+                    placeholder="Повторите пароль"
                     :passwordrules="passwordRules"
                 />
                 <InputError :message="errors.password_confirmation" />
@@ -92,23 +88,17 @@ defineOptions({
             <Button
                 type="submit"
                 class="mt-2 w-full"
-                tabindex="5"
                 :disabled="processing"
                 data-test="register-user-button"
             >
                 <Spinner v-if="processing" />
-                Create account
+                Создать аккаунт
             </Button>
         </div>
 
         <div class="text-center text-sm text-muted-foreground">
-            Already have an account?
-            <TextLink
-                :href="login()"
-                class="underline underline-offset-4"
-                :tabindex="6"
-                >Log in</TextLink
-            >
+            Уже есть аккаунт?
+            <TextLink :href="login()">Войти</TextLink>
         </div>
     </Form>
 </template>

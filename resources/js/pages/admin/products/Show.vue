@@ -1,26 +1,26 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import {
     ArrowLeft,
     ArrowRight,
-    Ruler,
-    Check,
-    ChevronRight,
+    Boxes,
     ClipboardList,
+    Factory,
     FileText,
+    Globe,
+    Hash,
     Layers3,
     MapPin,
     Package,
     Pencil,
     Plug,
+    Ruler,
     Warehouse,
-    Factory,
-    Globe,
-    Boxes,
-    Hash,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { create, index, edit } from '@/routes/admin/products';
+import { Button } from '@/components/ui/button';
+import { edit, index } from '@/routes/admin/products';
 
 defineOptions({
     layout: AdminLayout,
@@ -97,6 +97,8 @@ interface Product {
     description: string | null;
     is_active: boolean;
     unit: string;
+    // Необязательное поле: показываем, если бэкенд его передаёт
+    minimum_stock?: number | null;
     manufacturer: { id: number; name: string } | null;
     country: { id: number; name: string } | null;
     category: Category | null;
@@ -107,487 +109,373 @@ interface Product {
     locations: Location[];
 }
 
-interface Props {
+const props = defineProps<{
     product: Product;
-}
+}>();
 
-const props = defineProps<Props>();
+const numberFormat = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 3,
+});
+
+const formatNumber = (value: number | string | null | undefined): string =>
+    value === null || value === undefined
+        ? '—'
+        : numberFormat.format(Number(value));
 
 const formatCharacteristicValue = (characteristic: Characteristic): string => {
     if (characteristic.value === null || characteristic.value === '') {
         return '—';
     }
 
-    if (characteristic.unit) {
-        return `${characteristic.value} ${characteristic.unit}`;
-    }
-
-    return characteristic.value;
+    return characteristic.unit
+        ? `${characteristic.value} ${characteristic.unit}`
+        : characteristic.value;
 };
 
 const connectionTitle = (connection: Connection): string => {
     const parts: string[] = [];
 
-    if (connection.standard) {
-        parts.push(connection.standard.code);
-    }
+    if (connection.standard) parts.push(connection.standard.code);
 
     if (connection.diameter) {
         parts.push(`${connection.diameter.value} ${connection.diameter.unit}`);
     }
 
-    if (connection.thread) {
-        parts.push(connection.thread.designation);
-    }
+    if (connection.thread) parts.push(connection.thread.designation);
 
     return parts.length > 0 ? parts.join(' / ') : 'Параметры не указаны';
 };
+
+const infoItems = computed(() => [
+    { label: 'Категория', value: props.product.category?.name ?? '—' },
+    { label: 'Тип товара', value: props.product.product_type?.name ?? '—' },
+    ...(props.product.angle !== null
+        ? [{ label: 'Угол', value: `${props.product.angle}°` }]
+        : []),
+    { label: 'Единица измерения', value: props.product.unit },
+    {
+        label: 'Производитель',
+        value: props.product.manufacturer?.name ?? '—',
+        icon: Factory,
+    },
+    {
+        label: 'Страна',
+        value: props.product.country?.name ?? '—',
+        icon: Globe,
+    },
+]);
+
+const stockState = computed(() => {
+    const quantity = Number(props.product.stock_quantity);
+    const minimum = props.product.minimum_stock;
+
+    if (!(quantity > 0)) {
+        return {
+            label: 'Нет в наличии',
+            badge: 'bg-rose-500/10 text-rose-700 ring-rose-600/20 dark:text-rose-400',
+            bar: 'bg-rose-500',
+        };
+    }
+
+    if (minimum !== null && minimum !== undefined && quantity < Number(minimum)) {
+        return {
+            label: 'Ниже минимума',
+            badge: 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400',
+            bar: 'bg-amber-500',
+        };
+    }
+
+    return {
+        label: 'В наличии',
+        badge: 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400',
+        bar: 'bg-emerald-500',
+    };
+});
+
+const stockPercent = computed<number | null>(() => {
+    const minimum = Number(props.product.minimum_stock);
+
+    if (!(minimum > 0)) return null;
+
+    return Math.max(
+        0,
+        Math.min(100, (Number(props.product.stock_quantity) / minimum) * 100),
+    );
+});
 </script>
 
 <template>
     <Head :title="product.name" />
 
-    <div class="space-y-6 pb-8">
+    <div class="space-y-6 pb-4">
         <!-- Заголовок -->
-        <div
-            class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 dark:border-gray-800 dark:bg-gray-900"
-        >
-            <div
-                class="pointer-events-none absolute -top-20 -right-16 h-56 w-56 rounded-full bg-primary/5 blur-3xl"
-            />
+        <header>
+            <Link
+                :href="index().url"
+                class="mb-4 inline-flex items-center gap-2 text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+                <ArrowLeft :size="16" />
+                К товарам
+            </Link>
 
             <div
-                class="pointer-events-none absolute right-1/4 -bottom-24 h-40 w-40 rounded-full bg-indigo-500/5 blur-3xl"
-            />
-
-            <div class="relative">
-                <div
-                    class="mb-5 flex flex-wrap items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                >
-                    <Link
-                        :href="index().url"
-                        class="transition hover:text-primary"
+                class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
+            >
+                <div class="flex min-w-0 items-start gap-4">
+                    <div
+                        class="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
                     >
-                        Товары
-                    </Link>
+                        <Package :size="28" />
+                    </div>
 
-                    <ChevronRight class="h-4 w-4" />
-
-                    <span
-                        class="max-w-[240px] truncate font-medium text-gray-700 dark:text-gray-200"
-                    >
-                        {{ product.name }}
-                    </span>
-                </div>
-
-                <div
-                    class="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between"
-                >
-                    <div class="flex min-w-0 items-start gap-4">
-                        <div
-                            class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-indigo-600 text-white shadow-lg shadow-primary/20"
+                    <div class="min-w-0">
+                        <h1
+                            class="text-2xl font-bold tracking-tight break-words sm:text-3xl"
                         >
-                            <Package class="h-7 w-7" />
-                        </div>
+                            {{ product.name }}
+                        </h1>
 
-                        <div class="min-w-0">
-                            <h1
-                                class="text-2xl font-bold tracking-tight break-words text-gray-900 sm:text-3xl dark:text-white"
+                        <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 font-mono text-sm"
                             >
-                                {{ product.name }}
-                            </h1>
+                                <Hash :size="14" class="text-muted-foreground" />
+                                {{ product.sku }}
+                            </span>
 
-                            <div class="mt-3 flex flex-wrap items-center gap-2">
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ring-inset"
+                                :class="
+                                    product.is_active
+                                        ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400'
+                                        : 'bg-muted text-muted-foreground ring-border'
+                                "
+                            >
                                 <span
-                                    class="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-gray-50 px-2.5 py-1.5 font-mono text-sm text-gray-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
-                                >
-                                    <Hash class="h-3.5 w-3.5 text-gray-400" />
-                                    {{ product.sku }}
-                                </span>
-
-                                <span
-                                    class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold"
+                                    class="size-1.5 rounded-full"
                                     :class="
                                         product.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 ring-inset dark:bg-emerald-500/10 dark:text-emerald-400'
-                                            : 'bg-gray-100 text-gray-600 ring-1 ring-gray-500/20 ring-inset dark:bg-gray-800 dark:text-gray-400'
+                                            ? 'bg-emerald-500'
+                                            : 'bg-muted-foreground/50'
                                     "
-                                >
-                                    <span
-                                        class="h-1.5 w-1.5 rounded-full"
-                                        :class="
-                                            product.is_active
-                                                ? 'bg-emerald-500'
-                                                : 'bg-gray-400'
-                                        "
-                                    />
-                                    {{
-                                        product.is_active
-                                            ? 'Активен'
-                                            : 'Неактивен'
-                                    }}
-                                </span>
-                            </div>
+                                />
+                                {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                            </span>
                         </div>
                     </div>
-
-                    <div class="flex flex-wrap items-center gap-2">
-                        <Link
-                            :href="index().url"
-                            class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                        >
-                            <ArrowLeft class="h-4 w-4" />
-                            <span>К товарам</span>
-                        </Link>
-
-                        <Link
-                            :href="create().url"
-                            class="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-gray-200 bg-white px-4 text-sm font-medium text-gray-700 transition hover:border-primary/30 hover:bg-primary/5 hover:text-primary dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300"
-                        >
-                            <Package class="h-4 w-4" />
-                            <span>Создать товар</span>
-                        </Link>
-
-                        <Link
-                            :href="edit(product.id).url"
-                            class="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-primary to-indigo-600 px-4 text-sm font-semibold text-white shadow-md shadow-primary/20 transition hover:-translate-y-0.5 hover:shadow-lg"
-                        >
-                            <Pencil class="h-4 w-4" />
-                            Редактировать
-                        </Link>
-                    </div>
                 </div>
+
+                <Button as-child class="w-full lg:w-auto">
+                    <Link :href="edit(product.id).url">
+                        <Pencil :size="16" class="mr-2" />
+                        Редактировать
+                    </Link>
+                </Button>
             </div>
-        </div>
+        </header>
 
-        <!-- Основная информация и остаток -->
+        <!-- Информация и остаток -->
         <div class="grid gap-6 lg:grid-cols-3">
-            <!-- Основная информация -->
             <section
-                class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md lg:col-span-2 dark:border-gray-800 dark:bg-gray-900"
+                class="overflow-hidden rounded-2xl border bg-card shadow-sm lg:col-span-2"
             >
-                <div
-                    class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
-                >
+                <div class="flex items-center gap-3 border-b px-5 py-4 sm:px-6">
                     <div
-                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
+                        class="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary"
                     >
-                        <ClipboardList class="h-5 w-5" />
+                        <ClipboardList :size="20" />
                     </div>
-
                     <div>
-                        <h2 class="font-semibold text-gray-900 dark:text-white">
-                            Основная информация
-                        </h2>
-                        <p
-                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
-                        >
+                        <h2 class="font-semibold">Основная информация</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
                             Общие сведения о товаре
                         </p>
                     </div>
                 </div>
 
-                <div class="grid gap-x-8 gap-y-6 p-5 sm:grid-cols-2 sm:p-6">
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Название
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
+                <dl class="grid gap-x-8 gap-y-6 p-5 sm:grid-cols-2 sm:p-6">
+                    <div v-for="item in infoItems" :key="item.label">
+                        <dt
+                            class="flex items-center gap-2 text-sm text-muted-foreground"
                         >
-                            {{ product.name }}
-                        </div>
+                            <component
+                                :is="item.icon"
+                                v-if="item.icon"
+                                :size="15"
+                            />
+                            {{ item.label }}
+                        </dt>
+                        <dd class="mt-1.5 font-medium">{{ item.value }}</dd>
                     </div>
+                </dl>
 
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Артикул
-                        </div>
-                        <div
-                            class="mt-1.5 font-mono font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.sku }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Категория
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.category?.name ?? '—' }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Тип товара
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.product_type?.name ?? '—' }}
-                        </div>
-                    </div>
-
-                    <div v-if="product.angle !== null">
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Угол
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.angle }}°
-                        </div>
-                    </div>
-
-                    <div>
-                        <div class="text-sm text-gray-500 dark:text-gray-400">
-                            Единица измерения
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.unit }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div
-                            class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                        >
-                            <Factory class="h-4 w-4" />
-                            Производитель
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.manufacturer?.name ?? '—' }}
-                        </div>
-                    </div>
-
-                    <div>
-                        <div
-                            class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                        >
-                            <Globe class="h-4 w-4" />
-                            Страна
-                        </div>
-                        <div
-                            class="mt-1.5 font-medium text-gray-900 dark:text-gray-100"
-                        >
-                            {{ product.country?.name ?? '—' }}
-                        </div>
-                    </div>
-                </div>
-
-                <div
-                    v-if="product.description"
-                    class="border-t border-gray-100 px-5 py-5 sm:px-6 dark:border-gray-800"
-                >
+                <div v-if="product.description" class="border-t px-5 py-5 sm:px-6">
                     <div
-                        class="flex items-center gap-2 text-sm font-medium text-gray-500 dark:text-gray-400"
+                        class="flex items-center gap-2 text-sm font-medium text-muted-foreground"
                     >
-                        <FileText class="h-4 w-4" />
+                        <FileText :size="15" />
                         Описание
                     </div>
-
-                    <p
-                        class="mt-2 text-sm leading-6 whitespace-pre-wrap text-gray-700 dark:text-gray-300"
-                    >
+                    <p class="mt-2 text-sm leading-6 whitespace-pre-wrap">
                         {{ product.description }}
                     </p>
                 </div>
             </section>
 
-            <!-- Остаток -->
-            <section
-                class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-            >
-                <div
-                    class="pointer-events-none absolute -top-10 -right-10 h-36 w-36 rounded-full bg-primary/10 blur-2xl"
-                />
-
-                <div class="relative p-5 sm:p-6">
+            <section class="rounded-2xl border bg-card p-5 shadow-sm sm:p-6">
+                <div class="flex items-center justify-between gap-3">
                     <div class="flex items-center gap-3">
                         <div
-                            class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                            class="flex size-10 items-center justify-center rounded-xl bg-sky-500/10 text-sky-600 dark:text-sky-400"
                         >
-                            <Boxes class="h-5 w-5" />
+                            <Boxes :size="20" />
                         </div>
-
                         <div>
-                            <h2
-                                class="font-semibold text-gray-900 dark:text-white"
-                            >
-                                Остаток
-                            </h2>
-                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                            <h2 class="font-semibold">Остаток</h2>
+                            <p class="text-xs text-muted-foreground">
                                 По всем ячейкам склада
                             </p>
                         </div>
                     </div>
 
-                    <div class="mt-8">
-                        <div
-                            class="text-4xl font-bold tracking-tight break-words text-gray-900 sm:text-5xl dark:text-white"
-                        >
-                            {{ product.stock_quantity }}
-                        </div>
+                    <span
+                        class="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                        :class="stockState.badge"
+                    >
+                        {{ stockState.label }}
+                    </span>
+                </div>
 
-                        <div
-                            class="mt-2 text-sm text-gray-500 dark:text-gray-400"
-                        >
-                            {{ product.unit }} на складе
-                        </div>
-                    </div>
+                <div class="mt-6">
+                    <p
+                        class="text-4xl font-bold tracking-tight break-words tabular-nums sm:text-5xl"
+                    >
+                        {{ formatNumber(product.stock_quantity) }}
+                    </p>
+                    <p class="mt-1.5 text-sm text-muted-foreground">
+                        {{ product.unit }} на складе
+                    </p>
 
                     <div
-                        class="mt-7 space-y-4 border-t border-gray-100 pt-5 dark:border-gray-800"
+                        v-if="stockPercent !== null"
+                        class="mt-4"
                     >
-                        <div class="flex items-center justify-between gap-3">
-                            <span
-                                class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                            >
-                                <MapPin class="h-4 w-4" />
-                                Ячеек с товаром
-                            </span>
-
-                            <span
-                                class="rounded-lg bg-gray-100 px-2.5 py-1 text-sm font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100"
-                            >
-                                {{ product.locations.length }}
-                            </span>
+                        <div class="h-1.5 overflow-hidden rounded-full bg-muted">
+                            <div
+                                class="h-full rounded-full transition-[width] duration-500"
+                                :class="stockState.bar"
+                                :style="{ width: `${stockPercent}%` }"
+                            />
                         </div>
+                        <p class="mt-1.5 text-xs text-muted-foreground">
+                            Минимум: {{ formatNumber(product.minimum_stock) }}
+                            {{ product.unit }}
+                        </p>
+                    </div>
+                </div>
 
-                        <div class="flex items-center justify-between gap-3">
-                            <span
-                                class="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400"
-                            >
-                                <Layers3 class="h-4 w-4" />
-                                Подключений
-                            </span>
-
-                            <span
-                                class="rounded-lg bg-gray-100 px-2.5 py-1 text-sm font-semibold text-gray-900 dark:bg-gray-800 dark:text-gray-100"
-                            >
-                                {{ product.connections.length }}
-                            </span>
-                        </div>
+                <dl class="mt-6 space-y-3 border-t pt-5 text-sm">
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="flex items-center gap-2 text-muted-foreground">
+                            <MapPin :size="15" />
+                            Ячеек с товаром
+                        </dt>
+                        <dd class="rounded-lg bg-muted px-2.5 py-1 font-semibold tabular-nums">
+                            {{ product.locations.length }}
+                        </dd>
                     </div>
 
-                    <Link
-                        :href="`/admin/stock/movements?product_id=${product.id}`"
-                        class="mt-6 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 dark:border-primary/30"
-                    >
-                        <ClipboardList class="h-4 w-4" />
-                        Журнал движений
-                        <ArrowRight class="ml-auto h-4 w-4" />
+                    <div class="flex items-center justify-between gap-3">
+                        <dt class="flex items-center gap-2 text-muted-foreground">
+                            <Layers3 :size="15" />
+                            Подключений
+                        </dt>
+                        <dd class="rounded-lg bg-muted px-2.5 py-1 font-semibold tabular-nums">
+                            {{ product.connections.length }}
+                        </dd>
+                    </div>
+                </dl>
+
+                <Button as-child variant="outline" class="mt-6 w-full justify-between">
+                    <Link :href="`/admin/stock/movements?product_id=${product.id}`">
+                        <span class="flex items-center gap-2">
+                            <ClipboardList :size="16" />
+                            Журнал движений
+                        </span>
+                        <ArrowRight :size="16" />
                     </Link>
-                </div>
+                </Button>
             </section>
         </div>
 
         <!-- Характеристики -->
-        <section
-            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
-            <div
-                class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
-            >
+        <section class="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div class="flex items-center gap-3 border-b px-5 py-4 sm:px-6">
                 <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-400"
+                    class="flex size-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400"
                 >
-                    <Ruler class="h-5 w-5" />
+                    <Ruler :size="20" />
                 </div>
-
                 <div>
-                    <h2 class="font-semibold text-gray-900 dark:text-white">
-                        Характеристики
-                    </h2>
-                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    <h2 class="font-semibold">Характеристики</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
                         Параметры и свойства товара
                     </p>
                 </div>
-
                 <span
-                    class="ml-auto rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    class="ml-auto rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold tabular-nums"
                 >
                     {{ product.characteristics.length }}
                 </span>
             </div>
 
-            <div
+            <dl
                 v-if="product.characteristics.length"
-                class="grid gap-px bg-gray-100 sm:grid-cols-2 dark:bg-gray-800"
+                class="grid gap-px bg-border sm:grid-cols-2"
             >
                 <div
                     v-for="characteristic in product.characteristics"
                     :key="characteristic.id"
-                    class="flex items-start justify-between gap-4 bg-white px-5 py-4 sm:px-6 dark:bg-gray-900"
+                    class="flex items-start justify-between gap-4 bg-card px-5 py-4 sm:px-6"
                 >
-                    <div
-                        class="min-w-0 text-sm text-gray-500 dark:text-gray-400"
-                    >
+                    <dt class="min-w-0 text-sm text-muted-foreground">
                         {{ characteristic.name }}
-                    </div>
-
-                    <div
-                        class="shrink-0 text-right text-sm font-semibold text-gray-900 dark:text-gray-100"
-                    >
+                    </dt>
+                    <dd class="shrink-0 text-right text-sm font-semibold">
                         {{ formatCharacteristicValue(characteristic) }}
-                    </div>
+                    </dd>
                 </div>
-            </div>
+            </dl>
 
-            <div
-                v-else
-                class="flex flex-col items-center px-6 py-10 text-center"
-            >
+            <div v-else class="flex flex-col items-center px-6 py-10 text-center">
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800"
+                    class="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
                 >
-                    <Ruler class="h-6 w-6" />
+                    <Ruler :size="24" />
                 </div>
-
-                <p
-                    class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                    Характеристики не указаны
-                </p>
-
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-3 text-sm font-medium">Характеристики не указаны</p>
+                <p class="mt-1 text-xs text-muted-foreground">
                     Для этого товара пока нет дополнительных параметров
                 </p>
             </div>
         </section>
 
         <!-- Подключения -->
-        <section
-            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
-            <div
-                class="flex items-center gap-3 border-b border-gray-100 px-5 py-4 sm:px-6 dark:border-gray-800"
-            >
+        <section class="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div class="flex items-center gap-3 border-b px-5 py-4 sm:px-6">
                 <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                    class="flex size-10 items-center justify-center rounded-xl bg-amber-500/10 text-amber-600 dark:text-amber-400"
                 >
-                    <Plug class="h-5 w-5" />
+                    <Plug :size="20" />
                 </div>
-
                 <div>
-                    <h2 class="font-semibold text-gray-900 dark:text-white">
-                        Подключения
-                    </h2>
-                    <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    <h2 class="font-semibold">Подключения</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
                         Стандарты, диаметры и резьбы
                     </p>
                 </div>
-
                 <span
-                    class="ml-auto rounded-lg bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:bg-gray-800 dark:text-gray-300"
+                    class="ml-auto rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold tabular-nums"
                 >
                     {{ product.connections.length }}
                 </span>
@@ -600,279 +488,229 @@ const connectionTitle = (connection: Connection): string => {
                 <article
                     v-for="connection in product.connections"
                     :key="connection.id"
-                    class="rounded-2xl border border-gray-200 p-4 transition hover:border-primary/30 hover:shadow-sm sm:p-5 dark:border-gray-800"
+                    class="rounded-2xl border p-4 transition hover:border-primary/30 hover:shadow-sm sm:p-5"
                 >
                     <div class="flex items-start gap-3">
                         <div
-                            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-indigo-600 text-sm font-bold text-white shadow-sm"
+                            class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground"
                         >
                             {{ connection.position }}
                         </div>
 
                         <div class="min-w-0 flex-1">
-                            <div
-                                class="text-xs font-medium tracking-wide text-gray-500 uppercase dark:text-gray-400"
+                            <p
+                                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                             >
                                 Подключение {{ connection.position }}
-                            </div>
-
-                            <div
-                                class="mt-1 font-semibold break-words text-gray-900 dark:text-white"
-                            >
+                            </p>
+                            <p class="mt-1 font-semibold break-words">
                                 {{ connectionTitle(connection) }}
-                            </div>
+                            </p>
                         </div>
                     </div>
 
-                    <div
-                        class="mt-5 grid gap-4 border-t border-gray-100 pt-4 sm:grid-cols-3 dark:border-gray-800"
-                    >
+                    <dl class="mt-5 grid gap-4 border-t pt-4 sm:grid-cols-3">
                         <div>
-                            <div
-                                class="text-xs text-gray-500 dark:text-gray-400"
-                            >
-                                Стандарт
-                            </div>
-                            <div
-                                class="mt-1 text-sm font-medium break-words text-gray-900 dark:text-gray-100"
-                            >
+                            <dt class="text-xs text-muted-foreground">Стандарт</dt>
+                            <dd class="mt-1 text-sm font-medium break-words">
                                 {{
                                     connection.standard
                                         ? `${connection.standard.code} — ${connection.standard.name}`
                                         : '—'
                                 }}
-                            </div>
+                            </dd>
                         </div>
 
                         <div>
-                            <div
-                                class="text-xs text-gray-500 dark:text-gray-400"
-                            >
-                                Диаметр
-                            </div>
-                            <div
-                                class="mt-1 text-sm font-medium text-gray-900 dark:text-gray-100"
-                            >
+                            <dt class="text-xs text-muted-foreground">Диаметр</dt>
+                            <dd class="mt-1 text-sm font-medium">
                                 {{
                                     connection.diameter
                                         ? `${connection.diameter.value} ${connection.diameter.unit}`
                                         : '—'
                                 }}
-                            </div>
+                            </dd>
                         </div>
 
                         <div>
-                            <div
-                                class="text-xs text-gray-500 dark:text-gray-400"
-                            >
-                                Резьба
-                            </div>
-                            <div
-                                class="mt-1 text-sm font-medium break-words text-gray-900 dark:text-gray-100"
-                            >
-                                {{
-                                    connection.thread
-                                        ? `${connection.thread.name}`
-                                        : '—'
-                                }}
-                            </div>
+                            <dt class="text-xs text-muted-foreground">Резьба</dt>
+                            <dd class="mt-1 text-sm font-medium break-words">
+                                {{ connection.thread?.name ?? '—' }}
+                            </dd>
                         </div>
-                    </div>
+                    </dl>
                 </article>
             </div>
 
-            <div
-                v-else
-                class="flex flex-col items-center px-6 py-10 text-center"
-            >
+            <div v-else class="flex flex-col items-center px-6 py-10 text-center">
                 <div
-                    class="flex h-12 w-12 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800"
+                    class="flex size-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
                 >
-                    <Plug class="h-6 w-6" />
+                    <Plug :size="24" />
                 </div>
-
-                <p
-                    class="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300"
-                >
-                    Подключения не указаны
-                </p>
-
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                <p class="mt-3 text-sm font-medium">Подключения не указаны</p>
+                <p class="mt-1 text-xs text-muted-foreground">
                     Для товара не заданы параметры подключения
                 </p>
             </div>
         </section>
 
         <!-- Расположение на складе -->
-        <section
-            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
-        >
+        <section class="overflow-hidden rounded-2xl border bg-card shadow-sm">
             <div
-                class="flex flex-col gap-3 border-b border-gray-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-gray-800"
+                class="flex flex-col gap-3 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
                 <div class="flex items-center gap-3">
                     <div
-                        class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
+                        class="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
                     >
-                        <Warehouse class="h-5 w-5" />
+                        <Warehouse :size="20" />
                     </div>
-
                     <div>
-                        <h2 class="font-semibold text-gray-900 dark:text-white">
-                            Расположение на складе
-                        </h2>
-                        <p
-                            class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
-                        >
+                        <h2 class="font-semibold">Расположение на складе</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
                             Ячейки, стеллажи и количество товара
                         </p>
                     </div>
                 </div>
 
                 <span
-                    class="inline-flex w-fit items-center gap-1.5 rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
+                    class="inline-flex w-fit items-center gap-1.5 rounded-lg bg-emerald-500/10 px-3 py-1.5 text-xs font-semibold text-emerald-700 dark:text-emerald-400"
                 >
-                    <MapPin class="h-3.5 w-3.5" />
-                    {{ product.locations.length }} ячеек
+                    <MapPin :size="14" />
+                    Ячеек: {{ product.locations.length }}
                 </span>
             </div>
 
-            <div v-if="product.locations.length">
-                <!-- Карточки на мобильных -->
-                <div class="space-y-2 p-3 md:hidden">
-                    <div v-for="location in product.locations" :key="location.id" class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm dark:border-gray-700 dark:bg-gray-900">
-                        <div class="flex items-center gap-2">
-                            <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"><MapPin class="h-4 w-4" /></div>
-                            <div>
-                                <h3 class="font-semibold text-gray-900 dark:text-white text-xs">{{ location.code }}</h3>
-                                <p class="text-[10px] text-gray-500 dark:text-gray-400">{{ location.rack_code || '—' }}</p>
+            <template v-if="product.locations.length">
+                <!-- Мобильные карточки -->
+                <ul class="divide-y md:hidden">
+                    <li
+                        v-for="location in product.locations"
+                        :key="location.id"
+                        class="flex items-center justify-between gap-3 p-4"
+                    >
+                        <div class="flex min-w-0 items-center gap-3">
+                            <div
+                                class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                            >
+                                <MapPin :size="16" />
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-mono text-sm font-semibold">
+                                    {{ location.code }}
+                                </p>
+                                <p class="truncate text-xs text-muted-foreground">
+                                    {{ location.rack.code
+                                    }}<template v-if="location.rack.name">
+                                    · {{ location.rack.name }}
+                                </template>
+                                </p>
                             </div>
                         </div>
-                        <div class="mt-2 text-xs"><p class="text-[10px] text-gray-500 dark:text-gray-400">Количество</p><p class="font-semibold text-gray-900 dark:text-white">{{ location.quantity }}</p></div>
-                    </div>
-                </div>
+
+                        <span
+                            class="shrink-0 rounded-lg bg-emerald-500/10 px-2.5 py-1 text-sm font-semibold text-emerald-700 tabular-nums dark:text-emerald-400"
+                        >
+                            {{ formatNumber(location.quantity) }}
+                            {{ product.unit }}
+                        </span>
+                    </li>
+
+                    <li class="flex items-center justify-between bg-muted/40 p-4">
+                        <span class="text-sm font-semibold">Общий остаток</span>
+                        <span class="font-bold tabular-nums">
+                            {{ formatNumber(product.stock_quantity) }}
+                            <span class="text-xs font-normal text-muted-foreground">
+                                {{ product.unit }}
+                            </span>
+                        </span>
+                    </li>
+                </ul>
+
+                <!-- Таблица -->
                 <div class="hidden overflow-x-auto md:block">
                     <table class="w-full text-left text-sm">
-                    <thead
-                        class="border-b border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-800/50"
-                    >
-                        <tr>
-                            <th
-                                class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400"
-                            >
-                                Ячейка
-                            </th>
-
-                            <th
-                                class="px-5 py-3.5 font-medium text-gray-500 sm:px-6 dark:text-gray-400"
-                            >
-                                Стеллаж
-                            </th>
-
-                            <th
-                                class="px-5 py-3.5 text-right font-medium text-gray-500 sm:px-6 dark:text-gray-400"
-                            >
-                                Количество
-                            </th>
+                        <thead>
+                        <tr class="border-b bg-muted/40">
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Ячейка</th>
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Стеллаж</th>
+                            <th scope="col" class="px-6 py-3.5 text-right text-xs font-semibold tracking-wider text-muted-foreground uppercase">Количество</th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody
-                        class="divide-y divide-gray-100 dark:divide-gray-800"
-                    >
+                        <tbody class="divide-y">
                         <tr
                             v-for="location in product.locations"
                             :key="location.id"
-                            class="transition hover:bg-gray-50/80 dark:hover:bg-gray-800/30"
+                            class="transition-colors hover:bg-muted/40"
                         >
-                            <td class="px-5 py-4 sm:px-6">
+                            <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                        class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
                                     >
-                                        <MapPin class="h-4 w-4" />
+                                        <MapPin :size="16" />
                                     </div>
-
-                                    <span
-                                        class="font-mono font-semibold text-gray-900 dark:text-gray-100"
-                                    >
-                                        {{ location.code }}
-                                    </span>
+                                    <span class="font-mono font-semibold">
+                                            {{ location.code }}
+                                        </span>
                                 </div>
                             </td>
 
-                            <td class="px-5 py-4 sm:px-6">
-                                <div
-                                    class="font-medium text-gray-900 dark:text-gray-100"
-                                >
+                            <td class="px-6 py-4">
+                                <div class="font-medium">
                                     {{ location.rack.code }}
                                 </div>
-
                                 <div
                                     v-if="location.rack.name"
-                                    class="mt-0.5 text-xs text-gray-500 dark:text-gray-400"
+                                    class="mt-0.5 text-xs text-muted-foreground"
                                 >
                                     {{ location.rack.name }}
                                 </div>
                             </td>
 
-                            <td class="px-5 py-4 text-right sm:px-6">
-                                <span
-                                    class="inline-flex items-center rounded-lg bg-emerald-50 px-3 py-1.5 font-semibold text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400"
-                                >
-                                    {{ location.quantity }} {{ product.unit }}
-                                </span>
+                            <td class="px-6 py-4 text-right">
+                                    <span
+                                        class="inline-flex rounded-lg bg-emerald-500/10 px-3 py-1.5 font-semibold text-emerald-700 tabular-nums dark:text-emerald-400"
+                                    >
+                                        {{ formatNumber(location.quantity) }}
+                                        {{ product.unit }}
+                                    </span>
                             </td>
                         </tr>
-                    </tbody>
+                        </tbody>
 
-                    <tfoot
-                        class="border-t border-gray-200 bg-gray-50 dark:border-gray-800 dark:bg-gray-800/50"
-                    >
-                        <tr>
+                        <tfoot>
+                        <tr class="border-t bg-muted/40">
                             <td
                                 colspan="2"
-                                class="px-5 py-4 text-right font-semibold text-gray-700 sm:px-6 dark:text-gray-300"
+                                class="px-6 py-4 text-right font-semibold"
                             >
                                 Общий остаток
                             </td>
-
-                            <td class="px-5 py-4 text-right sm:px-6">
-                                <span
-                                    class="text-base font-bold text-gray-900 dark:text-white"
-                                >
-                                    {{ product.stock_quantity }}
-                                </span>
-
-                                <span
-                                    class="ml-1 text-xs text-gray-500 dark:text-gray-400"
-                                >
-                                    {{ product.unit }}
-                                </span>
+                            <td class="px-6 py-4 text-right">
+                                    <span class="text-base font-bold tabular-nums">
+                                        {{ formatNumber(product.stock_quantity) }}
+                                    </span>
+                                <span class="ml-1 text-xs text-muted-foreground">
+                                        {{ product.unit }}
+                                    </span>
                             </td>
                         </tr>
-                    </tfoot>
-                </table>
-            </div>
-            </div>
-
-            <div
-                v-else
-                class="flex flex-col items-center px-6 py-12 text-center"
-            >
-                <div
-                    class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-400 dark:bg-gray-800"
-                >
-                    <Warehouse class="h-7 w-7" />
+                        </tfoot>
+                    </table>
                 </div>
+            </template>
 
-                <p class="mt-4 font-semibold text-gray-800 dark:text-gray-200">
-                    Товар пока не размещён
-                </p>
-
-                <p
-                    class="mt-1 max-w-sm text-sm leading-6 text-gray-500 dark:text-gray-400"
+            <div v-else class="flex flex-col items-center px-6 py-12 text-center">
+                <div
+                    class="flex size-14 items-center justify-center rounded-2xl bg-muted text-muted-foreground"
                 >
+                    <Warehouse :size="28" />
+                </div>
+                <p class="mt-4 font-semibold">Товар пока не размещён</p>
+                <p class="mt-1 max-w-sm text-sm leading-6 text-muted-foreground">
                     У этого товара пока нет размещения в ячейках склада.
                 </p>
             </div>

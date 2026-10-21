@@ -1,27 +1,29 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
 import { Head, Link, router } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
+import { toast } from 'vue-sonner';
 import {
-    ArrowDown,
-    ArrowUp,
-    ArrowUpDown,
-    CheckCircle2,
-    CirclePlus,
     FileText,
-    Hash,
+    Layers3,
     ListFilter,
-    Ruler,
+    Pencil,
+    Plus,
     Search,
     Settings2,
-    ShieldAlert,
     Trash2,
     X,
-    Pencil,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { create, destroy, edit } from '@/routes/admin/characteristics';
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
+import { Button } from '@/components/ui/button';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
+import { create, destroy, edit } from '@/routes/admin/characteristics';
 
 defineOptions({
     layout: AdminLayout,
@@ -69,42 +71,22 @@ const typeLabels: Record<string, string> = {
     boolean: 'Да / Нет',
 };
 
+/* ---------- Поиск и фильтры (по загруженной странице) ---------- */
+
 const search = ref('');
 const statusFilter = ref<'all' | 'active' | 'inactive'>('all');
 const typeFilter = ref('all');
-const sortBy = ref<'name' | 'type' | 'categories_count'>('name');
-const sortDirection = ref<'asc' | 'desc'>('asc');
-
-const activeCount = computed(
-    () => props.characteristics.data.filter((item) => item.is_active).length,
-);
-
-const inactiveCount = computed(
-    () => props.characteristics.data.filter((item) => !item.is_active).length,
-);
-
-const assignedCount = computed(
-    () =>
-        props.characteristics.data.filter((item) => item.categories_count > 0)
-            .length,
-);
-
-const availableTypes = computed(() => {
-    return [...new Set(props.characteristics.data.map((item) => item.type))];
-});
 
 const filteredCharacteristics = computed(() => {
-    const query = search.value.trim().toLocaleLowerCase('ru');
+    const query = search.value.trim().toLowerCase();
 
     const result = props.characteristics.data.filter((item) => {
         const matchesSearch =
             !query ||
-            item.name.toLocaleLowerCase('ru').includes(query) ||
-            item.slug.toLocaleLowerCase('ru').includes(query) ||
-            (item.unit ?? '').toLocaleLowerCase('ru').includes(query) ||
-            (typeLabels[item.type] ?? item.type)
-                .toLocaleLowerCase('ru')
-                .includes(query);
+            item.name.toLowerCase().includes(query) ||
+            item.slug.toLowerCase().includes(query) ||
+            (item.unit ?? '').toLowerCase().includes(query) ||
+            (typeLabels[item.type] ?? item.type).toLowerCase().includes(query);
 
         const matchesStatus =
             statusFilter.value === 'all' ||
@@ -117,744 +99,572 @@ const filteredCharacteristics = computed(() => {
         return matchesSearch && matchesStatus && matchesType;
     });
 
-    return [...result].sort((a, b) => {
-        let comparison = 0;
-
-        if (sortBy.value === 'name') {
-            comparison = a.name.localeCompare(b.name, 'ru');
-        } else if (sortBy.value === 'type') {
-            comparison = (typeLabels[a.type] ?? a.type).localeCompare(
-                typeLabels[b.type] ?? b.type,
-                'ru',
-            );
-        } else {
-            comparison = a.categories_count - b.categories_count;
-        }
-
-        return sortDirection.value === 'asc' ? comparison : -comparison;
-    });
+    return result;
 });
 
-const toggleSort = (field: typeof sortBy.value): void => {
-    if (sortBy.value === field) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-        return;
-    }
+const availableTypes = computed(() => {
+    return [...new Set(props.characteristics.data.map((item) => item.type))];
+});
 
-    sortBy.value = field;
-    sortDirection.value = 'asc';
-};
+const activeFiltersCount = computed(
+    () =>
+        [
+            search.value,
+            statusFilter.value !== 'all' ? statusFilter.value : '',
+            typeFilter.value !== 'all' ? typeFilter.value : '',
+        ].filter(Boolean).length,
+);
 
-const clearFilters = (): void => {
+const resetFilters = (): void => {
     search.value = '';
     statusFilter.value = 'all';
     typeFilter.value = 'all';
 };
 
-const deleteDialogOpen = ref(false);
-const deletingItemName = ref('');
-const deletingItemId = ref<number | null>(null);
-const deleting = ref(false);
+/* ---------- Статистика ---------- */
 
-const openDeleteDialog = (id: number, name: string): void => {
-    deletingItemId.value = id;
-    deletingItemName.value = name;
-    deleteDialogOpen.value = true;
+// Если страниц несколько, часть показателей считается только по текущей странице
+const paged = computed(() => props.characteristics.last_page > 1);
+const pageSuffix = computed(() => (paged.value ? ' на странице' : ''));
+
+const activeCount = computed(
+    () => props.characteristics.data.filter((item) => item.is_active).length,
+);
+const inactiveCount = computed(
+    () => props.characteristics.data.length - activeCount.value,
+);
+const assignedCount = computed(
+    () =>
+        props.characteristics.data.filter((item) => item.categories_count > 0)
+            .length,
+);
+
+const stats = computed(() => [
+    {
+        title: 'Всего характеристик',
+        value: props.characteristics.total,
+        icon: Settings2,
+        tone: 'bg-primary/10 text-primary',
+    },
+    {
+        title: `Активные${pageSuffix.value}`,
+        value: activeCount.value,
+        icon: Layers3,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+        title: `Неактивные${pageSuffix.value}`,
+        value: inactiveCount.value,
+        icon: FileText,
+        tone: 'bg-muted text-muted-foreground',
+    },
+    {
+        title: `Используются${pageSuffix.value}`,
+        value: assignedCount.value,
+        icon: ListFilter,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    },
+]);
+
+/* ---------- Удаление ---------- */
+
+const deleteDialog = ref({
+    open: false,
+    id: null as number | null,
+    name: '',
+    loading: false,
+});
+
+const openDeleteDialog = (characteristic: Characteristic): void => {
+    if (characteristic.categories_count > 0) {
+        toast.error('Нельзя удалить характеристику, которая привязана к категориям.');
+        return;
+    }
+
+    deleteDialog.value.id = characteristic.id;
+    deleteDialog.value.name = characteristic.name;
+    deleteDialog.value.open = true;
 };
 
 const closeDeleteDialog = (): void => {
-    if (deleting.value) return;
+    if (deleteDialog.value.loading) return;
 
-    deleteDialogOpen.value = false;
-    deletingItemId.value = null;
-    deletingItemName.value = '';
+    deleteDialog.value.open = false;
 };
 
 const confirmDelete = (): void => {
-    if (deletingItemId.value === null || deleting.value) return;
+    if (deleteDialog.value.id === null || deleteDialog.value.loading) return;
 
-    deleting.value = true;
+    deleteDialog.value.loading = true;
 
-    router.delete(destroy(deletingItemId.value).url, {
+    router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Запись успешно удалена.');
-            deleteDialogOpen.value = false;
-            deletingItemId.value = null;
-            deletingItemName.value = '';
+            toast.success('Характеристика удалена.');
         },
-        onError: (errors) => {
-            toast.error(errors.delete ?? 'Не удалось удалить характеристику.');
+        onError: () => {
+            toast.error('Не удалось удалить характеристику.');
         },
         onFinish: () => {
-            deleting.value = false;
+            deleteDialog.value.loading = false;
+            deleteDialog.value.open = false;
         },
     });
 };
+
+const activeBadge =
+    'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
+const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
 </script>
 
 <template>
     <Head title="Характеристики" />
 
-    <div class="space-y-6 p-4 sm:p-6">
+    <div class="space-y-6 pb-4">
         <!-- Заголовок -->
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
+        <header
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-            <div
-                class="pointer-events-none absolute -top-16 -right-12 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl"
-            />
-            <div
-                class="pointer-events-none absolute right-1/3 -bottom-20 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
-            />
-
-            <div
-                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-            >
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
+                >
+                    <Settings2 :size="24" />
+                </div>
                 <div>
-                    <div
-                        class="mb-3 flex items-center gap-2 text-sm text-indigo-200"
-                    >
-                        <Settings2 class="h-4 w-4" />
-                        Каталог товаров
-                    </div>
-
                     <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
                         Характеристики
                     </h1>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Параметры, которые можно назначать категориям товаров
+                    </p>
+                </div>
+            </div>
 
-                    <p
-                        class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base"
-                    >
-                        Управление параметрами, которые можно назначать
-                        категориям товаров.
+            <Button as-child class="w-full sm:w-auto">
+                <Link :href="create.url()">
+                    <Plus :size="18" class="mr-2" />
+                    Добавить характеристику
+                </Link>
+            </Button>
+        </header>
+
+        <!-- Статистика -->
+        <section
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Сводка"
+        >
+            <div
+                v-for="stat in stats"
+                :key="stat.title"
+                class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm"
+            >
+                <div
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                    :class="stat.tone"
+                >
+                    <component :is="stat.icon" :size="22" />
+                </div>
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-muted-foreground">
+                        {{ stat.title }}
+                    </p>
+                    <p class="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">
+                        {{ stat.value }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Список -->
+        <section
+            class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+            aria-labelledby="characteristics-title"
+        >
+            <div
+                class="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
+            >
+                <div>
+                    <h2 id="characteristics-title" class="font-semibold">
+                        Список характеристик
+                    </h2>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Показано:
+                        <span class="font-medium text-foreground tabular-nums">
+                            {{ filteredCharacteristics.length }}
+                        </span>
+                        <template v-if="paged"> (поиск — по текущей странице)</template>
                     </p>
                 </div>
 
-                <Link
-                    :href="create.url()"
-                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none"
-                >
-                    <CirclePlus class="h-5 w-5" />
-                    Добавить характеристику
-                </Link>
-            </div>
-        </div>
-
-        <!-- Статистика -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Всего характеристик
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-slate-900 dark:text-white"
-                        >
-                            {{ props.characteristics.total }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-indigo-50 p-3 dark:bg-indigo-500/10"
-                    >
-                        <Settings2
-                            class="h-6 w-6 text-indigo-600 dark:text-indigo-400"
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <div class="relative w-full sm:max-w-xs">
+                        <Search
+                            :size="16"
+                            class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
                         />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Во всех страницах каталога
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Активные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400"
-                        >
-                            {{ activeCount }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-emerald-50 p-3 dark:bg-emerald-500/10"
-                    >
-                        <CheckCircle2
-                            class="h-6 w-6 text-emerald-600 dark:text-emerald-400"
+                        <input
+                            v-model="search"
+                            type="search"
+                            placeholder="Название, slug, единица..."
+                            aria-label="Поиск характеристик"
+                            class="w-full rounded-xl border border-input bg-background py-2.5 pr-9 pl-9 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
                         />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    На текущей странице
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Неактивные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400"
+                        <button
+                            v-if="search"
+                            type="button"
+                            aria-label="Очистить поиск"
+                            class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                            @click="search = ''"
                         >
-                            {{ inactiveCount }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10"
-                    >
-                        <ShieldAlert
-                            class="h-6 w-6 text-amber-600 dark:text-amber-400"
-                        />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    На текущей странице
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Используются
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-sky-600 dark:text-sky-400"
-                        >
-                            {{ assignedCount }}
-                        </p>
-                    </div>
-                    <div class="rounded-xl bg-sky-50 p-3 dark:bg-sky-500/10">
-                        <ListFilter
-                            class="h-6 w-6 text-sky-600 dark:text-sky-400"
-                        />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Привязаны хотя бы к одной категории
-                </p>
-            </div>
-        </div>
-
-        <!-- Таблица -->
-        <div
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        >
-            <div
-                class="border-b border-slate-200 p-4 sm:p-5 dark:border-slate-800"
-            >
-                <div
-                    class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between"
-                >
-                    <div>
-                        <h2
-                            class="text-lg font-semibold text-slate-900 dark:text-white"
-                        >
-                            Список характеристик
-                        </h2>
-                        <p
-                            class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                        >
-                            Найдено: {{ filteredCharacteristics.length }}
-                            <span class="text-slate-400">
-                                из {{ props.characteristics.data.length }} на
-                                странице
-                            </span>
-                        </p>
+                            <X :size="16" />
+                        </button>
                     </div>
 
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:flex">
-                        <div class="relative sm:col-span-2 xl:min-w-64">
-                            <Search
-                                class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
-                            />
-                            <input
-                                v-model="search"
-                                type="search"
-                                placeholder="Название, slug, единица..."
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-9 pl-9 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
-                            />
-                            <button
-                                v-if="search"
-                                type="button"
-                                aria-label="Очистить поиск"
-                                class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-200"
-                                @click="search = ''"
-                            >
-                                <X class="h-4 w-4" />
-                            </button>
-                        </div>
+                    <Select v-model="statusFilter">
+                        <SelectTrigger class="w-full sm:w-[140px]">
+                            <SelectValue placeholder="Статус" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Все статусы</SelectItem>
+                            <SelectItem value="active">Активные</SelectItem>
+                            <SelectItem value="inactive">Неактивные</SelectItem>
+                        </SelectContent>
+                    </Select>
 
-                        <select
-                            v-model="statusFilter"
-                            aria-label="Фильтр по статусу"
-                            class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                        >
-                            <option value="all">Все статусы</option>
-                            <option value="active">Активные</option>
-                            <option value="inactive">Неактивные</option>
-                        </select>
-
-                        <select
-                            v-model="typeFilter"
-                            aria-label="Фильтр по типу"
-                            class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                        >
-                            <option value="all">Все типы данных</option>
-                            <option
+                    <Select v-model="typeFilter">
+                        <SelectTrigger class="w-full sm:w-[140px]">
+                            <SelectValue placeholder="Тип" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="all">Все типы</SelectItem>
+                            <SelectItem
                                 v-for="type in availableTypes"
                                 :key="type"
                                 :value="type"
                             >
                                 {{ typeLabels[type] ?? type }}
-                            </option>
-                        </select>
-                    </div>
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
                 </div>
             </div>
 
-            <!-- Карточки на мобильных -->
-            <div class="space-y-2 p-3 md:hidden">
-                <div
-                    v-for="characteristic in filteredCharacteristics"
-                    :key="characteristic.id"
-                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+            <div v-if="activeFiltersCount" class="border-t px-5 py-3 sm:px-6">
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    class="text-muted-foreground"
+                    @click="resetFilters"
                 >
-                    <!-- Заголовок карточки -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
-                                {{ characteristic.name }}
-                            </h3>
-                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-                                ID: {{ characteristic.id }}
-                            </p>
-                        </div>
+                    <X :size="15" class="mr-1.5" />
+                    Сбросить ({{ activeFiltersCount }})
+                </Button>
+            </div>
 
-                        <!-- Статус -->
-                        <span
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium"
-                            :class="
-                                characteristic.is_active
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                    : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                            "
-                        >
+            <!-- Пустое состояние -->
+            <div
+                v-if="filteredCharacteristics.length === 0"
+                class="flex flex-col items-center px-6 py-16 text-center"
+            >
+                <div
+                    class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted"
+                >
+                    <Search v-if="search || statusFilter !== 'all' || typeFilter !== 'all'" :size="28" class="text-muted-foreground" />
+                    <Settings2 v-else :size="28" class="text-muted-foreground" />
+                </div>
+                <p class="font-medium">
+                    {{ (search || statusFilter !== 'all' || typeFilter !== 'all') ? 'Ничего не найдено' : 'Характеристик пока нет' }}
+                </p>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                    {{
+                        (search || statusFilter !== 'all' || typeFilter !== 'all')
+                            ? 'Попробуйте изменить параметры фильтров.'
+                            : 'Создайте первую характеристику, чтобы задать параметры товаров.'
+                    }}
+                </p>
+
+                <Button
+                    v-if="search || statusFilter !== 'all' || typeFilter !== 'all'"
+                    variant="outline"
+                    class="mt-5"
+                    @click="resetFilters"
+                >
+                    Сбросить фильтры
+                </Button>
+                <Button v-else as-child class="mt-5">
+                    <Link :href="create.url()">
+                        <Plus :size="16" class="mr-2" />
+                        Добавить характеристику
+                    </Link>
+                </Button>
+            </div>
+
+            <template v-else>
+                <!-- Мобильные карточки -->
+                <ul class="divide-y md:hidden">
+                    <li
+                        v-for="characteristic in filteredCharacteristics"
+                        :key="characteristic.id"
+                        class="space-y-3 p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                >
+                                    <FileText :size="17" />
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold break-words">
+                                        {{ characteristic.name }}
+                                    </h3>
+                                    <p class="truncate text-xs text-muted-foreground">
+                                        {{ characteristic.slug }}
+                                    </p>
+                                </div>
+                            </div>
+
                             <span
-                                class="h-1 w-1 rounded-full"
-                                :class="
-                                    characteristic.is_active
-                                        ? 'bg-emerald-500'
-                                        : 'bg-slate-400'
-                                "
-                            />
-                            {{ characteristic.is_active ? 'Активен' : 'Неактивен' }}
-                        </span>
-                    </div>
-
-                    <!-- Инфо-блок -->
-                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Тип</p>
-                            <p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">
-                                {{ characteristic.type }}
-                            </p>
+                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                :class="characteristic.is_active ? activeBadge : inactiveBadge"
+                            >
+                                <span
+                                    class="size-1.5 rounded-full"
+                                    :class="characteristic.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                />
+                                {{ characteristic.is_active ? 'Активна' : 'Неактивна' }}
+                            </span>
                         </div>
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Категорий</p>
-                            <p class="font-semibold text-slate-700 dark:text-slate-300">
-                                {{ characteristic.categories_count }}
-                            </p>
+
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="rounded-lg bg-violet-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Тип</p>
+                                <p class="mt-0.5 truncate text-xs font-medium text-violet-700 dark:text-violet-400">
+                                    {{ typeLabels[characteristic.type] ?? characteristic.type }}
+                                </p>
+                            </div>
+                            <div class="rounded-lg bg-amber-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Единица</p>
+                                <p class="mt-0.5 truncate text-xs font-medium text-amber-700 dark:text-amber-400">
+                                    {{ characteristic.unit ?? '—' }}
+                                </p>
+                            </div>
+                            <div class="rounded-lg bg-sky-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Категорий</p>
+                                <p class="mt-0.5 text-sm font-bold text-sky-700 tabular-nums dark:text-sky-400">
+                                    {{ characteristic.categories_count }}
+                                </p>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Slug и единица -->
-                    <div class="mt-2 grid grid-cols-2 gap-1.5 text-xs">
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Slug</p>
-                            <code
-                                class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                        <div class="flex items-center gap-2">
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
+                                <Link :href="edit(characteristic.id).url">
+                                    <Pencil :size="14" class="mr-1.5" />
+                                    Изменить
+                                </Link>
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                class="size-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                :disabled="characteristic.categories_count > 0"
+                                :title="characteristic.categories_count > 0 ? 'Нельзя удалить: характеристика привязана к категориям' : 'Удалить'"
+                                @click="openDeleteDialog(characteristic)"
                             >
-                                {{ characteristic.slug }}
-                            </code>
+                                <Trash2 :size="15" />
+                                <span class="sr-only">Удалить</span>
+                            </Button>
                         </div>
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Единица</p>
-                            <p class="text-slate-700 dark:text-slate-300 truncate text-[10px]">
-                                {{ characteristic.unit || '—' }}
-                            </p>
-                        </div>
-                    </div>
+                    </li>
+                </ul>
 
-                    <!-- Действия -->
-                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
-                        <Link
-                            :href="edit(characteristic.id).url"
-                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
-                        >
-                            <Edit class="h-3 w-3" />
-                            Изменить
-                        </Link>
-
-                        <button
-                            type="button"
-                            :disabled="characteristic.categories_count > 0"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                            @click="openDeleteDialog(characteristic)"
-                        >
-                            <Trash2 class="h-3 w-3" />
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Пустое состояние -->
-                <div
-                    v-if="filteredCharacteristics.length === 0"
-                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
-                >
-                    <div
-                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                    >
-                        <Search class="h-6 w-6" />
-                    </div>
-                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
-                        Характеристики не найдены
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Измените поисковый запрос или сбросьте фильтры.
-                    </p>
-                    <button
-                        v-if="search || statusFilter !== 'all'"
-                        type="button"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
-                        @click="clearFilters"
-                    >
-                        <X class="h-3 w-3" />
-                        Сбросить фильтры
-                    </button>
-                </div>
-            </div>
-
-            <!-- Таблица на десктопе -->
-            <div class="hidden overflow-x-auto md:block">
-                <table class="w-full min-w-[950px] text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-950/60">
-                        <tr
-                            class="border-b border-slate-200 dark:border-slate-800"
-                        >
-                            <th
-                                class="px-5 py-4 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 transition hover:text-indigo-600 dark:hover:text-indigo-400"
-                                    @click="toggleSort('name')"
-                                >
-                                    Название
-                                    <ArrowUp
-                                        v-if="
-                                            sortBy === 'name' &&
-                                            sortDirection === 'asc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowDown
-                                        v-else-if="
-                                            sortBy === 'name' &&
-                                            sortDirection === 'desc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowUpDown
-                                        v-else
-                                        class="h-3.5 w-3.5 opacity-40"
-                                    />
-                                </button>
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Slug
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 transition hover:text-indigo-600 dark:hover:text-indigo-400"
-                                    @click="toggleSort('type')"
-                                >
-                                    Тип данных
-                                    <ArrowUp
-                                        v-if="
-                                            sortBy === 'type' &&
-                                            sortDirection === 'asc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowDown
-                                        v-else-if="
-                                            sortBy === 'type' &&
-                                            sortDirection === 'desc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowUpDown
-                                        v-else
-                                        class="h-3.5 w-3.5 opacity-40"
-                                    />
-                                </button>
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Единица
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-center font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 transition hover:text-indigo-600 dark:hover:text-indigo-400"
-                                    @click="toggleSort('categories_count')"
-                                >
-                                    Категорий
-                                    <ArrowUp
-                                        v-if="
-                                            sortBy === 'categories_count' &&
-                                            sortDirection === 'asc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowDown
-                                        v-else-if="
-                                            sortBy === 'categories_count' &&
-                                            sortDirection === 'desc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowUpDown
-                                        v-else
-                                        class="h-3.5 w-3.5 opacity-40"
-                                    />
-                                </button>
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-center font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Статус
-                            </th>
-
-                            <th
-                                class="px-5 py-4 text-right font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Действия
+                <!-- Таблица -->
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full min-w-[900px] text-left text-sm">
+                        <thead>
+                        <tr class="border-b bg-muted/40">
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Характеристика</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Тип</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Единица</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Категорий</th>
+                            <th scope="col" class="px-4 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-6 py-3.5">
+                                <span class="sr-only">Действия</span>
                             </th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody
-                        class="divide-y divide-slate-100 dark:divide-slate-800"
-                    >
+                        <tbody class="divide-y">
                         <tr
                             v-for="characteristic in filteredCharacteristics"
                             :key="characteristic.id"
-                            class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                            class="transition-colors hover:bg-muted/40"
                         >
-                            <td class="px-5 py-4">
+                            <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
+                                        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                                     >
-                                        <Settings2 class="h-5 w-5" />
+                                        <FileText :size="19" />
                                     </div>
-                                    <div>
-                                        <p
-                                            class="font-semibold text-slate-900 dark:text-white"
-                                        >
+                                    <div class="min-w-0">
+                                        <p class="font-semibold">
                                             {{ characteristic.name }}
                                         </p>
-                                        <p
-                                            class="mt-0.5 text-xs text-slate-500 dark:text-slate-400"
-                                        >
-                                            ID: {{ characteristic.id }}
+                                        <p class="mt-0.5 text-xs text-muted-foreground">
+                                            {{ characteristic.slug }}
                                         </p>
                                     </div>
                                 </div>
                             </td>
 
-                            <td class="px-5 py-4">
-                                <code
-                                    class="rounded-md bg-slate-100 px-2 py-1 text-xs text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                                >
-                                    {{ characteristic.slug }}
-                                </code>
-                            </td>
-
-                            <td class="px-5 py-4">
-                                <span
-                                    class="inline-flex items-center gap-2 rounded-lg bg-indigo-50 px-3 py-1.5 text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
-                                >
-                                    <FileText class="h-3.5 w-3.5" />
-                                    {{
-                                        typeLabels[characteristic.type] ??
-                                        characteristic.type
-                                    }}
-                                </span>
-                            </td>
-
-                            <td class="px-5 py-4">
-                                <span
-                                    v-if="characteristic.unit"
-                                    class="inline-flex items-center gap-1.5 text-slate-700 dark:text-slate-300"
-                                >
-                                    <Ruler class="h-3.5 w-3.5 text-slate-400" />
-                                    {{ characteristic.unit }}
-                                </span>
-                                <span v-else class="text-slate-400">—</span>
-                            </td>
-
-                            <td class="px-5 py-4 text-center">
-                                <span
-                                    :class="[
-                                        'inline-flex min-w-10 items-center justify-center rounded-lg px-2.5 py-1.5 font-semibold tabular-nums',
-                                        characteristic.categories_count > 0
-                                            ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300'
-                                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-                                    ]"
-                                >
-                                    {{ characteristic.categories_count }}
-                                </span>
-                            </td>
-
-                            <td class="px-5 py-4 text-center">
-                                <span
-                                    :class="[
-                                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-                                        characteristic.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                            : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-                                    ]"
-                                >
+                            <td class="px-4 py-4 text-center">
                                     <span
-                                        :class="[
-                                            'h-1.5 w-1.5 rounded-full',
-                                            characteristic.is_active
-                                                ? 'bg-emerald-500'
-                                                : 'bg-slate-400',
-                                        ]"
-                                    />
-                                    {{
-                                        characteristic.is_active
-                                            ? 'Активна'
-                                            : 'Неактивна'
-                                    }}
-                                </span>
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-violet-500/10 px-2.5 py-1.5 font-semibold text-violet-700 tabular-nums dark:text-violet-400"
+                                    >
+                                        {{ typeLabels[characteristic.type] ?? characteristic.type }}
+                                    </span>
                             </td>
 
-                            <td class="px-5 py-4">
-                                <div
-                                    class="flex items-center justify-end gap-2"
-                                >
-                                    <Link
-                                        :href="edit(characteristic.id).url"
-                                        :aria-label="`Изменить характеристику ${characteristic.name}`"
-                                        class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                            <td class="px-4 py-4 text-center">
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-amber-500/10 px-2.5 py-1.5 font-semibold text-amber-700 tabular-nums dark:text-amber-400"
                                     >
-                                        <Pencil class="h-3.5 w-3.5" />
-                                        Изменить
-                                    </Link>
+                                        {{ characteristic.unit ?? '—' }}
+                                    </span>
+                            </td>
 
-                                    <button
-                                        type="button"
-                                        :aria-label="`Удалить характеристику ${characteristic.name}`"
-                                        class="inline-flex items-center gap-2 rounded-lg border border-rose-200 bg-white px-3 py-2 text-xs font-medium text-rose-600 transition hover:border-rose-300 hover:bg-rose-50 focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:outline-none dark:border-rose-900/60 dark:bg-slate-900 dark:text-rose-400 dark:hover:border-rose-700 dark:hover:bg-rose-500/10"
-                                        @click="
-                                            openDeleteDialog(
-                                                characteristic.id,
-                                                characteristic.name,
-                                            )
-                                        "
+                            <td class="px-4 py-4 text-center">
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-sky-500/10 px-2.5 py-1.5 font-semibold text-sky-700 tabular-nums dark:text-sky-400"
                                     >
-                                        <Trash2 class="h-3.5 w-3.5" />
-                                        Удалить
-                                    </button>
+                                        {{ characteristic.categories_count }}
+                                    </span>
+                            </td>
+
+                            <td class="px-4 py-4">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                        :class="characteristic.is_active ? activeBadge : inactiveBadge"
+                                    >
+                                        <span
+                                            class="size-1.5 rounded-full"
+                                            :class="characteristic.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                        />
+                                        {{ characteristic.is_active ? 'Активна' : 'Неактивна' }}
+                                    </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <Button
+                                        as-child
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9"
+                                    >
+                                        <Link :href="edit(characteristic.id).url">
+                                            <Pencil :size="16" />
+                                            <span class="sr-only">Изменить</span>
+                                        </Link>
+                                    </Button>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        :disabled="characteristic.categories_count > 0"
+                                        :title="characteristic.categories_count > 0 ? 'Нельзя удалить: характеристика привязана к категориям' : 'Удалить'"
+                                        @click="openDeleteDialog(characteristic)"
+                                    >
+                                        <Trash2 :size="16" />
+                                        <span class="sr-only">Удалить</span>
+                                    </Button>
                                 </div>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-            </div>
-
-            <!-- Пагинация -->
-            <div
-                v-if="props.characteristics.last_page > 1"
-                class="flex flex-col gap-4 border-t border-slate-200 px-4 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-5 dark:border-slate-800"
-            >
-                <p class="text-sm text-slate-500 dark:text-slate-400">
-                    Показаны
-                    <span
-                        class="font-semibold text-slate-700 dark:text-slate-200"
-                    >
-                        {{ props.characteristics.from ?? 0 }}–{{
-                            props.characteristics.to ?? 0
-                        }}
-                    </span>
-                    из
-                    <span
-                        class="font-semibold text-slate-700 dark:text-slate-200"
-                    >
-                        {{ props.characteristics.total }}
-                    </span>
-                    характеристик
-                </p>
-
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <Link
-                        v-for="(link, index) in props.characteristics.links"
-                        :key="`${index}-${link.label}`"
-                        :href="link.url ?? '#'"
-                        preserve-scroll
-                        :class="[
-                            'inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border px-3 py-2 text-sm transition',
-                            link.active
-                                ? 'border-indigo-600 bg-indigo-600 font-semibold text-white shadow-sm'
-                                : 'border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:border-indigo-500/50 dark:hover:bg-indigo-500/10',
-                            !link.url ? 'pointer-events-none opacity-40' : '',
-                        ]"
-                    >
-                        <span v-html="link.label" />
-                    </Link>
+                        </tbody>
+                    </table>
                 </div>
+            </template>
+        </section>
+
+        <!-- Пагинация -->
+        <nav
+            v-if="characteristics.last_page > 1"
+            class="flex flex-col gap-4 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+            aria-label="Пагинация характеристик"
+        >
+            <p class="text-sm text-muted-foreground">
+                Показано
+                <span class="font-medium text-foreground tabular-nums">
+                    {{ characteristics.from }}–{{ characteristics.to }}
+                </span>
+                из
+                <span class="font-medium text-foreground tabular-nums">
+                    {{ characteristics.total }}
+                </span>
+            </p>
+
+            <div class="flex items-center gap-1">
+                <Button
+                    v-if="characteristics.links[0]?.url"
+                    as-child
+                    variant="outline"
+                    size="icon"
+                    class="size-9"
+                >
+                    <Link :href="characteristics.links[0].url" preserve-scroll>
+                        <span class="sr-only">Предыдущая страница</span>
+                        <span aria-hidden="true">←</span>
+                    </Link>
+                </Button>
+
+                <template v-for="(link, index) in characteristics.links.slice(1, -1)" :key="index">
+                    <Button
+                        v-if="link.url"
+                        as-child
+                        :variant="link.active ? 'default' : 'outline'"
+                        size="icon"
+                        class="size-9"
+                    >
+                        <Link :href="link.url" preserve-scroll>
+                            {{ link.label }}
+                        </Link>
+                    </Button>
+                    <span
+                        v-else
+                        class="inline-flex size-9 items-center justify-center text-sm"
+                    >
+                        {{ link.label }}
+                    </span>
+                </template>
+
+                <Button
+                    v-if="characteristics.links[characteristics.links.length - 1]?.url"
+                    as-child
+                    variant="outline"
+                    size="icon"
+                    class="size-9"
+                >
+                    <Link :href="characteristics.links[characteristics.links.length - 1].url!" preserve-scroll>
+                        <span class="sr-only">Следующая страница</span>
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </Button>
             </div>
+        </nav>
     </div>
 
+    <!-- Диалог подтверждения удаления -->
     <ConfirmDeleteDialog
-        :open="deleteDialogOpen"
-        :item-name="deletingItemName"
-        description="Это действие нельзя отменить."
-        :processing="deleting"
+        :open="deleteDialog.open"
+        :item-name="deleteDialog.name"
+        :loading="deleteDialog.loading"
+        @close="closeDeleteDialog"
         @confirm="confirmDelete"
-        @cancel="closeDeleteDialog"
     />
 </template>

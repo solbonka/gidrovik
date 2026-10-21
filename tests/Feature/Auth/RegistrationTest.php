@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Enums\UserRole;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Laravel\Fortify\Features;
 use Tests\TestCase;
@@ -35,5 +37,34 @@ class RegistrationTest extends TestCase
 
         $this->assertAuthenticated();
         $response->assertRedirect(route('dashboard', absolute: false));
+    }
+
+    public function test_the_first_registered_user_becomes_an_administrator()
+    {
+        $this->post(route('register.store'), [
+            'name' => 'First User',
+            'email' => 'first@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertSame(UserRole::ADMIN, User::query()->firstOrFail()->role);
+    }
+
+    public function test_subsequent_users_are_registered_as_viewers()
+    {
+        User::factory()->withRole(UserRole::ADMIN)->create();
+
+        $this->post(route('register.store'), [
+            'name' => 'Second User',
+            'email' => 'second@example.com',
+            'password' => 'password',
+            'password_confirmation' => 'password',
+        ]);
+
+        $this->assertSame(
+            UserRole::VIEWER,
+            User::query()->where('email', 'second@example.com')->firstOrFail()->role,
+        );
     }
 }

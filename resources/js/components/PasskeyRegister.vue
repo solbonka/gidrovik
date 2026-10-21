@@ -10,7 +10,7 @@ const emit = defineEmits<{
     success: [];
 }>();
 
-const getDefaultPasskeyName = () => {
+const getDefaultPasskeyName = (): string => {
     const ua = navigator.userAgent;
 
     const browser = [
@@ -29,7 +29,7 @@ const getDefaultPasskeyName = () => {
         { pattern: /Windows/, name: 'Windows' },
     ].find(({ pattern }) => pattern.test(ua))?.name;
 
-    return [browser, os].filter(Boolean).join(' on ') || '';
+    return [browser, os].filter(Boolean).join(' на ') || '';
 };
 
 const name = ref(getDefaultPasskeyName());
@@ -43,59 +43,83 @@ const { register, isLoading, error, isSupported } = usePasskeyRegister({
     },
 });
 
-const handleSubmit = async (event: Event) => {
+const handleSubmit = async (event: Event): Promise<void> => {
     event.preventDefault();
 
     if (!name.value.trim()) {
         return;
     }
 
-    await register(name.value);
+    await register(name.value.trim());
 };
 
-const handleCancel = () => {
+const handleCancel = (): void => {
     showForm.value = false;
     name.value = '';
 };
 </script>
 
 <template>
-    <div v-if="!isSupported" class="text-sm text-muted-foreground">
-        Passkeys are not supported in this browser.
+    <div
+        v-if="!isSupported"
+        class="text-sm text-muted-foreground"
+    >
+        Ваш браузер не поддерживает ключи доступа (Passkeys).
     </div>
 
-    <Button v-else-if="!showForm" variant="outline" @click="showForm = true">
-        Add passkey
+    <Button
+        v-else-if="!showForm"
+        variant="outline"
+        @click="showForm = true"
+    >
+        Добавить ключ доступа
     </Button>
 
     <form
         v-else
+        class="space-y-4 rounded-xl border border-border bg-card p-4"
         @submit="handleSubmit"
-        class="space-y-4 rounded-lg border border-border bg-muted/50 p-4"
     >
         <div class="grid gap-2">
-            <Label for="passkey-name">Passkey name</Label>
+            <Label for="passkey-name">
+                Название ключа доступа
+            </Label>
+
             <Input
                 id="passkey-name"
-                type="text"
                 v-model="name"
-                placeholder="e.g., MacBook Pro, iPhone"
-                class="mt-1 block w-full border-foreground/20"
+                type="text"
+                placeholder="Например, MacBook Pro или iPhone"
+                class="mt-1 block w-full"
                 v-focus
             />
-            <p class="text-xs text-muted-foreground">
-                A name helps you identify this passkey later.
+
+            <p class="text-xs leading-relaxed text-muted-foreground">
+                Укажите название, по которому вы сможете определить этот ключ
+                доступа в дальнейшем.
             </p>
         </div>
 
-        <InputError v-if="error" :message="error" />
+        <InputError
+            v-if="error"
+            :message="error"
+        />
 
-        <div class="flex gap-2">
-            <Button type="submit" :disabled="isLoading || !name.trim()">
-                {{ isLoading ? 'Registering...' : 'Register passkey' }}
+        <div class="flex flex-wrap gap-2">
+            <Button
+                type="submit"
+                :disabled="isLoading || !name.trim()"
+            >
+                {{ isLoading ? 'Регистрация...' : 'Зарегистрировать ключ' }}
             </Button>
-            <Button type="button" variant="ghost" @click="handleCancel">
-                Cancel
+
+            <Button
+                type="button"
+                variant="ghost"
+                :disabled="isLoading"
+                @click="handleCancel"
+            >
+                Отмена
             </Button>
         </div>
     </form>

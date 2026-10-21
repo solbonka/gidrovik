@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { BookOpen, FolderGit2, LayoutGrid, Warehouse } from '@lucide/vue';
+import { BookOpen, FolderGit2, LayoutGrid, Palette, Shield, User, Warehouse } from '@lucide/vue';
 import AppLogo from '@/components/AppLogo.vue';
 import NavFooter from '@/components/NavFooter.vue';
 import NavMain from '@/components/NavMain.vue';
@@ -15,6 +15,9 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
+import { edit as editProfile } from '@/routes/profile';
+import { edit as editSecurity } from '@/routes/security';
+import { edit as editAppearance } from '@/routes/appearance';
 import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
@@ -22,6 +25,21 @@ const mainNavItems: NavItem[] = [
         title: 'Dashboard',
         href: dashboard(),
         icon: LayoutGrid,
+    },
+    {
+        title: 'Profile',
+        href: editProfile(),
+        icon: User,
+    },
+    {
+        title: 'Security',
+        href: editSecurity(),
+        icon: Shield,
+    },
+    {
+        title: 'Appearance',
+        href: editAppearance(),
+        icon: Palette,
     },
     {
         title: 'Admin panel',

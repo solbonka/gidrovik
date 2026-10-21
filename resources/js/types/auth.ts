@@ -1,8 +1,18 @@
+export type Permission =
+    | 'view'
+    | 'catalog.manage'
+    | 'stock.operate'
+    | 'stock.correct'
+    | 'users.manage';
+
+export type UserRole = 'admin' | 'manager' | 'warehouse' | 'viewer';
+
 export type User = {
     id: number;
     name: string;
     email: string;
     avatar?: string;
+    role?: UserRole;
     email_verified_at: string | null;
     two_factor_enabled?: boolean;
     created_at: string;

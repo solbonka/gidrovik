@@ -1,18 +1,20 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import { toast } from 'vue-sonner';
 import {
-    ArrowLeft,
     FolderPen,
-    Tag,
-    Hash,
-    CheckCircle2,
-    Save,
-    X,
     Info,
+    LoaderCircle,
     RotateCcw,
+    Save,
+    Settings2,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
+import StockPageHeader from '@/components/admin/stock/StockPageHeader.vue';
+import StockField from '@/components/admin/stock/StockField.vue';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { index, update } from '@/routes/admin/categories';
 
 defineOptions({
@@ -36,6 +38,8 @@ const form = useForm({
     is_active: props.category.is_active,
 });
 
+const slugChanged = computed(() => form.slug !== props.category.slug);
+
 const submit = (): void => {
     form.put(update.url(props.category.id), {
         onSuccess: () => {
@@ -48,9 +52,7 @@ const submit = (): void => {
 };
 
 const resetForm = (): void => {
-    form.name = props.category.name;
-    form.slug = props.category.slug;
-    form.is_active = props.category.is_active;
+    form.reset();
     form.clearErrors();
 };
 </script>
@@ -58,371 +60,183 @@ const resetForm = (): void => {
 <template>
     <Head :title="`Редактирование: ${category.name}`" />
 
-    <div class="mx-auto max-w-3xl space-y-6 pb-8">
-        <!-- Шапка -->
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-6 shadow-lg sm:px-8 sm:py-8"
-        >
-            <div
-                class="pointer-events-none absolute -top-16 -right-12 h-56 w-56 rounded-full bg-indigo-500/20 blur-3xl"
-            />
+    <div class="mx-auto max-w-5xl space-y-6 pb-4">
+        <StockPageHeader
+            title="Редактирование категории"
+            :description="`Изменение настроек категории «${category.name}»`"
+            :back-href="index.url()"
+            back-label="К категориям"
+            :icon="FolderPen"
+        />
 
-            <div
-                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
+        <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+            <form
+                class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+                novalidate
+                @submit.prevent="submit"
             >
-                <div class="flex items-start gap-4">
-                    <div
-                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white sm:h-14 sm:w-14"
-                    >
-                        <FolderPen :size="27" />
-                    </div>
-
-                    <div class="min-w-0">
-                        <div
-                            class="mb-1 flex flex-wrap items-center gap-2 text-xs font-medium text-slate-300"
-                        >
-                            <span>Склад</span>
-                            <span class="text-slate-500">/</span>
-
-                            <Link
-                                :href="index.url()"
-                                class="transition hover:text-white"
-                            >
-                                Категории
-                            </Link>
-
-                            <span class="text-slate-500">/</span>
-                            <span class="text-white/90">Редактирование</span>
-                        </div>
-
-                        <h1
-                            class="text-2xl font-bold tracking-tight break-words text-white sm:text-3xl"
-                        >
-                            Редактирование категории
-                        </h1>
-
-                        <p class="mt-2 text-sm leading-6 text-slate-300">
-                            Изменение настроек категории
-                            <span class="font-semibold text-white">
-                                {{ category.name }}
-                            </span>
-                        </p>
-                    </div>
-                </div>
-
-                <Link
-                    :href="index.url()"
-                    class="inline-flex min-h-10 items-center justify-center gap-2 self-start rounded-xl border border-white/15 bg-white/10 px-4 py-2 text-sm font-medium text-white transition hover:bg-white/15 focus:ring-2 focus:ring-white/50 focus:outline-none sm:self-center"
-                >
-                    <ArrowLeft :size="16" />
-                    К категориям
-                </Link>
-            </div>
-        </div>
-
-        <!-- Информация о категории -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div
-                class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                >
-                    <Tag :size="20" />
-                </div>
-
-                <div class="min-w-0">
-                    <p
-                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
-                    >
-                        ID категории
-                    </p>
-                    <p
-                        class="mt-1 text-lg font-bold text-slate-900 dark:text-white"
-                    >
-                        #{{ category.id }}
+                <div class="border-b px-6 py-5">
+                    <h2 class="font-semibold">Основная информация</h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Обновите название, идентификатор и статус категории
                     </p>
                 </div>
-            </div>
 
-            <div
-                class="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div
-                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl"
-                    :class="
-                        form.is_active
-                            ? 'bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400'
-                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400'
-                    "
-                >
-                    <CheckCircle2 :size="20" />
-                </div>
-
-                <div class="min-w-0">
-                    <p
-                        class="text-xs font-medium text-slate-500 dark:text-slate-400"
+                <div class="space-y-6 p-6">
+                    <StockField
+                        label="Название категории"
+                        for-id="name"
+                        required
+                        :error="form.errors.name"
+                        hint="Название, которое отображается в интерфейсе склада."
                     >
-                        Текущий статус
-                    </p>
-
-                    <p
-                        class="mt-1 text-sm font-semibold"
-                        :class="
-                            form.is_active
-                                ? 'text-emerald-700 dark:text-emerald-400'
-                                : 'text-slate-600 dark:text-slate-300'
-                        "
-                    >
-                        {{ form.is_active ? 'Активна' : 'Неактивна' }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Форма редактирования -->
-        <form
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
-            @submit.prevent="submit"
-        >
-            <div
-                class="flex items-center gap-3 border-b border-slate-200 px-5 py-5 sm:px-7 dark:border-slate-700"
-            >
-                <div
-                    class="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                >
-                    <FolderPen :size="20" />
-                </div>
-
-                <div>
-                    <h2
-                        class="text-base font-semibold text-slate-900 dark:text-white"
-                    >
-                        Основная информация
-                    </h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Обновите название, идентификатор и статус категории.
-                    </p>
-                </div>
-            </div>
-
-            <div class="space-y-6 p-5 sm:p-7">
-                <!-- Название -->
-                <div>
-                    <label
-                        for="name"
-                        class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                    >
-                        Название категории
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <div class="relative">
-                        <Tag
-                            :size="18"
-                            class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
-                        />
-
-                        <input
+                        <Input
                             id="name"
                             v-model="form.name"
                             type="text"
                             autocomplete="off"
                             placeholder="Например, Рукава"
+                            class="h-11 rounded-xl"
                             :aria-invalid="!!form.errors.name"
-                            class="w-full rounded-xl border bg-slate-50 py-3 pr-4 pl-11 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
-                            :class="
-                                form.errors.name
-                                    ? 'border-red-400 focus:border-red-400 focus:ring-red-500/10 dark:border-red-500'
-                                    : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-500/10 dark:border-slate-700 dark:focus:border-indigo-500'
-                            "
+                            :aria-describedby="form.errors.name ? 'name-error' : undefined"
                         />
-                    </div>
+                    </StockField>
 
-                    <p
-                        v-if="form.errors.name"
-                        class="mt-2 flex items-start gap-1.5 text-sm text-red-600 dark:text-red-400"
+                    <StockField
+                        label="Slug"
+                        for-id="slug"
+                        required
+                        :error="form.errors.slug"
+                        :warning="
+                            slugChanged
+                                ? 'Вы меняете slug. Если он используется в коде или ссылках, они могут перестать работать.'
+                                : undefined
+                        "
+                        hint="Системный идентификатор категории."
                     >
-                        <Info :size="15" class="mt-0.5 shrink-0" />
-                        {{ form.errors.name }}
-                    </p>
-
-                    <p
-                        v-else
-                        class="mt-2 text-xs text-slate-500 dark:text-slate-400"
-                    >
-                        Название, которое отображается в интерфейсе склада.
-                    </p>
-                </div>
-
-                <!-- Slug -->
-                <div>
-                    <label
-                        for="slug"
-                        class="mb-2 block text-sm font-semibold text-slate-700 dark:text-slate-200"
-                    >
-                        Slug
-                        <span class="text-red-500">*</span>
-                    </label>
-
-                    <div class="relative">
-                        <Hash
-                            :size="18"
-                            class="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-slate-400"
-                        />
-
-                        <input
+                        <Input
                             id="slug"
                             v-model="form.slug"
                             type="text"
                             autocomplete="off"
                             placeholder="rukava"
+                            class="h-11 rounded-xl font-mono"
                             :aria-invalid="!!form.errors.slug"
-                            class="w-full rounded-xl border bg-slate-50 py-3 pr-4 pl-11 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:bg-white focus:ring-4 dark:bg-slate-800 dark:text-white dark:focus:bg-slate-800"
-                            :class="
-                                form.errors.slug
-                                    ? 'border-red-400 focus:border-red-400 focus:ring-red-500/10 dark:border-red-500'
-                                    : 'border-slate-200 focus:border-indigo-400 focus:ring-indigo-500/10 dark:border-slate-700 dark:focus:border-indigo-500'
-                            "
+                            :aria-describedby="form.errors.slug ? 'slug-error' : undefined"
                         />
-                    </div>
+                    </StockField>
 
-                    <p
-                        v-if="form.errors.slug"
-                        class="mt-2 flex items-start gap-1.5 text-sm text-red-600 dark:text-red-400"
-                    >
-                        <Info :size="15" class="mt-0.5 shrink-0" />
-                        {{ form.errors.slug }}
-                    </p>
-
-                    <p
-                        v-else
-                        class="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400"
-                    >
-                        Системный идентификатор категории. Если он используется
-                        в коде или URL, меняйте его внимательно.
-                    </p>
-                </div>
-
-                <!-- Статус -->
-                <div
-                    class="rounded-xl border p-4 transition-colors"
-                    :class="
-                        form.is_active
-                            ? 'border-emerald-200 bg-emerald-50/60 dark:border-emerald-500/20 dark:bg-emerald-500/5'
-                            : 'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/50'
-                    "
-                >
                     <label
-                        for="is_active"
-                        class="flex cursor-pointer items-start gap-3"
+                        class="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4"
                     >
                         <input
-                            id="is_active"
                             v-model="form.is_active"
                             type="checkbox"
-                            class="mt-0.5 size-4 shrink-0 rounded border-slate-300 text-emerald-600 focus:ring-2 focus:ring-emerald-500/20 dark:border-slate-600 dark:bg-slate-800"
+                            class="mt-0.5 size-4 rounded border-input accent-primary"
                         />
-
-                        <span class="min-w-0 flex-1">
-                            <span
-                                class="flex flex-wrap items-center gap-2 text-sm font-semibold text-slate-900 dark:text-white"
-                            >
+                        <span>
+                            <span class="block text-sm font-semibold">
                                 Категория активна
-
-                                <span
-                                    v-if="form.is_active"
-                                    class="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                >
-                                    <CheckCircle2 :size="12" />
-                                    Активна
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="rounded-full bg-slate-200 px-2 py-0.5 text-xs font-medium text-slate-600 dark:bg-slate-700 dark:text-slate-300"
-                                >
-                                    Неактивна
-                                </span>
                             </span>
-
-                            <span
-                                class="mt-1 block text-sm leading-5 text-slate-500 dark:text-slate-400"
-                            >
-                                Статус определяет, доступна ли категория для
-                                использования в интерфейсе.
+                            <span class="mt-1 block text-sm leading-5 text-muted-foreground">
+                                Статус определяет, доступна ли категория в
+                                интерфейсе.
                             </span>
                         </span>
                     </label>
                 </div>
-            </div>
 
-            <!-- Действия -->
-            <div
-                class="flex flex-col-reverse gap-3 border-t border-slate-200 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7 dark:border-slate-700 dark:bg-slate-800/30"
-            >
-                <button
-                    type="button"
-                    :disabled="form.processing"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 focus:ring-2 focus:ring-slate-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
-                    @click="resetForm"
+                <div
+                    class="flex flex-col-reverse gap-3 border-t bg-muted/30 px-6 py-4 sm:flex-row sm:items-center sm:justify-between"
                 >
-                    <RotateCcw :size="16" />
-                    Сбросить изменения
-                </button>
-
-                <div class="flex flex-col-reverse gap-3 sm:flex-row">
-                    <Link
-                        :href="index.url()"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus:ring-2 focus:ring-slate-500/20 focus:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
+                    <Button
+                        v-if="form.isDirty"
+                        type="button"
+                        variant="ghost"
+                        class="text-muted-foreground"
+                        :disabled="form.processing"
+                        @click="resetForm"
                     >
-                        <X :size="16" />
-                        Отмена
-                    </Link>
+                        <RotateCcw :size="15" class="mr-2" />
+                        Вернуть как было
+                    </Button>
+                    <span v-else />
 
-                    <button
-                        type="submit"
-                        :disabled="form.processing || !form.isDirty"
-                        class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-                    >
-                        <span
-                            v-if="form.processing"
-                            class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                        />
-                        <Save v-else :size="17" />
+                    <div class="flex flex-col-reverse gap-3 sm:flex-row">
+                        <Button as-child variant="outline" :disabled="form.processing">
+                            <Link :href="index.url()">Отмена</Link>
+                        </Button>
 
-                        {{
-                            form.processing
-                                ? 'Сохранение...'
-                                : 'Сохранить изменения'
-                        }}
-                    </button>
+                        <Button
+                            type="submit"
+                            :disabled="form.processing || !form.isDirty"
+                        >
+                            <LoaderCircle
+                                v-if="form.processing"
+                                :size="17"
+                                class="mr-2 animate-spin"
+                            />
+                            <Save v-else :size="17" class="mr-2" />
+                            {{ form.processing ? 'Сохранение...' : 'Сохранить изменения' }}
+                        </Button>
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
 
-        <!-- Подсказка -->
-        <div
-            class="flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50/70 p-4 dark:border-blue-500/20 dark:bg-blue-500/5"
-        >
-            <Info
-                :size="18"
-                class="mt-0.5 shrink-0 text-blue-600 dark:text-blue-400"
-            />
+            <aside class="space-y-4 lg:sticky lg:top-6">
+                <div class="rounded-2xl border bg-card p-5 shadow-sm">
+                    <dl class="space-y-3 text-sm">
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-muted-foreground">ID категории</dt>
+                            <dd class="font-semibold tabular-nums">
+                                #{{ category.id }}
+                            </dd>
+                        </div>
 
-            <div>
-                <p
-                    class="text-sm font-semibold text-blue-900 dark:text-blue-200"
-                >
-                    Обратите внимание
-                </p>
-                <p
-                    class="mt-1 text-sm leading-5 text-blue-800/80 dark:text-blue-300/80"
-                >
-                    Изменение названия не меняет автоматически характеристики и
-                    типы товаров, связанные с этой категорией.
-                </p>
-            </div>
+                        <div class="flex items-center justify-between gap-3">
+                            <dt class="text-muted-foreground">Статус</dt>
+                            <dd>
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                    :class="
+                                        form.is_active
+                                            ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400'
+                                            : 'bg-muted text-muted-foreground ring-border'
+                                    "
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="form.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                    />
+                                    {{ form.is_active ? 'Активна' : 'Неактивна' }}
+                                </span>
+                            </dd>
+                        </div>
+                    </dl>
+
+                    <Button
+                        as-child
+                        variant="outline"
+                        class="mt-5 w-full justify-start"
+                    >
+                        <Link :href="`/admin/categories/${category.id}/characteristics`">
+                            <Settings2 :size="16" class="mr-2" />
+                            Характеристики категории
+                        </Link>
+                    </Button>
+                </div>
+
+                <div class="flex items-start gap-3 rounded-2xl border bg-muted/40 p-4">
+                    <Info :size="18" class="mt-0.5 shrink-0 text-primary" />
+                    <div>
+                        <p class="text-sm font-semibold">Обратите внимание</p>
+                        <p class="mt-1 text-sm leading-relaxed text-muted-foreground">
+                            Изменение названия не меняет автоматически
+                            характеристики и типы товаров этой категории.
+                        </p>
+                    </div>
+                </div>
+            </aside>
         </div>
     </div>
 </template>

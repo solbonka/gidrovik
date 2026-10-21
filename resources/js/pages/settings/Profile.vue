@@ -1,105 +1,127 @@
 <script setup lang="ts">
-import { Form, Head, usePage } from '@inertiajs/vue3';
-import { Link } from '@inertiajs/vue3';
+import { Form, Head, Link, usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import ProfileController from '@/actions/App/Http/Controllers/Settings/ProfileController';
+import AdminLayout from '@/layouts/AdminLayout.vue';
+import AuthStatus from '@/components/AuthStatus.vue';
 import DeleteUser from '@/components/DeleteUser.vue';
 import Heading from '@/components/Heading.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { edit } from '@/routes/profile';
+import { Spinner } from '@/components/ui/spinner';
 import { send } from '@/routes/verification';
 
 defineOptions({
-    layout: {
-        breadcrumbs: [
-            {
-                title: 'Profile settings',
-                href: edit(),
-            },
-        ],
-    },
+    layout: AdminLayout,
 });
 
 const page = usePage();
 const user = computed(() => page.props.auth.user);
+
+const needsVerification = computed(
+    () => page.props.mustVerifyEmail && !user.value.email_verified_at,
+);
 </script>
 
 <template>
-    <Head title="Profile settings" />
-
-    <h1 class="sr-only">Profile settings</h1>
+    <Head title="Настройки профиля" />
 
     <div class="flex flex-col space-y-6">
         <Heading
             variant="small"
-            title="Profile"
-            description="Update your name and email address"
+            title="Профиль"
+            description="Обновите имя и адрес электронной почты"
         />
 
         <Form
             v-bind="ProfileController.update.form()"
             class="space-y-6"
-            v-slot="{ errors, processing }"
+            v-slot="{ errors, processing, recentlySuccessful }"
         >
             <div class="grid gap-2">
-                <Label for="name">Name</Label>
+                <Label for="name">Имя</Label>
+
                 <Input
                     id="name"
-                    class="mt-1 block w-full"
+                    class="block w-full"
                     name="name"
                     :default-value="user.name"
                     required
                     autocomplete="name"
-                    placeholder="Full name"
+                    placeholder="Ваше имя"
                 />
-                <InputError class="mt-2" :message="errors.name" />
+
+                <InputError :message="errors.name" />
             </div>
 
             <div class="grid gap-2">
-                <Label for="email">Email address</Label>
+                <Label for="email">Адрес email</Label>
+
                 <Input
                     id="email"
                     type="email"
-                    class="mt-1 block w-full"
+                    class="block w-full"
                     name="email"
                     :default-value="user.email"
                     required
                     autocomplete="username"
-                    placeholder="Email address"
+                    placeholder="email@example.com"
                 />
-                <InputError class="mt-2" :message="errors.email" />
+
+                <InputError :message="errors.email" />
             </div>
 
-            <div v-if="page.props.mustVerifyEmail && !user.email_verified_at">
-                <p class="-mt-4 text-sm text-muted-foreground">
-                    Your email address is unverified.
-                    <Link
-                        :href="send()"
-                        as="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
-                    >
-                        Click here to re-send the verification email.
-                    </Link>
+            <div
+                v-if="needsVerification"
+                class="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4 text-sm"
+            >
+                <p class="font-medium text-amber-900 dark:text-amber-200">
+                    Ваш адрес email не подтверждён.
                 </p>
 
-                <div
-                    v-if="page.props.status === 'verification-link-sent'"
-                    class="mt-2 text-sm font-medium text-green-600"
+                <Link
+                    :href="send()"
+                    as="button"
+                    type="button"
+                    class="mt-1 text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current dark:decoration-neutral-500"
                 >
-                    A new verification link has been sent to your email address.
-                </div>
+                    Отправить письмо для подтверждения ещё раз
+                </Link>
             </div>
+
+            <AuthStatus
+                v-if="page.props.status === 'verification-link-sent'"
+                message="Новая ссылка для подтверждения отправлена на ваш email."
+            />
 
             <div class="flex items-center gap-4">
-                <Button :disabled="processing" data-test="update-profile-button"
-                    >Save</Button
+                <Button
+                    type="submit"
+                    :disabled="processing"
+                    data-test="update-profile-button"
                 >
+                    <Spinner v-if="processing" />
+                    Сохранить
+                </Button>
+
+                <Transition
+                    enter-active-class="transition ease-in-out"
+                    enter-from-class="opacity-0"
+                    leave-active-class="transition ease-in-out"
+                    leave-to-class="opacity-0"
+                >
+                    <p
+                        v-show="recentlySuccessful"
+                        class="text-sm font-medium text-emerald-700 dark:text-emerald-400"
+                    >
+                        Сохранено.
+                    </p>
+                </Transition>
             </div>
         </Form>
-    </div>
 
-    <DeleteUser />
+        <DeleteUser />
+    </div>
 </template>

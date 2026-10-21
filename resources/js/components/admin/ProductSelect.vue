@@ -9,12 +9,12 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select'
-
+import type { AcceptableValue } from 'reka-ui';
 interface ProductOption {
     id: number
     name: string
     sku: string | null
-    unit: string
+    unit?: string
     stock_quantity?: number
     minimum_stock?: number | null
     characteristics?: string
@@ -157,13 +157,17 @@ const getStockColorClass = (
     return 'text-emerald-600'
 }
 
-const handleSelect = (value: string): void => {
-    emit('update:modelValue', value)
-    open.value = false
-    searchQuery.value = ''
-    debouncedSearchQuery.value = ''
-    selectedCategoryId.value = ''
-}
+const handleSelect = (value: AcceptableValue): void => {
+    if (typeof value !== 'string') {
+        return;
+    }
+
+    emit('update:modelValue', value);
+    open.value = false;
+    searchQuery.value = '';
+    debouncedSearchQuery.value = '';
+    selectedCategoryId.value = '';
+};
 </script>
 
 <template>
@@ -202,7 +206,7 @@ const handleSelect = (value: string): void => {
                                 "
                             >
                                 {{ formatQuantity(selectedProduct.stock_quantity) }}
-                                {{ selectedProduct.unit }}
+                                {{ selectedProduct.unit ?? '' }}
                             </span>
                         </div>
                     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Form, Head } from '@inertiajs/vue3';
+import AuthStatus from '@/components/AuthStatus.vue';
 import TextLink from '@/components/TextLink.vue';
 import { Button } from '@/components/ui/button';
 import { Spinner } from '@/components/ui/spinner';
@@ -8,9 +9,9 @@ import { send } from '@/routes/verification';
 
 defineOptions({
     layout: {
-        title: 'Email verification',
+        title: 'Подтверждение email',
         description:
-            'Please verify your email address by clicking on the link we just emailed to you.',
+            'Подтвердите адрес почты, перейдя по ссылке из письма, которое мы только что отправили.',
     },
 });
 
@@ -20,28 +21,25 @@ defineProps<{
 </script>
 
 <template>
-    <Head title="Email verification" />
+    <Head title="Подтверждение email" />
 
-    <div
+    <AuthStatus
         v-if="status === 'verification-link-sent'"
-        class="mb-4 text-center text-sm font-medium text-green-600"
-    >
-        A new verification link has been sent to the email address you provided
-        during registration.
-    </div>
+        message="Новая ссылка для подтверждения отправлена на адрес, указанный при регистрации."
+    />
 
     <Form
         v-bind="send.form()"
         class="space-y-6 text-center"
         v-slot="{ processing }"
     >
-        <Button :disabled="processing" variant="secondary">
+        <Button type="submit" :disabled="processing" variant="secondary">
             <Spinner v-if="processing" />
-            Resend verification email
+            Отправить письмо ещё раз
         </Button>
 
         <TextLink :href="logout()" as="button" class="mx-auto block text-sm">
-            Log out
+            Выйти
         </TextLink>
     </Form>
 </template>

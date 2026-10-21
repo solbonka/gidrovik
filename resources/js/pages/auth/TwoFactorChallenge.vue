@@ -9,6 +9,7 @@ import {
     InputOTPGroup,
     InputOTPSlot,
 } from '@/components/ui/input-otp';
+import { Spinner } from '@/components/ui/spinner';
 import { store } from '@/routes/two-factor/login';
 import type { TwoFactorConfigContent } from '@/types';
 
@@ -18,18 +19,18 @@ const code = ref<string>('');
 const authConfigContent = computed<TwoFactorConfigContent>(() => {
     if (showRecoveryInput.value) {
         return {
-            title: 'Recovery code',
+            title: 'Резервный код',
             description:
-                'Please confirm access to your account by entering one of your emergency recovery codes.',
-            buttonText: 'login using an authentication code',
+                'Подтвердите доступ к аккаунту, введя один из резервных кодов восстановления.',
+            buttonText: 'войти с помощью кода подтверждения',
         };
     }
 
     return {
-        title: 'Authentication code',
+        title: 'Код подтверждения',
         description:
-            'Enter the authentication code provided by your authenticator application.',
-        buttonText: 'login using a recovery code',
+            'Введите код из приложения-аутентификатора.',
+        buttonText: 'войти с помощью резервного кода',
     };
 });
 
@@ -45,10 +46,13 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
     clearErrors();
     code.value = '';
 };
+
+const toggleButtonClass =
+    'text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500';
 </script>
 
 <template>
-    <Head title="Two-factor authentication" />
+    <Head title="Двухфакторная аутентификация" />
 
     <div class="space-y-6">
         <template v-if="!showRecoveryInput">
@@ -60,6 +64,7 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
                 #default="{ errors, processing, clearErrors }"
             >
                 <input type="hidden" name="code" :value="code" />
+
                 <div
                     class="flex flex-col items-center justify-center space-y-3 text-center"
                 >
@@ -80,16 +85,24 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
                             </InputOTPGroup>
                         </InputOTP>
                     </div>
+
                     <InputError :message="errors.code" />
                 </div>
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
+
+                <Button
+                    type="submit"
+                    class="w-full"
+                    :disabled="processing || code.length < 6"
                 >
+                    <Spinner v-if="processing" />
+                    Продолжить
+                </Button>
+
                 <div class="text-center text-sm text-muted-foreground">
-                    <span>or you can </span>
+                    <span>или можно </span>
                     <button
                         type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                        :class="toggleButtonClass"
                         @click="() => toggleRecoveryMode(clearErrors)"
                     >
                         {{ authConfigContent.buttonText }}
@@ -105,23 +118,30 @@ const toggleRecoveryMode = (clearErrors: () => void): void => {
                 reset-on-error
                 #default="{ errors, processing, clearErrors }"
             >
-                <Input
-                    name="recovery_code"
-                    type="text"
-                    placeholder="Enter recovery code"
-                    v-focus
-                    required
-                />
-                <InputError :message="errors.recovery_code" />
-                <Button type="submit" class="w-full" :disabled="processing"
-                    >Continue</Button
-                >
+                <div class="grid gap-2">
+                    <Input
+                        name="recovery_code"
+                        type="text"
+                        placeholder="Введите резервный код"
+                        autocomplete="off"
+                        autocapitalize="none"
+                        spellcheck="false"
+                        v-focus
+                        required
+                    />
+                    <InputError :message="errors.recovery_code" />
+                </div>
+
+                <Button type="submit" class="w-full" :disabled="processing">
+                    <Spinner v-if="processing" />
+                    Продолжить
+                </Button>
 
                 <div class="text-center text-sm text-muted-foreground">
-                    <span>or you can </span>
+                    <span>или можно </span>
                     <button
                         type="button"
-                        class="text-foreground underline decoration-neutral-300 underline-offset-4 transition-colors duration-300 ease-out hover:decoration-current! dark:decoration-neutral-500"
+                        :class="toggleButtonClass"
                         @click="() => toggleRecoveryMode(clearErrors)"
                     >
                         {{ authConfigContent.buttonText }}

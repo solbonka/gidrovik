@@ -8,18 +8,20 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import type { AcceptableValue } from 'reka-ui';
 
 interface RackOption {
-    id: number;
+    id?: number;
     code: string;
     name: string | null;
 }
 
 interface LocationOption {
     id: number;
-    number: number;
+    number?: number;
     code: string;
-    rack: RackOption | null;
+    rack?: RackOption | null;
+    rack_name?: string | null;
 }
 
 interface Props {
@@ -42,8 +44,8 @@ const filteredLocations = computed(() => {
     return props.locations.filter(
         (location) =>
             location.code.toLowerCase().includes(query) ||
-            (location.rack?.name &&
-                location.rack.name.toLowerCase().includes(query)),
+            (location.rack?.name?.toLowerCase().includes(query) ||
+                location.rack_name?.toLowerCase().includes(query)),
     );
 });
 
@@ -53,7 +55,11 @@ const selectedLocation = computed(() =>
     ),
 );
 
-const handleSelect = (value: string): void => {
+const handleSelect = (value: AcceptableValue): void => {
+    if (typeof value !== 'string') {
+        return;
+    }
+
     emit('update:modelValue', value);
     open.value = false;
     searchQuery.value = '';
@@ -102,10 +108,10 @@ const handleSelect = (value: string): void => {
                         <div class="flex flex-col">
                             <span class="font-medium">{{ location.code }}</span>
                             <span
-                                v-if="location.rack?.name"
+                                v-if="location.rack?.name || location.rack_name"
                                 class="text-xs text-gray-500"
                             >
-                                {{ location.rack.name }}
+                                {{ location.rack?.name ?? location.rack_name }}
                             </span>
                         </div>
                     </div>

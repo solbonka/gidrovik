@@ -5,21 +5,21 @@ import { toast } from 'vue-sonner';
 import {
     Folder,
     FolderOpen,
-    Tag,
-    List,
-    Plus,
-    Pencil,
-    Trash2,
-    Settings2,
-    Package,
-    ChevronRight,
     Layers3,
+    Package,
+    Pencil,
+    Plus,
     Search,
+    Settings2,
+    Trash2,
     X,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { create, edit, destroy } from '@/routes/admin/categories';
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
+import Pagination from '@/components/admin/Pagination.vue';
+import type { PaginationLink } from '@/components/admin/Pagination.vue';
+import { Button } from '@/components/ui/button';
+import { create, destroy, edit } from '@/routes/admin/categories';
 
 defineOptions({
     layout: AdminLayout,
@@ -35,12 +35,6 @@ interface Category {
     characteristics_count: number;
 }
 
-interface PaginationLink {
-    url: string | null;
-    label: string;
-    active: boolean;
-}
-
 interface PaginatedCategories {
     data: Category[];
     links: PaginationLink[];
@@ -53,21 +47,14 @@ const props = defineProps<{
     categories: PaginatedCategories;
 }>();
 
-const deleteDialog = ref({
-    open: false,
-    id: null as number | null,
-    name: '',
-    loading: false,
-});
+/* ---------- Поиск (по загруженной странице) ---------- */
 
 const search = ref('');
 
 const filteredCategories = computed(() => {
     const query = search.value.trim().toLowerCase();
 
-    if (!query) {
-        return props.categories.data;
-    }
+    if (!query) return props.categories.data;
 
     return props.categories.data.filter((category) =>
         [category.name, category.slug].some((value) =>
@@ -76,21 +63,60 @@ const filteredCategories = computed(() => {
     );
 });
 
-const activeCategories = computed(
+/* ---------- Статистика ---------- */
+
+// Если страниц несколько, часть показателей считается только по текущей странице
+const paged = computed(() => props.categories.last_page > 1);
+const pageSuffix = computed(() => (paged.value ? ' на странице' : ''));
+
+const activeCount = computed(
     () => props.categories.data.filter((category) => category.is_active).length,
 );
-
-const inactiveCategories = computed(
-    () =>
-        props.categories.data.filter((category) => !category.is_active).length,
+const inactiveCount = computed(
+    () => props.categories.data.length - activeCount.value,
 );
-
-const totalProducts = computed(() =>
+const productsCount = computed(() =>
     props.categories.data.reduce(
         (total, category) => total + category.products_count,
         0,
     ),
 );
+
+const stats = computed(() => [
+    {
+        title: 'Всего категорий',
+        value: props.categories.total,
+        icon: Folder,
+        tone: 'bg-primary/10 text-primary',
+    },
+    {
+        title: `Активные${pageSuffix.value}`,
+        value: activeCount.value,
+        icon: Layers3,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+        title: `Неактивные${pageSuffix.value}`,
+        value: inactiveCount.value,
+        icon: FolderOpen,
+        tone: 'bg-muted text-muted-foreground',
+    },
+    {
+        title: `Товары${pageSuffix.value}`,
+        value: productsCount.value,
+        icon: Package,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    },
+]);
+
+/* ---------- Удаление ---------- */
+
+const deleteDialog = ref({
+    open: false,
+    id: null as number | null,
+    name: '',
+    loading: false,
+});
 
 const openDeleteDialog = (category: Category): void => {
     if (category.products_count > 0) {
@@ -103,12 +129,19 @@ const openDeleteDialog = (category: Category): void => {
     deleteDialog.value.open = true;
 };
 
+const closeDeleteDialog = (): void => {
+    if (deleteDialog.value.loading) return;
+
+    deleteDialog.value.open = false;
+};
+
 const confirmDelete = (): void => {
-    if (deleteDialog.value.id === null) return;
+    if (deleteDialog.value.id === null || deleteDialog.value.loading) return;
 
     deleteDialog.value.loading = true;
 
     router.delete(destroy.url(deleteDialog.value.id), {
+        preserveScroll: true,
         onSuccess: () => {
             toast.success('Категория удалена.');
         },
@@ -121,212 +154,112 @@ const confirmDelete = (): void => {
         },
     });
 };
+
+const activeBadge =
+    'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
+const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
+
+const characteristicsUrl = (id: number): string =>
+    `/admin/categories/${id}/characteristics`;
 </script>
 
 <template>
     <Head title="Категории" />
 
-    <div class="space-y-6 pb-8">
-        <!-- Заголовок страницы -->
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950 px-5 py-6 shadow-lg sm:px-8 sm:py-8"
+    <div class="space-y-6 pb-4">
+        <!-- Заголовок -->
+        <header
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-            <div
-                class="pointer-events-none absolute -top-20 -right-12 h-64 w-64 rounded-full bg-indigo-500/20 blur-3xl"
-            />
-            <div
-                class="pointer-events-none absolute right-1/3 -bottom-24 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
-            />
-
-            <div
-                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div class="flex items-start gap-4">
-                    <div
-                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-white/10 text-white shadow-inner sm:h-14 sm:w-14"
-                    >
-                        <FolderOpen :size="27" />
-                    </div>
-
-                    <div>
-                        <div
-                            class="mb-1 flex items-center gap-2 text-xs font-medium text-slate-300"
-                        >
-                            <span>Склад</span>
-                            <ChevronRight :size="13" />
-                            <span class="text-white/90">Справочники</span>
-                        </div>
-
-                        <h1
-                            class="text-2xl font-bold tracking-tight text-white sm:text-3xl"
-                        >
-                            Категории товаров
-                        </h1>
-
-                        <p
-                            class="mt-2 max-w-xl text-sm leading-6 text-slate-300"
-                        >
-                            Управление категориями, типами товаров и их
-                            характеристиками.
-                        </p>
-                    </div>
-                </div>
-
-                <Link
-                    :href="create.url()"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-white px-4 py-2.5 text-sm font-semibold text-slate-900 shadow-sm transition hover:bg-slate-100 focus:ring-2 focus:ring-white/70 focus:ring-offset-2 focus:ring-offset-slate-900 focus:outline-none"
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
                 >
-                    <Plus :size="17" />
+                    <FolderOpen :size="24" />
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                        Категории товаров
+                    </h1>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Категории, типы товаров и их характеристики
+                    </p>
+                </div>
+            </div>
+
+            <Button as-child class="w-full sm:w-auto">
+                <Link :href="create.url()">
+                    <Plus :size="18" class="mr-2" />
                     Добавить категорию
                 </Link>
-            </div>
-        </div>
+            </Button>
+        </header>
 
         <!-- Статистика -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p
-                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
-                        >
-                            Всего категорий
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
-                        >
-                            {{ categories.total }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                    >
-                        <Folder :size="23" />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    В справочнике категорий
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p
-                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
-                        >
-                            Активные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
-                        >
-                            {{ activeCategories }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600 dark:bg-emerald-500/10 dark:text-emerald-400"
-                    >
-                        <Layers3 :size="23" />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Доступны для использования
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p
-                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
-                        >
-                            Неактивные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
-                        >
-                            {{ inactiveCategories }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400"
-                    >
-                        <FolderOpen :size="23" />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    Отключены от использования
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p
-                            class="text-sm font-medium text-slate-500 dark:text-slate-400"
-                        >
-                            Товары
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
-                        >
-                            {{ totalProducts }}
-                        </p>
-                    </div>
-                    <div
-                        class="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 dark:bg-blue-500/10 dark:text-blue-400"
-                    >
-                        <Package :size="23" />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    В категориях текущей страницы
-                </p>
-            </div>
-        </div>
-
-        <!-- Таблица -->
-        <div
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"
+        <section
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Сводка"
         >
             <div
-                class="flex flex-col gap-4 border-b border-slate-200 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700"
+                v-for="stat in stats"
+                :key="stat.title"
+                class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm"
+            >
+                <div
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                    :class="stat.tone"
+                >
+                    <component :is="stat.icon" :size="22" />
+                </div>
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-muted-foreground">
+                        {{ stat.title }}
+                    </p>
+                    <p class="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">
+                        {{ stat.value }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Список -->
+        <section
+            class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+            aria-labelledby="categories-title"
+        >
+            <div
+                class="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
                 <div>
-                    <h2
-                        class="text-lg font-semibold text-slate-900 dark:text-white"
-                    >
+                    <h2 id="categories-title" class="font-semibold">
                         Список категорий
                     </h2>
-                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                        Найдено на странице: {{ filteredCategories.length }}
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Показано:
+                        <span class="font-medium text-foreground tabular-nums">
+                            {{ filteredCategories.length }}
+                        </span>
+                        <template v-if="paged"> (поиск — по текущей странице)</template>
                     </p>
                 </div>
 
                 <div class="relative w-full sm:max-w-xs">
                     <Search
-                        :size="17"
-                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-slate-400"
+                        :size="16"
+                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
                     />
                     <input
                         v-model="search"
                         type="search"
-                        placeholder="Поиск по названию или slug..."
-                        class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-10 pl-10 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-indigo-400 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-800 dark:text-white dark:focus:border-indigo-500 dark:focus:bg-slate-800"
+                        placeholder="Название или slug"
+                        aria-label="Поиск категорий"
+                        class="w-full rounded-xl border border-input bg-background py-2.5 pr-9 pl-9 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
                     />
                     <button
                         v-if="search"
                         type="button"
                         aria-label="Очистить поиск"
-                        class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-white"
+                        class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
                         @click="search = ''"
                     >
                         <X :size="16" />
@@ -334,204 +267,167 @@ const confirmDelete = (): void => {
                 </div>
             </div>
 
-            <!-- Карточки на мобильных -->
-            <div class="space-y-2 p-3 md:hidden">
+            <!-- Пустое состояние -->
+            <div
+                v-if="filteredCategories.length === 0"
+                class="flex flex-col items-center px-6 py-16 text-center"
+            >
                 <div
-                    v-for="category in filteredCategories"
-                    :key="category.id"
-                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
+                    class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted"
                 >
-                    <!-- Заголовок карточки -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                                >
-                                    <FolderOpen :size="15" />
-                                </div>
-                                <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
-                                    {{ category.name }}
-                                </h3>
-                            </div>
-                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                                {{ category.slug }}
-                            </p>
-                        </div>
-
-                        <!-- Статус -->
-                        <span
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-semibold"
-                            :class="
-                                category.is_active
-                                    ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300'
-                                    : 'border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                            "
-                        >
-                            <span
-                                class="h-1 w-1 rounded-full"
-                                :class="
-                                    category.is_active
-                                        ? 'bg-emerald-500'
-                                        : 'bg-slate-400'
-                                "
-                            />
-                            {{ category.is_active ? 'Активна' : 'Неактивна' }}
-                        </span>
-                    </div>
-
-                    <!-- Инфо-блок -->
-                    <div class="mt-2 grid grid-cols-3 gap-1.5 text-xs">
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Товары</p>
-                            <p class="font-semibold text-blue-700 dark:text-blue-300">
-                                {{ category.products_count }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Типы</p>
-                            <p class="font-semibold text-violet-700 dark:text-violet-300">
-                                {{ category.product_types_count }}
-                            </p>
-                        </div>
-                        <div>
-                            <p class="text-[10px] text-slate-500 dark:text-slate-400">Хар-ки</p>
-                            <p class="font-semibold text-amber-700 dark:text-amber-300">
-                                {{ category.characteristics_count }}
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Действия -->
-                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
-                        <Link
-                            :href="`/admin/categories/${category.id}/characteristics`"
-                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
-                        >
-                            <Settings2 :size="12" />
-                            Хар-ки
-                        </Link>
-
-                        <Link
-                            :href="edit.url(category.id)"
-                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
-                        >
-                            <Pencil :size="12" />
-                            Изменить
-                        </Link>
-
-                        <button
-                            type="button"
-                            :disabled="category.products_count > 0"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700"
-                            @click="openDeleteDialog(category)"
-                        >
-                            <Trash2 :size="12" />
-                        </button>
-                    </div>
+                    <Search v-if="search" :size="28" class="text-muted-foreground" />
+                    <Folder v-else :size="28" class="text-muted-foreground" />
                 </div>
+                <p class="font-medium">
+                    {{ search ? 'Ничего не найдено' : 'Категорий пока нет' }}
+                </p>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                    {{
+                        search
+                            ? 'Попробуйте изменить поисковый запрос.'
+                            : 'Создайте первую категорию, чтобы организовать товары склада.'
+                    }}
+                </p>
 
-                <!-- Пустое состояние -->
-                <div
-                    v-if="filteredCategories.length === 0"
-                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
+                <Button
+                    v-if="search"
+                    variant="outline"
+                    class="mt-5"
+                    @click="search = ''"
                 >
-                    <div
-                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                    >
-                        <Search v-if="search" :size="22" />
-                        <Folder v-else :size="22" />
-                    </div>
-                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
-                        {{ search ? 'Ничего не найдено' : 'Категорий пока нет' }}
-                    </p>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        {{ search ? 'Попробуйте изменить поисковый запрос.' : 'Создайте первую категорию.' }}
-                    </p>
-                    <button
-                        v-if="search"
-                        type="button"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                        @click="search = ''"
-                    >
-                        <X :size="12" />
-                        Очистить поиск
-                    </button>
-                    <Link
-                        v-else
-                        :href="create.url()"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-                    >
-                        <Plus :size="12" />
+                    <X :size="15" class="mr-1.5" />
+                    Очистить поиск
+                </Button>
+                <Button v-else as-child class="mt-5">
+                    <Link :href="create.url()">
+                        <Plus :size="16" class="mr-2" />
                         Добавить категорию
                     </Link>
-                </div>
+                </Button>
             </div>
 
-            <!-- Таблица на десктопе -->
-            <div class="hidden overflow-x-auto md:block">
-                <table class="w-full min-w-[850px]">
-                    <thead>
-                        <tr
-                            class="border-b border-slate-200 bg-slate-50/80 dark:border-slate-700 dark:bg-slate-800/60"
-                        >
-                            <th
-                                class="px-6 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+            <template v-else>
+                <!-- Мобильные карточки -->
+                <ul class="divide-y md:hidden">
+                    <li
+                        v-for="category in filteredCategories"
+                        :key="category.id"
+                        class="space-y-3 p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                >
+                                    <FolderOpen :size="17" />
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold break-words">
+                                        {{ category.name }}
+                                    </h3>
+                                    <p class="truncate text-xs text-muted-foreground">
+                                        {{ category.slug }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <span
+                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                :class="category.is_active ? activeBadge : inactiveBadge"
                             >
-                                Категория
-                            </th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
+                                <span
+                                    class="size-1.5 rounded-full"
+                                    :class="category.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                />
+                                {{ category.is_active ? 'Активна' : 'Неактивна' }}
+                            </span>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2 text-center">
+                            <div class="rounded-lg bg-sky-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Товары</p>
+                                <p class="mt-0.5 text-sm font-bold text-sky-700 tabular-nums dark:text-sky-400">
+                                    {{ category.products_count }}
+                                </p>
+                            </div>
+                            <div class="rounded-lg bg-violet-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Типы</p>
+                                <p class="mt-0.5 text-sm font-bold text-violet-700 tabular-nums dark:text-violet-400">
+                                    {{ category.product_types_count }}
+                                </p>
+                            </div>
+                            <div class="rounded-lg bg-amber-500/10 px-2 py-2">
+                                <p class="text-[11px] text-muted-foreground">Характеристики</p>
+                                <p class="mt-0.5 text-sm font-bold text-amber-700 tabular-nums dark:text-amber-400">
+                                    {{ category.characteristics_count }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
+                                <Link :href="characteristicsUrl(category.id)">
+                                    <Settings2 :size="14" class="mr-1.5" />
+                                    Хар-ки
+                                </Link>
+                            </Button>
+
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
+                                <Link :href="edit.url(category.id)">
+                                    <Pencil :size="14" class="mr-1.5" />
+                                    Изменить
+                                </Link>
+                            </Button>
+
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                class="size-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                :disabled="category.products_count > 0"
+                                :title="category.products_count > 0 ? 'Нельзя удалить: в категории есть товары' : 'Удалить'"
+                                @click="openDeleteDialog(category)"
                             >
-                                Товары
-                            </th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-                            >
-                                Типы
-                            </th>
-                            <th
-                                class="px-4 py-4 text-center text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-                            >
-                                Характеристики
-                            </th>
-                            <th
-                                class="px-4 py-4 text-left text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-                            >
-                                Статус
-                            </th>
-                            <th
-                                class="px-6 py-4 text-right text-xs font-semibold tracking-wider text-slate-500 uppercase dark:text-slate-400"
-                            >
-                                Действия
+                                <Trash2 :size="15" />
+                                <span class="sr-only">Удалить</span>
+                            </Button>
+                        </div>
+                    </li>
+                </ul>
+
+                <!-- Таблица -->
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full min-w-[820px] text-left text-sm">
+                        <thead>
+                        <tr class="border-b bg-muted/40">
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Категория</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Товары</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Типы</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Характеристики</th>
+                            <th scope="col" class="px-4 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-6 py-3.5">
+                                <span class="sr-only">Действия</span>
                             </th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody
-                        class="divide-y divide-slate-100 dark:divide-slate-800"
-                    >
+                        <tbody class="divide-y">
                         <tr
                             v-for="category in filteredCategories"
                             :key="category.id"
-                            class="group transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
+                            class="transition-colors hover:bg-muted/40"
                         >
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 transition group-hover:bg-indigo-100 dark:bg-indigo-500/10 dark:text-indigo-400 dark:group-hover:bg-indigo-500/20"
+                                        class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary"
                                     >
                                         <FolderOpen :size="19" />
                                     </div>
                                     <div class="min-w-0">
-                                        <p
-                                            class="font-semibold text-slate-900 dark:text-white"
-                                        >
+                                        <p class="font-semibold">
                                             {{ category.name }}
                                         </p>
-                                        <p
-                                            class="mt-1 text-xs text-slate-500 dark:text-slate-400"
-                                        >
+                                        <p class="mt-0.5 text-xs text-muted-foreground">
                                             {{ category.slug }}
                                         </p>
                                     </div>
@@ -539,200 +435,98 @@ const confirmDelete = (): void => {
                             </td>
 
                             <td class="px-4 py-4 text-center">
-                                <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-blue-50 px-2.5 py-1.5 text-sm font-semibold text-blue-700 tabular-nums dark:bg-blue-500/10 dark:text-blue-300"
-                                >
-                                    {{ category.products_count }}
-                                </span>
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-sky-500/10 px-2.5 py-1.5 font-semibold text-sky-700 tabular-nums dark:text-sky-400"
+                                    >
+                                        {{ category.products_count }}
+                                    </span>
                             </td>
 
                             <td class="px-4 py-4 text-center">
-                                <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-violet-50 px-2.5 py-1.5 text-sm font-semibold text-violet-700 tabular-nums dark:bg-violet-500/10 dark:text-violet-300"
-                                >
-                                    {{ category.product_types_count }}
-                                </span>
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-violet-500/10 px-2.5 py-1.5 font-semibold text-violet-700 tabular-nums dark:text-violet-400"
+                                    >
+                                        {{ category.product_types_count }}
+                                    </span>
                             </td>
 
                             <td class="px-4 py-4 text-center">
-                                <span
-                                    class="inline-flex min-w-9 items-center justify-center rounded-lg bg-amber-50 px-2.5 py-1.5 text-sm font-semibold text-amber-700 tabular-nums dark:bg-amber-500/10 dark:text-amber-300"
-                                >
-                                    {{ category.characteristics_count }}
-                                </span>
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-amber-500/10 px-2.5 py-1.5 font-semibold text-amber-700 tabular-nums dark:text-amber-400"
+                                    >
+                                        {{ category.characteristics_count }}
+                                    </span>
                             </td>
 
                             <td class="px-4 py-4">
-                                <span
-                                    class="inline-flex items-center gap-2 rounded-full px-2.5 py-1.5 text-xs font-semibold"
-                                    :class="
-                                        category.is_active
-                                            ? 'bg-emerald-50 text-emerald-700 ring-1 ring-emerald-600/20 ring-inset dark:bg-emerald-500/10 dark:text-emerald-300 dark:ring-emerald-500/20'
-                                            : 'bg-slate-100 text-slate-600 ring-1 ring-slate-500/20 ring-inset dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-600/30'
-                                    "
-                                >
                                     <span
-                                        class="h-1.5 w-1.5 rounded-full"
-                                        :class="
-                                            category.is_active
-                                                ? 'bg-emerald-500'
-                                                : 'bg-slate-400'
-                                        "
-                                    />
-                                    {{
-                                        category.is_active
-                                            ? 'Активна'
-                                            : 'Неактивна'
-                                    }}
-                                </span>
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                        :class="category.is_active ? activeBadge : inactiveBadge"
+                                    >
+                                        <span
+                                            class="size-1.5 rounded-full"
+                                            :class="category.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                        />
+                                        {{ category.is_active ? 'Активна' : 'Неактивна' }}
+                                    </span>
                             </td>
 
                             <td class="px-6 py-4">
-                                <div
-                                    class="flex items-center justify-end gap-1.5"
-                                >
-                                    <Link
-                                        :href="`/admin/categories/${category.id}/characteristics`"
-                                        title="Управление характеристиками"
-                                        class="inline-flex h-9 items-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus:ring-2 focus:ring-indigo-500/20 focus:outline-none dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
+                                <div class="flex items-center justify-end gap-1">
+                                    <Button
+                                        as-child
+                                        variant="ghost"
+                                        size="sm"
+                                        class="text-muted-foreground hover:text-primary"
                                     >
-                                        <Settings2 :size="15" />
-                                        <span class="hidden xl:inline"
-                                            >Характеристики</span
+                                        <Link
+                                            :href="characteristicsUrl(category.id)"
+                                            title="Управление характеристиками"
                                         >
-                                    </Link>
+                                            <Settings2 :size="16" class="mr-1.5" />
+                                            <span class="hidden xl:inline">Характеристики</span>
+                                        </Link>
+                                    </Button>
 
-                                    <Link
-                                        :href="edit.url(category.id)"
-                                        title="Изменить категорию"
-                                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700 focus:ring-2 focus:ring-blue-500/20 focus:outline-none dark:border-slate-700 dark:text-slate-300 dark:hover:border-blue-500/40 dark:hover:bg-blue-500/10 dark:hover:text-blue-300"
+                                    <Button
+                                        as-child
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9 text-muted-foreground hover:text-primary"
                                     >
-                                        <Pencil :size="15" />
-                                        <span class="hidden xl:inline"
-                                            >Изменить</span
-                                        >
-                                    </Link>
+                                        <Link :href="edit.url(category.id)" title="Изменить категорию">
+                                            <Pencil :size="16" />
+                                            <span class="sr-only">Изменить</span>
+                                        </Link>
+                                    </Button>
 
-                                    <button
-                                        type="button"
-                                        title="Удалить категорию"
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
                                         :disabled="category.products_count > 0"
-                                        class="inline-flex h-9 items-center justify-center gap-2 rounded-lg border border-slate-200 px-3 text-sm font-medium text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus:ring-2 focus:ring-red-500/20 focus:outline-none disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-transparent disabled:hover:text-slate-500 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400 dark:disabled:hover:border-slate-700"
+                                        :title="category.products_count > 0 ? 'Нельзя удалить: в категории есть товары' : 'Удалить категорию'"
                                         @click="openDeleteDialog(category)"
                                     >
-                                        <Trash2 :size="15" />
-                                        <span class="hidden xl:inline"
-                                            >Удалить</span
-                                        >
-                                    </button>
+                                        <Trash2 :size="16" />
+                                        <span class="sr-only">Удалить</span>
+                                    </Button>
                                 </div>
                             </td>
                         </tr>
-
-                        <tr v-if="filteredCategories.length === 0">
-                            <td colspan="6" class="px-6 py-16 text-center">
-                                <div
-                                    class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                                >
-                                    <Search v-if="search" :size="28" />
-                                    <Folder v-else :size="28" />
-                                </div>
-
-                                <h3
-                                    class="mt-4 text-sm font-semibold text-slate-900 dark:text-white"
-                                >
-                                    {{
-                                        search
-                                            ? 'Ничего не найдено'
-                                            : 'Категорий пока нет'
-                                    }}
-                                </h3>
-
-                                <p
-                                    class="mx-auto mt-1 max-w-sm text-sm text-slate-500 dark:text-slate-400"
-                                >
-                                    {{
-                                        search
-                                            ? 'Попробуйте изменить поисковый запрос.'
-                                            : 'Создайте первую категорию, чтобы организовать товары склада.'
-                                    }}
-                                </p>
-
-                                <button
-                                    v-if="search"
-                                    type="button"
-                                    class="mt-4 inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-indigo-600 transition hover:bg-indigo-50 dark:text-indigo-400 dark:hover:bg-indigo-500/10"
-                                    @click="search = ''"
-                                >
-                                    <X :size="15" />
-                                    Очистить поиск
-                                </button>
-
-                                <Link
-                                    v-else
-                                    :href="create.url()"
-                                    class="mt-4 inline-flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-100"
-                                >
-                                    <Plus :size="16" />
-                                    Добавить категорию
-                                </Link>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Пагинация -->
-            <div
-                v-if="categories.last_page > 1"
-                class="flex flex-col gap-4 border-t border-slate-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-slate-700"
-            >
-                <p class="text-sm text-slate-500 dark:text-slate-400">
-                    Страница
-                    <span class="font-semibold text-slate-900 dark:text-white">
-                        {{ categories.current_page }}
-                    </span>
-                    из
-                    <span class="font-semibold text-slate-900 dark:text-white">
-                        {{ categories.last_page }}
-                    </span>
-                    <span class="mx-1 text-slate-300 dark:text-slate-600"
-                        >·</span
-                    >
-                    Всего: {{ categories.total }}
-                </p>
-
-                <div class="flex flex-wrap items-center gap-1.5">
-                    <template
-                        v-for="(link, index) in categories.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            preserve-scroll
-                            class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium transition focus:ring-2 focus:ring-indigo-500/20 focus:outline-none"
-                            :class="
-                                link.active
-                                    ? 'border-indigo-600 bg-indigo-600 text-white shadow-sm'
-                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800'
-                            "
-                        >
-                            <span v-html="link.label" />
-                        </Link>
-
-                        <span
-                            v-else
-                            class="inline-flex min-h-9 min-w-9 cursor-not-allowed items-center justify-center rounded-lg border border-slate-100 px-3 text-sm text-slate-300 dark:border-slate-800 dark:text-slate-600"
-                        >
-                            <span v-html="link.label" />
-                        </span>
-                    </template>
+                        </tbody>
+                    </table>
                 </div>
-            </div>
-        </div>
+            </template>
 
-        <!-- Подтверждение удаления -->
+            <Pagination
+                :links="categories.links"
+                :total="categories.total"
+                :current-page="categories.current_page"
+                :last-page="categories.last_page"
+            />
+        </section>
+
         <ConfirmDeleteDialog
             :open="deleteDialog.open"
             title="Удаление категории"
@@ -740,7 +534,7 @@ const confirmDelete = (): void => {
             :item-name="deleteDialog.name"
             :loading="deleteDialog.loading"
             @confirm="confirmDelete"
-            @cancel="deleteDialog.open = false"
+            @cancel="closeDeleteDialog"
         />
     </div>
 </template>

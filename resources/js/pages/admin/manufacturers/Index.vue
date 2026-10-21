@@ -3,22 +3,18 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import {
-    ArrowDown,
-    ArrowUp,
-    ArrowUpDown,
-    CheckCircle2,
-    CirclePlus,
-    Edit,
+    Layers3,
     Package,
-    PackageOpen,
+    Pencil,
+    Plus,
     Search,
-    ShieldAlert,
     Trash2,
     X,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { create, destroy, edit } from '@/routes/admin/manufacturers';
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
+import { Button } from '@/components/ui/button';
+import { create, destroy, edit } from '@/routes/admin/manufacturers';
 
 defineOptions({
     layout: AdminLayout,
@@ -54,18 +50,26 @@ interface Props {
 const props = defineProps<Props>();
 
 const search = ref('');
-const statusFilter = ref<'all' | 'active' | 'inactive'>('all');
-const sortBy = ref<'name' | 'products_count'>('name');
-const sortDirection = ref<'asc' | 'desc'>('asc');
+
+const filteredManufacturers = computed(() => {
+    const query = search.value.trim().toLowerCase();
+
+    if (!query) return props.manufacturers.data;
+
+    return props.manufacturers.data.filter((manufacturer) =>
+        manufacturer.name.toLowerCase().includes(query),
+    );
+});
+
+const paged = computed(() => props.manufacturers.last_page > 1);
+const pageSuffix = computed(() => (paged.value ? ' на странице' : ''));
 
 const activeCount = computed(
     () => props.manufacturers.data.filter((item) => item.is_active).length,
 );
-
 const inactiveCount = computed(
-    () => props.manufacturers.data.filter((item) => !item.is_active).length,
+    () => props.manufacturers.data.length - activeCount.value,
 );
-
 const productsCount = computed(() =>
     props.manufacturers.data.reduce(
         (total, item) => total + item.products_count,
@@ -73,602 +77,283 @@ const productsCount = computed(() =>
     ),
 );
 
-const filteredManufacturers = computed(() => {
-    const query = search.value.trim().toLocaleLowerCase('ru');
+const stats = computed(() => [
+    {
+        title: 'Всего производителей',
+        value: props.manufacturers.total,
+        icon: Package,
+        tone: 'bg-primary/10 text-primary',
+    },
+    {
+        title: `Активные${pageSuffix.value}`,
+        value: activeCount.value,
+        icon: Layers3,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+        title: `Неактивные${pageSuffix.value}`,
+        value: inactiveCount.value,
+        icon: Package,
+        tone: 'bg-muted text-muted-foreground',
+    },
+    {
+        title: `Товары${pageSuffix.value}`,
+        value: productsCount.value,
+        icon: Package,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    },
+]);
 
-    const result = props.manufacturers.data.filter((item) => {
-        const matchesSearch =
-            !query || item.name.toLocaleLowerCase('ru').includes(query);
-
-        const matchesStatus =
-            statusFilter.value === 'all' ||
-            (statusFilter.value === 'active' && item.is_active) ||
-            (statusFilter.value === 'inactive' && !item.is_active);
-
-        return matchesSearch && matchesStatus;
-    });
-
-    return [...result].sort((a, b) => {
-        let comparison = 0;
-
-        if (sortBy.value === 'name') {
-            comparison = a.name.localeCompare(b.name, 'ru');
-        } else {
-            comparison = a.products_count - b.products_count;
-        }
-
-        return sortDirection.value === 'asc' ? comparison : -comparison;
-    });
+const deleteDialog = ref({
+    open: false,
+    id: null as number | null,
+    name: '',
+    loading: false,
 });
 
-const toggleSort = (field: typeof sortBy.value): void => {
-    if (sortBy.value === field) {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+const openDeleteDialog = (manufacturer: Manufacturer): void => {
+    if (manufacturer.products_count > 0) {
+        toast.error('Нельзя удалить производителя, у которого есть товары.');
         return;
     }
 
-    sortBy.value = field;
-    sortDirection.value = 'asc';
-};
-
-const deleteDialogOpen = ref(false);
-const deletingItemName = ref('');
-const deletingItemId = ref<number | null>(null);
-const deleting = ref(false);
-
-const openDeleteDialog = (id: number, name: string): void => {
-    deletingItemId.value = id;
-    deletingItemName.value = name;
-    deleteDialogOpen.value = true;
+    deleteDialog.value.id = manufacturer.id;
+    deleteDialog.value.name = manufacturer.name;
+    deleteDialog.value.open = true;
 };
 
 const closeDeleteDialog = (): void => {
-    if (deleting.value) return;
-
-    deleteDialogOpen.value = false;
-    deletingItemId.value = null;
-    deletingItemName.value = '';
+    if (deleteDialog.value.loading) return;
+    deleteDialog.value.open = false;
 };
 
 const confirmDelete = (): void => {
-    if (deletingItemId.value === null || deleting.value) return;
+    if (deleteDialog.value.id === null || deleteDialog.value.loading) return;
 
-    deleting.value = true;
+    deleteDialog.value.loading = true;
 
-    router.delete(destroy(deletingItemId.value).url, {
+    router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
         onSuccess: () => {
-            toast.success('Запись успешно удалена.');
-            deleteDialogOpen.value = false;
-            deletingItemId.value = null;
-            deletingItemName.value = '';
+            toast.success('Производитель удалён.');
         },
-        onError: (errors) => {
-            toast.error(errors.delete ?? 'Не удалось удалить производителя.');
+        onError: () => {
+            toast.error('Не удалось удалить производителя.');
         },
         onFinish: () => {
-            deleting.value = false;
+            deleteDialog.value.loading = false;
+            deleteDialog.value.open = false;
         },
     });
 };
 
-const clearFilters = (): void => {
-    search.value = '';
-    statusFilter.value = 'all';
-};
+const activeBadge =
+    'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
+const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
 </script>
 
 <template>
     <Head title="Производители" />
 
-    <div class="space-y-6 p-4 sm:p-6">
-        <!-- Заголовок -->
-        <div
-            class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-slate-900 via-indigo-950 to-violet-900 p-6 text-white shadow-lg sm:p-8"
-        >
-            <div
-                class="pointer-events-none absolute -top-16 -right-12 h-56 w-56 rounded-full bg-violet-400/20 blur-3xl"
-            />
-            <div
-                class="pointer-events-none absolute right-1/3 -bottom-20 h-48 w-48 rounded-full bg-blue-400/10 blur-3xl"
-            />
-
-            <div
-                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div>
-                    <div
-                        class="mb-3 flex items-center gap-2 text-sm text-indigo-200"
-                    >
-                        <Package class="h-4 w-4" />
-                        <span>Справочники</span>
-                    </div>
-
-                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
-                        Производители
-                    </h1>
-
-                    <p
-                        class="mt-2 max-w-xl text-sm text-slate-300 sm:text-base"
-                    >
-                        Управление списком производителей товаров.
-                    </p>
+    <div class="space-y-6 pb-4">
+        <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm">
+                    <Package :size="24" />
                 </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">Производители</h1>
+                    <p class="mt-1 text-sm text-muted-foreground">Производители товаров</p>
+                </div>
+            </div>
 
-                <Link
-                    :href="create.url()"
-                    class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-900 shadow-lg transition hover:bg-indigo-50 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-indigo-950 focus-visible:outline-none"
-                >
-                    <CirclePlus class="h-5 w-5" />
+            <Button as-child class="w-full sm:w-auto">
+                <Link :href="create().url">
+                    <Plus :size="18" class="mr-2" />
                     Добавить производителя
                 </Link>
-            </div>
-        </div>
+            </Button>
+        </header>
 
-        <!-- Статистика -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Всего производителей
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-slate-900 dark:text-white"
-                        >
-                            {{ props.manufacturers.total }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-indigo-50 p-3 dark:bg-indigo-500/10"
-                    >
-                        <Package
-                            class="h-6 w-6 text-indigo-600 dark:text-indigo-400"
-                        />
-                    </div>
+        <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4" aria-label="Сводка">
+            <div v-for="stat in stats" :key="stat.title" class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm">
+                <div class="flex size-11 shrink-0 items-center justify-center rounded-xl" :class="stat.tone">
+                    <component :is="stat.icon" :size="22" />
                 </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    В справочнике производителей
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Активные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-emerald-600 dark:text-emerald-400"
-                        >
-                            {{ activeCount }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-emerald-50 p-3 dark:bg-emerald-500/10"
-                    >
-                        <CheckCircle2
-                            class="h-6 w-6 text-emerald-600 dark:text-emerald-400"
-                        />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    На текущей странице
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Неактивные
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-amber-600 dark:text-amber-400"
-                        >
-                            {{ inactiveCount }}
-                        </p>
-                    </div>
-                    <div
-                        class="rounded-xl bg-amber-50 p-3 dark:bg-amber-500/10"
-                    >
-                        <ShieldAlert
-                            class="h-6 w-6 text-amber-600 dark:text-amber-400"
-                        />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    На текущей странице
-                </p>
-            </div>
-
-            <div
-                class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-slate-800 dark:bg-slate-900"
-            >
-                <div class="flex items-center justify-between gap-3">
-                    <div>
-                        <p class="text-sm text-slate-500 dark:text-slate-400">
-                            Товаров
-                        </p>
-                        <p
-                            class="mt-2 text-3xl font-bold text-slate-900 dark:text-white"
-                        >
-                            {{ productsCount }}
-                        </p>
-                    </div>
-                    <div class="rounded-xl bg-sky-50 p-3 dark:bg-sky-500/10">
-                        <PackageOpen
-                            class="h-6 w-6 text-sky-600 dark:text-sky-400"
-                        />
-                    </div>
-                </div>
-                <p class="mt-3 text-xs text-slate-500 dark:text-slate-400">
-                    На текущей странице
-                </p>
-            </div>
-        </div>
-
-        <!-- Таблица -->
-        <div
-            class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900"
-        >
-            <div
-                class="border-b border-slate-200 p-4 sm:p-5 dark:border-slate-800"
-            >
-                <div
-                    class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between"
-                >
-                    <div>
-                        <h2
-                            class="text-lg font-semibold text-slate-900 dark:text-white"
-                        >
-                            Список производителей
-                        </h2>
-                        <p
-                            class="mt-1 text-sm text-slate-500 dark:text-slate-400"
-                        >
-                            Найдено: {{ filteredManufacturers.length }}
-                            <span class="text-slate-400">
-                                из {{ props.manufacturers.data.length }} на
-                                странице
-                            </span>
-                        </p>
-                    </div>
-
-                    <div class="flex flex-col gap-3 sm:flex-row">
-                        <div class="relative min-w-0 sm:min-w-64">
-                            <Search
-                                class="pointer-events-none absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2 text-slate-400"
-                            />
-                            <input
-                                v-model="search"
-                                type="search"
-                                placeholder="Название..."
-                                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pr-9 pl-9 text-sm text-slate-900 transition outline-none placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:focus:bg-slate-950"
-                            />
-                            <button
-                                v-if="search"
-                                type="button"
-                                aria-label="Очистить поиск"
-                                class="absolute top-1/2 right-3 -translate-y-1/2 text-slate-400 transition hover:text-slate-700 dark:hover:text-slate-200"
-                                @click="search = ''"
-                            >
-                                <X class="h-4 w-4" />
-                            </button>
-                        </div>
-
-                        <select
-                            v-model="statusFilter"
-                            aria-label="Фильтр по статусу"
-                            class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-700 transition outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200"
-                        >
-                            <option value="all">Все статусы</option>
-                            <option value="active">Активные</option>
-                            <option value="inactive">Неактивные</option>
-                        </select>
-                    </div>
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-muted-foreground">{{ stat.title }}</p>
+                    <p class="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">{{ stat.value }}</p>
                 </div>
             </div>
+        </section>
 
-            <!-- Карточки на мобильных -->
-            <div class="space-y-2 p-3 md:hidden">
-                <div
-                    v-for="manufacturer in filteredManufacturers"
-                    :key="manufacturer.id"
-                    class="rounded-lg border border-slate-200 bg-white p-3 shadow-sm transition-colors hover:border-indigo-200 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-indigo-500/40"
-                >
-                    <!-- Заголовок карточки -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
-                            <div class="flex items-center gap-2">
-                                <div
-                                    class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                                >
-                                    <Package class="h-4 w-4" />
-                                </div>
-                                <h3 class="font-semibold text-slate-900 dark:text-white break-words text-xs">
-                                    {{ manufacturer.name }}
-                                </h3>
-                            </div>
-                            <p class="mt-0.5 text-[10px] text-slate-500 dark:text-slate-400">
-                                ID: {{ manufacturer.id }}
-                            </p>
-                        </div>
-
-                        <!-- Статус -->
-                        <span
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border px-1.5 py-0.5 text-[10px] font-medium"
-                            :class="
-                                manufacturer.is_active
-                                    ? 'border-emerald-200 bg-emerald-100 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                    : 'border-slate-200 bg-slate-200 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400'
-                            "
-                        >
-                            <CheckCircle2
-                                v-if="manufacturer.is_active"
-                                class="h-2.5 w-2.5"
-                            />
-                            <ShieldAlert v-else class="h-2.5 w-2.5" />
-                            {{ manufacturer.is_active ? 'Активен' : 'Неактивен' }}
-                        </span>
-                    </div>
-
-                    <!-- Инфо-блок -->
-                    <div class="mt-2 text-xs">
-                        <p class="text-[10px] text-slate-500 dark:text-slate-400">Товаров</p>
-                        <p
-                            class="font-semibold"
-                            :class="
-                                manufacturer.products_count > 0
-                                    ? 'text-sky-700 dark:text-sky-300'
-                                    : 'text-slate-500 dark:text-slate-400'
-                            "
-                        >
-                            {{ manufacturer.products_count }}
-                        </p>
-                    </div>
-
-                    <!-- Действия -->
-                    <div class="mt-3 flex items-center gap-1.5 border-t border-slate-200 pt-2 dark:border-slate-700">
-                        <Link
-                            :href="edit(manufacturer.id).url"
-                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-slate-200 px-2 py-1.5 text-xs font-medium text-slate-600 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 dark:border-slate-700 dark:text-slate-300 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
-                        >
-                            <Edit class="h-3 w-3" />
-                            Изменить
-                        </Link>
-
-                        <button
-                            type="button"
-                            :disabled="manufacturer.products_count > 0"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-slate-200 text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                            @click="openDeleteDialog(manufacturer.id, manufacturer.name)"
-                        >
-                            <Trash2 class="h-3 w-3" />
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Пустое состояние -->
-                <div
-                    v-if="filteredManufacturers.length === 0"
-                    class="rounded-lg border border-slate-200 bg-white p-6 text-center dark:border-slate-700 dark:bg-slate-900"
-                >
-                    <div
-                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500"
-                    >
-                        <Package class="h-6 w-6" />
-                    </div>
-                    <p class="font-semibold text-slate-900 dark:text-white text-xs">
-                        Производители не найдены
+        <section class="overflow-hidden rounded-2xl border bg-card shadow-sm" aria-labelledby="manufacturers-title">
+            <div class="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6">
+                <div>
+                    <h2 id="manufacturers-title" class="font-semibold">Список производителей</h2>
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Показано: <span class="font-medium text-foreground tabular-nums">{{ filteredManufacturers.length }}</span>
+                        <template v-if="paged"> (поиск — по текущей странице)</template>
                     </p>
-                    <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                        Попробуйте изменить параметры поиска или фильтрации.
-                    </p>
-                    <button
-                        v-if="search || statusFilter !== 'all'"
-                        type="button"
-                        class="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-indigo-700"
-                        @click="clearFilters"
-                    >
-                        <X class="h-3 w-3" />
-                        Сбросить фильтры
+                </div>
+
+                <div class="relative w-full sm:max-w-xs">
+                    <Search :size="16" class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground" />
+                    <input v-model="search" type="search" placeholder="Название" aria-label="Поиск производителей" class="w-full rounded-xl border border-input bg-background py-2.5 pr-9 pl-9 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30" />
+                    <button v-if="search" type="button" aria-label="Очистить поиск" class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition hover:text-foreground" @click="search = ''">
+                        <X :size="16" />
                     </button>
                 </div>
             </div>
 
-            <!-- Таблица на десктопе -->
-            <div class="hidden overflow-x-auto md:block">
-                <table class="w-full min-w-[600px] text-sm">
-                    <thead class="bg-slate-50 dark:bg-slate-950/60">
-                        <tr
-                            class="border-b border-slate-200 dark:border-slate-800"
-                        >
-                            <th
-                                class="px-5 py-4 text-left font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 transition hover:text-indigo-600 dark:hover:text-indigo-400"
-                                    @click="toggleSort('name')"
-                                >
-                                    Название
-                                    <ArrowUp
-                                        v-if="
-                                            sortBy === 'name' &&
-                                            sortDirection === 'asc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowDown
-                                        v-else-if="
-                                            sortBy === 'name' &&
-                                            sortDirection === 'desc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowUpDown
-                                        v-else
-                                        class="h-3.5 w-3.5 opacity-40"
-                                    />
-                                </button>
-                            </th>
+            <div v-if="filteredManufacturers.length === 0" class="flex flex-col items-center px-6 py-16 text-center">
+                <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
+                    <Search v-if="search" :size="28" class="text-muted-foreground" />
+                    <Package v-else :size="28" class="text-muted-foreground" />
+                </div>
+                <p class="font-medium">{{ search ? 'Ничего не найдено' : 'Производителей пока нет' }}</p>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">{{ search ? 'Попробуйте изменить поисковый запрос.' : 'Создайте первого производителя для товаров.' }}</p>
 
-                            <th
-                                class="px-5 py-4 text-center font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                <button
-                                    type="button"
-                                    class="inline-flex items-center gap-2 transition hover:text-indigo-600 dark:hover:text-indigo-400"
-                                    @click="toggleSort('products_count')"
-                                >
-                                    Товаров
-                                    <ArrowUp
-                                        v-if="
-                                            sortBy === 'products_count' &&
-                                            sortDirection === 'asc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowDown
-                                        v-else-if="
-                                            sortBy === 'products_count' &&
-                                            sortDirection === 'desc'
-                                        "
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ArrowUpDown
-                                        v-else
-                                        class="h-3.5 w-3.5 opacity-40"
-                                    />
-                                </button>
-                            </th>
+                <Button v-if="search" variant="outline" class="mt-5" @click="search = ''">
+                    <X :size="15" class="mr-1.5" />
+                    Очистить поиск
+                </Button>
+                <Button v-else as-child class="mt-5">
+                    <Link :href="create().url">
+                        <Plus :size="16" class="mr-2" />
+                        Добавить производителя
+                    </Link>
+                </Button>
+            </div>
 
-                            <th
-                                class="px-5 py-4 text-center font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Статус
-                            </th>
+            <template v-else>
+                <ul class="divide-y md:hidden">
+                    <li v-for="manufacturer in filteredManufacturers" :key="manufacturer.id" class="space-y-3 p-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                    <Package :size="17" />
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold break-words">{{ manufacturer.name }}</h3>
+                                </div>
+                            </div>
 
-                            <th
-                                class="px-5 py-4 text-right font-semibold text-slate-600 dark:text-slate-300"
-                            >
-                                Действия
+                            <span class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset" :class="manufacturer.is_active ? activeBadge : inactiveBadge">
+                                <span class="size-1.5 rounded-full" :class="manufacturer.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'" />
+                                {{ manufacturer.is_active ? 'Активен' : 'Неактивен' }}
+                            </span>
+                        </div>
+
+                        <div class="rounded-lg bg-sky-500/10 px-3 py-2 text-center">
+                            <p class="text-[11px] text-muted-foreground">Товаров</p>
+                            <p class="mt-0.5 text-sm font-bold text-sky-700 tabular-nums dark:text-sky-400">{{ manufacturer.products_count }}</p>
+                        </div>
+
+                        <div class="flex items-center gap-2">
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
+                                <Link :href="edit(manufacturer.id).url">
+                                    <Pencil :size="14" class="mr-1.5" />
+                                    Изменить
+                                </Link>
+                            </Button>
+
+                            <Button variant="outline" size="icon" class="size-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive" :disabled="manufacturer.products_count > 0" :title="manufacturer.products_count > 0 ? 'Нельзя удалить: у производителя есть товары' : 'Удалить'" @click="openDeleteDialog(manufacturer)">
+                                <Trash2 :size="15" />
+                                <span class="sr-only">Удалить</span>
+                            </Button>
+                        </div>
+                    </li>
+                </ul>
+
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full min-w-[600px] text-left text-sm">
+                        <thead>
+                        <tr class="border-b bg-muted/40">
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Производитель</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Товаров</th>
+                            <th scope="col" class="px-4 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-6 py-3.5">
+                                <span class="sr-only">Действия</span>
                             </th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody
-                        class="divide-y divide-slate-100 dark:divide-slate-800"
-                    >
-                        <tr
-                            v-for="manufacturer in filteredManufacturers"
-                            :key="manufacturer.id"
-                            class="transition-colors hover:bg-slate-50/80 dark:hover:bg-slate-800/40"
-                        >
-                            <td class="px-5 py-4">
+                        <tbody class="divide-y">
+                        <tr v-for="manufacturer in filteredManufacturers" :key="manufacturer.id" class="transition-colors hover:bg-muted/40">
+                            <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
-                                    <div
-                                        class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-400"
-                                    >
-                                        <Package class="h-5 w-5" />
+                                    <div class="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                                        <Package :size="19" />
                                     </div>
-                                    <div>
-                                        <p
-                                            class="font-semibold text-slate-900 dark:text-white"
-                                        >
-                                            {{ manufacturer.name }}
-                                        </p>
-                                        <p
-                                            class="mt-0.5 text-xs text-slate-500 dark:text-slate-400"
-                                        >
-                                            ID: {{ manufacturer.id }}
-                                        </p>
+                                    <div class="min-w-0">
+                                        <p class="font-semibold">{{ manufacturer.name }}</p>
                                     </div>
                                 </div>
                             </td>
 
-                            <td class="px-5 py-4 text-center">
-                                <span
-                                    :class="[
-                                        'inline-flex min-w-10 items-center justify-center rounded-lg px-2.5 py-1.5 font-semibold tabular-nums',
-                                        manufacturer.products_count > 0
-                                            ? 'bg-sky-50 text-sky-700 dark:bg-sky-500/10 dark:text-sky-300'
-                                            : 'bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400',
-                                    ]"
-                                >
-                                    {{ manufacturer.products_count }}
+                            <td class="px-4 py-4 text-center">
+                                <span class="inline-flex min-w-9 justify-center rounded-lg bg-sky-500/10 px-2.5 py-1.5 font-semibold text-sky-700 tabular-nums dark:text-sky-400">{{ manufacturer.products_count }}</span>
+                            </td>
+
+                            <td class="px-4 py-4">
+                                <span class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset" :class="manufacturer.is_active ? activeBadge : inactiveBadge">
+                                    <span class="size-1.5 rounded-full" :class="manufacturer.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'" />
+                                    {{ manufacturer.is_active ? 'Активен' : 'Неактивен' }}
                                 </span>
                             </td>
 
-                            <td class="px-5 py-4 text-center">
-                                <span
-                                    :class="[
-                                        'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium',
-                                        manufacturer.is_active
-                                            ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/10 dark:text-emerald-400'
-                                            : 'bg-slate-200 text-slate-600 dark:bg-slate-800 dark:text-slate-400',
-                                    ]"
-                                >
-                                    <CheckCircle2
-                                        v-if="manufacturer.is_active"
-                                        class="h-3.5 w-3.5"
-                                    />
-                                    <ShieldAlert v-else class="h-3.5 w-3.5" />
-                                    {{
-                                        manufacturer.is_active
-                                            ? 'Активен'
-                                            : 'Неактивен'
-                                    }}
-                                </span>
-                            </td>
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <Button as-child variant="ghost" size="icon" class="size-9">
+                                        <Link :href="edit(manufacturer.id).url">
+                                            <Pencil :size="16" />
+                                            <span class="sr-only">Изменить</span>
+                                        </Link>
+                                    </Button>
 
-                            <td class="px-5 py-4 text-right">
-                                <div
-                                    class="flex items-center justify-end gap-1.5"
-                                >
-                                    <Link
-                                        :href="edit(manufacturer.id).url"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-indigo-200 hover:bg-indigo-50 hover:text-indigo-700 focus-visible:ring-2 focus-visible:ring-indigo-500/20 focus-visible:outline-none dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-indigo-500/40 dark:hover:bg-indigo-500/10 dark:hover:text-indigo-300"
-                                    >
-                                        <Edit class="h-4 w-4" />
-                                    </Link>
-
-                                    <button
-                                        type="button"
-                                        :disabled="
-                                            manufacturer.products_count > 0
-                                        "
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500/20 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                                        @click="
-                                            openDeleteDialog(
-                                                manufacturer.id,
-                                                manufacturer.name,
-                                            )
-                                        "
-                                    >
-                                        <Trash2 class="h-4 w-4" />
-                                    </button>
+                                    <Button variant="ghost" size="icon" class="size-9 text-destructive hover:bg-destructive/10 hover:text-destructive" :disabled="manufacturer.products_count > 0" :title="manufacturer.products_count > 0 ? 'Нельзя удалить: у производителя есть товары' : 'Удалить'" @click="openDeleteDialog(manufacturer)">
+                                        <Trash2 :size="16" />
+                                        <span class="sr-only">Удалить</span>
+                                    </Button>
                                 </div>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </section>
 
-        <ConfirmDeleteDialog
-            :open="deleteDialogOpen"
-            :item-name="deletingItemName"
-            :loading="deleting"
-            @confirm="confirmDelete"
-            @cancel="closeDeleteDialog"
-        />
+        <nav v-if="manufacturers.last_page > 1" class="flex flex-col gap-4 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between" aria-label="Пагинация производителей">
+            <p class="text-sm text-muted-foreground">
+                Показано <span class="font-medium text-foreground tabular-nums">{{ manufacturers.from }}–{{ manufacturers.to }}</span> из <span class="font-medium text-foreground tabular-nums">{{ manufacturers.total }}</span>
+            </p>
+
+            <div class="flex items-center gap-1">
+                <Button v-if="manufacturers.links[0]?.url" as-child variant="outline" size="icon" class="size-9">
+                    <Link :href="manufacturers.links[0].url" preserve-scroll>
+                        <span class="sr-only">Предыдущая страница</span>
+                        <span aria-hidden="true">←</span>
+                    </Link>
+                </Button>
+
+                <template v-for="(link, index) in manufacturers.links.slice(1, -1)" :key="index">
+                    <Button v-if="link.url" as-child :variant="link.active ? 'default' : 'outline'" size="icon" class="size-9">
+                        <Link :href="link.url" preserve-scroll>{{ link.label }}</Link>
+                    </Button>
+                    <span v-else class="inline-flex size-9 items-center justify-center text-sm">{{ link.label }}</span>
+                </template>
+
+                <Button v-if="manufacturers.links[manufacturers.links.length - 1]?.url" as-child variant="outline" size="icon" class="size-9">
+                    <Link :href="manufacturers.links[manufacturers.links.length - 1].url!" preserve-scroll>
+                        <span class="sr-only">Следующая страница</span>
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </Button>
+            </div>
+        </nav>
     </div>
+
+    <ConfirmDeleteDialog :open="deleteDialog.open" :item-name="deleteDialog.name" :loading="deleteDialog.loading" @close="closeDeleteDialog" @confirm="confirmDelete" />
 </template>

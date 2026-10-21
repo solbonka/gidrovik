@@ -197,20 +197,6 @@ const confirmDelete = (): void => {
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
 
-        onSuccess: (page) => {
-            const flash = (page.props.flash ?? {}) as {
-                success?: string | null;
-                error?: string | null;
-            };
-
-            if (flash.error) {
-                toast.error(flash.error);
-                return;
-            }
-
-            toast.success(flash.success || 'Товар удалён.');
-        },
-
         onError: (errors) => {
             console.error('Ошибка удаления:', errors);
             toast.error(

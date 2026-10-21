@@ -1,19 +1,19 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import {
+    Layers3,
+    Pencil,
     Plus,
     Ruler,
-    Pencil,
+    Search,
     Trash2,
-    CheckCircle2,
-    XCircle,
-    Layers3,
+    X,
 } from '@lucide/vue';
-
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ConfirmDeleteDialog from '@/components/admin/ConfirmDeleteDialog.vue';
+import { Button } from '@/components/ui/button';
 import { create, destroy, edit } from '@/routes/admin/standards';
 
 defineOptions({
@@ -48,410 +48,494 @@ interface Props {
     standards: PaginatedStandards;
 }
 
-defineProps<Props>();
+const props = defineProps<Props>();
 
-const deleteDialogOpen = ref(false);
-const deletingStandard = ref<Standard | null>(null);
-const deleting = ref(false);
+/* ---------- Поиск (по загруженной странице) ---------- */
+
+const search = ref('');
+
+const filteredStandards = computed(() => {
+    const query = search.value.trim().toLowerCase();
+
+    if (!query) return props.standards.data;
+
+    return props.standards.data.filter((standard) =>
+        [standard.code, standard.name].some((value) =>
+            value.toLowerCase().includes(query),
+        ),
+    );
+});
+
+/* ---------- Статистика ---------- */
+
+// Если страниц несколько, часть показателей считается только по текущей странице
+const paged = computed(() => props.standards.last_page > 1);
+const pageSuffix = computed(() => (paged.value ? ' на странице' : ''));
+
+const activeCount = computed(
+    () => props.standards.data.filter((item) => item.is_active).length,
+);
+const inactiveCount = computed(
+    () => props.standards.data.length - activeCount.value,
+);
+const connectionsCount = computed(() =>
+    props.standards.data.reduce(
+        (total, item) => total + item.connections_count,
+        0,
+    ),
+);
+
+const stats = computed(() => [
+    {
+        title: 'Всего стандартов',
+        value: props.standards.total,
+        icon: Ruler,
+        tone: 'bg-primary/10 text-primary',
+    },
+    {
+        title: `Активные${pageSuffix.value}`,
+        value: activeCount.value,
+        icon: Layers3,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+    },
+    {
+        title: `Неактивные${pageSuffix.value}`,
+        value: inactiveCount.value,
+        icon: Ruler,
+        tone: 'bg-muted text-muted-foreground',
+    },
+    {
+        title: `Связи${pageSuffix.value}`,
+        value: connectionsCount.value,
+        icon: Layers3,
+        tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+    },
+]);
+
+/* ---------- Удаление ---------- */
+
+const deleteDialog = ref({
+    open: false,
+    id: null as number | null,
+    name: '',
+    loading: false,
+});
 
 const openDeleteDialog = (standard: Standard): void => {
-    if (deleting.value) return;
+    if (standard.connections_count > 0) {
+        toast.error('Нельзя удалить стандарт, который используется в характеристиках.');
+        return;
+    }
 
-    deletingStandard.value = standard;
-    deleteDialogOpen.value = true;
+    deleteDialog.value.id = standard.id;
+    deleteDialog.value.name = standard.name;
+    deleteDialog.value.open = true;
 };
 
 const closeDeleteDialog = (): void => {
-    if (deleting.value) return;
+    if (deleteDialog.value.loading) return;
 
-    deleteDialogOpen.value = false;
-    deletingStandard.value = null;
+    deleteDialog.value.open = false;
 };
 
 const confirmDelete = (): void => {
-    if (!deletingStandard.value || deleting.value) return;
+    if (deleteDialog.value.id === null || deleteDialog.value.loading) return;
 
-    const standard = deletingStandard.value;
+    deleteDialog.value.loading = true;
 
-    deleting.value = true;
-
-    router.delete(destroy(standard.id).url, {
+    router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
         onSuccess: () => {
             toast.success('Стандарт удалён.');
-            deleteDialogOpen.value = false;
-            deletingStandard.value = null;
         },
-        onError: (errors) => {
-            const message = errors.delete;
-
-            toast.error(
-                typeof message === 'string'
-                    ? message
-                    : 'Не удалось удалить стандарт.',
-            );
+        onError: () => {
+            toast.error('Не удалось удалить стандарт.');
         },
         onFinish: () => {
-            deleting.value = false;
+            deleteDialog.value.loading = false;
+            deleteDialog.value.open = false;
         },
     });
 };
+
+const activeBadge =
+    'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
+const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
 </script>
 
 <template>
     <Head title="Стандарты" />
 
-    <div class="space-y-6">
-        <!-- Заголовок страницы -->
-        <div
-            class="relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm sm:p-7 dark:border-gray-800 dark:bg-gray-900"
+    <div class="space-y-6 pb-4">
+        <!-- Заголовок -->
+        <header
+            class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-            <div
-                class="pointer-events-none absolute -top-16 -right-12 h-48 w-48 rounded-full bg-violet-500/10 blur-3xl"
-            />
-
-            <div
-                class="relative flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between"
-            >
-                <div class="flex items-start gap-4">
-                    <div
-                        class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600 text-white shadow-lg shadow-violet-500/20"
-                    >
-                        <Ruler class="h-6 w-6" />
-                    </div>
-
-                    <div>
-                        <h1
-                            class="bg-gradient-to-r from-gray-950 via-violet-900 to-indigo-700 bg-clip-text text-2xl font-bold tracking-tight text-transparent sm:text-3xl dark:from-white dark:via-violet-200 dark:to-indigo-300"
-                        >
-                            Стандарты
-                        </h1>
-
-                        <p
-                            class="mt-1.5 max-w-xl text-sm leading-6 text-gray-500 dark:text-gray-400"
-                        >
-                            Управление стандартами присоединительных соединений,
-                            используемыми в характеристиках товаров.
-                        </p>
-                    </div>
-                </div>
-
-                <Link
-                    :href="create().url"
-                    class="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 px-5 py-2.5 text-sm font-semibold text-white shadow-md shadow-violet-500/20 transition hover:-translate-y-0.5 hover:from-violet-700 hover:to-indigo-700 hover:shadow-lg focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:outline-none dark:focus-visible:ring-offset-gray-900"
+            <div class="flex items-center gap-4">
+                <div
+                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
                 >
-                    <Plus class="h-4 w-4" />
+                    <Ruler :size="24" />
+                </div>
+                <div>
+                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                        Стандарты
+                    </h1>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Стандарты присоединительных соединений
+                    </p>
+                </div>
+            </div>
+
+            <Button as-child class="w-full sm:w-auto">
+                <Link :href="create().url">
+                    <Plus :size="18" class="mr-2" />
                     Добавить стандарт
                 </Link>
-            </div>
-        </div>
+            </Button>
+        </header>
 
         <!-- Статистика -->
-        <div class="grid gap-4 sm:grid-cols-2">
-            <div
-                class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-            >
-                <div
-                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-500/10 dark:text-violet-300"
-                >
-                    <Ruler class="h-5 w-5" />
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Всего стандартов
-                    </p>
-                    <p
-                        class="mt-0.5 text-2xl font-bold text-gray-900 dark:text-white"
-                    >
-                        {{ standards.total }}
-                    </p>
-                </div>
-            </div>
-
-            <div
-                class="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md dark:border-gray-800 dark:bg-gray-900"
-            >
-                <div
-                    class="flex h-11 w-11 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600 dark:bg-indigo-500/10 dark:text-indigo-300"
-                >
-                    <Layers3 class="h-5 w-5" />
-                </div>
-
-                <div>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Связей на текущей странице
-                    </p>
-                    <p
-                        class="mt-0.5 text-2xl font-bold text-gray-900 dark:text-white"
-                    >
-                        {{
-                            standards.data.reduce(
-                                (sum, standard) =>
-                                    sum + standard.connections_count,
-                                0,
-                            )
-                        }}
-                    </p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Таблица -->
-        <div
-            class="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+        <section
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Сводка"
         >
             <div
-                class="flex flex-col gap-1 border-b border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-gray-800"
+                v-for="stat in stats"
+                :key="stat.title"
+                class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm"
+            >
+                <div
+                    class="flex size-11 shrink-0 items-center justify-center rounded-xl"
+                    :class="stat.tone"
+                >
+                    <component :is="stat.icon" :size="22" />
+                </div>
+                <div class="min-w-0">
+                    <p class="truncate text-sm text-muted-foreground">
+                        {{ stat.title }}
+                    </p>
+                    <p class="mt-0.5 text-2xl font-bold tracking-tight tabular-nums">
+                        {{ stat.value }}
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Список -->
+        <section
+            class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+            aria-labelledby="standards-title"
+        >
+            <div
+                class="flex flex-col gap-4 border-b px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6"
             >
                 <div>
-                    <h2 class="font-semibold text-gray-900 dark:text-white">
+                    <h2 id="standards-title" class="font-semibold">
                         Список стандартов
                     </h2>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Коды, названия и использование в товарах
+                    <p class="mt-0.5 text-sm text-muted-foreground">
+                        Показано:
+                        <span class="font-medium text-foreground tabular-nums">
+                            {{ filteredStandards.length }}
+                        </span>
+                        <template v-if="paged"> (поиск — по текущей странице)</template>
                     </p>
                 </div>
 
-                <span
-                    class="inline-flex w-fit items-center rounded-lg border border-gray-200 bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300"
-                >
-                    {{ standards.total }} записей
-                </span>
+                <div class="relative w-full sm:max-w-xs">
+                    <Search
+                        :size="16"
+                        class="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted-foreground"
+                    />
+                    <input
+                        v-model="search"
+                        type="search"
+                        placeholder="Код или название"
+                        aria-label="Поиск стандартов"
+                        class="w-full rounded-xl border border-input bg-background py-2.5 pr-9 pl-9 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                    />
+                    <button
+                        v-if="search"
+                        type="button"
+                        aria-label="Очистить поиск"
+                        class="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground transition hover:text-foreground"
+                        @click="search = ''"
+                    >
+                        <X :size="16" />
+                    </button>
+                </div>
             </div>
 
-            <!-- Карточки на мобильных -->
-            <div class="space-y-2 p-3 md:hidden">
+            <!-- Пустое состояние -->
+            <div
+                v-if="filteredStandards.length === 0"
+                class="flex flex-col items-center px-6 py-16 text-center"
+            >
                 <div
-                    v-for="standard in standards.data"
-                    :key="standard.id"
-                    class="rounded-lg border border-gray-200 bg-white p-3 shadow-sm transition-colors hover:border-violet-200 dark:border-gray-700 dark:bg-gray-900 dark:hover:border-violet-500/40"
+                    class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted"
                 >
-                    <!-- Заголовок карточки -->
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0 flex-1">
+                    <Search v-if="search" :size="28" class="text-muted-foreground" />
+                    <Ruler v-else :size="28" class="text-muted-foreground" />
+                </div>
+                <p class="font-medium">
+                    {{ search ? 'Ничего не найдено' : 'Стандартов пока нет' }}
+                </p>
+                <p class="mt-1 max-w-sm text-sm text-muted-foreground">
+                    {{
+                        search
+                            ? 'Попробуйте изменить поисковый запрос.'
+                            : 'Создайте первый стандарт для характеристик товаров.'
+                    }}
+                </p>
+
+                <Button
+                    v-if="search"
+                    variant="outline"
+                    class="mt-5"
+                    @click="search = ''"
+                >
+                    <X :size="15" class="mr-1.5" />
+                    Очистить поиск
+                </Button>
+                <Button v-else as-child class="mt-5">
+                    <Link :href="create().url">
+                        <Plus :size="16" class="mr-2" />
+                        Добавить стандарт
+                    </Link>
+                </Button>
+            </div>
+
+            <template v-else>
+                <!-- Мобильные карточки -->
+                <ul class="divide-y md:hidden">
+                    <li
+                        v-for="standard in filteredStandards"
+                        :key="standard.id"
+                        class="space-y-3 p-4"
+                    >
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex min-w-0 items-center gap-3">
+                                <div
+                                    class="flex size-9 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary"
+                                >
+                                    <Ruler :size="17" />
+                                </div>
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-semibold break-words">
+                                        {{ standard.name }}
+                                    </h3>
+                                    <p class="truncate text-xs text-muted-foreground">
+                                        {{ standard.code }}
+                                    </p>
+                                </div>
+                            </div>
+
                             <span
-                                class="inline-flex items-center rounded-md border border-violet-200 bg-violet-50 px-1.5 py-0.5 font-mono text-[10px] font-semibold text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"
+                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                :class="standard.is_active ? activeBadge : inactiveBadge"
                             >
-                                {{ standard.code }}
+                                <span
+                                    class="size-1.5 rounded-full"
+                                    :class="standard.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                />
+                                {{ standard.is_active ? 'Активен' : 'Неактивен' }}
                             </span>
-                            <h3 class="mt-1 font-semibold text-gray-900 dark:text-white break-words text-xs">
-                                {{ standard.name }}
-                            </h3>
                         </div>
 
-                        <!-- Статус -->
-                        <span
-                            v-if="standard.is_active"
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-                        >
-                            <CheckCircle2 class="h-2.5 w-2.5" />
-                            Активен
-                        </span>
-                        <span
-                            v-else
-                            class="inline-flex shrink-0 items-center gap-1 rounded-full border border-gray-200 bg-gray-100 px-1.5 py-0.5 text-[10px] font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                        >
-                            <XCircle class="h-2.5 w-2.5" />
-                            Неактивен
-                        </span>
-                    </div>
+                        <div class="rounded-lg bg-sky-500/10 px-3 py-2 text-center">
+                            <p class="text-[11px] text-muted-foreground">Связей с товарами</p>
+                            <p class="mt-0.5 text-sm font-bold text-sky-700 tabular-nums dark:text-sky-400">
+                                {{ standard.connections_count }}
+                            </p>
+                        </div>
 
-                    <!-- Инфо-блок -->
-                    <div class="mt-2 text-xs">
-                        <p class="text-[10px] text-gray-500 dark:text-gray-400">Связей с товарами</p>
-                        <p class="font-semibold text-gray-700 dark:text-gray-300">
-                            {{ standard.connections_count }}
-                        </p>
-                    </div>
+                        <div class="flex items-center gap-2">
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
+                                <Link :href="edit(standard.id).url">
+                                    <Pencil :size="14" class="mr-1.5" />
+                                    Изменить
+                                </Link>
+                            </Button>
 
-                    <!-- Действия -->
-                    <div class="mt-3 flex items-center gap-1.5 border-t border-gray-200 pt-2 dark:border-gray-700">
-                        <Link
-                            :href="edit(standard.id).url"
-                            class="flex-1 inline-flex items-center justify-center gap-1 rounded-md border border-gray-200 px-2 py-1.5 text-xs font-medium text-gray-600 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 dark:border-gray-700 dark:text-gray-300 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
-                        >
-                            <Pencil class="h-3 w-3" />
-                            Изменить
-                        </Link>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                class="size-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                :disabled="standard.connections_count > 0"
+                                :title="standard.connections_count > 0 ? 'Нельзя удалить: стандарт используется в характеристиках' : 'Удалить'"
+                                @click="openDeleteDialog(standard)"
+                            >
+                                <Trash2 :size="15" />
+                                <span class="sr-only">Удалить</span>
+                            </Button>
+                        </div>
+                    </li>
+                </ul>
 
-                        <button
-                            type="button"
-                            class="inline-flex h-8 w-8 items-center justify-center rounded-md border border-gray-200 text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-gray-700 dark:text-gray-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
-                            @click="openDeleteDialog(standard)"
-                        >
-                            <Trash2 class="h-3 w-3" />
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Пустое состояние -->
-                <div
-                    v-if="standards.data.length === 0"
-                    class="rounded-lg border border-gray-200 bg-white p-6 text-center dark:border-gray-700 dark:bg-gray-900"
-                >
-                    <div
-                        class="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-xl bg-gray-100 text-gray-400 dark:bg-gray-800 dark:text-gray-500"
-                    >
-                        <Ruler class="h-6 w-6" />
-                    </div>
-                    <p class="font-semibold text-gray-900 dark:text-white text-xs">
-                        Стандартов пока нет
-                    </p>
-                    <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                        Добавьте первый стандарт для начала работы.
-                    </p>
-                </div>
-            </div>
-
-            <!-- Таблица на десктопе -->
-            <div class="hidden overflow-x-auto md:block">
-                <table class="w-full min-w-[720px] text-left text-sm">
-                    <thead
-                        class="border-b border-gray-200 bg-gray-50/80 text-xs font-semibold tracking-wider text-gray-500 uppercase dark:border-gray-800 dark:bg-gray-800/50 dark:text-gray-400"
-                    >
-                        <tr>
-                            <th class="px-6 py-4">Код</th>
-                            <th class="px-6 py-4">Название</th>
-                            <th class="px-6 py-4">Связи с товарами</th>
-                            <th class="px-6 py-4">Статус</th>
-                            <th class="px-6 py-4 text-right">Действия</th>
+                <!-- Таблица -->
+                <div class="hidden overflow-x-auto md:block">
+                    <table class="w-full min-w-[700px] text-left text-sm">
+                        <thead>
+                        <tr class="border-b bg-muted/40">
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Код</th>
+                            <th scope="col" class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Название</th>
+                            <th scope="col" class="px-4 py-3.5 text-center text-xs font-semibold tracking-wider text-muted-foreground uppercase">Связи</th>
+                            <th scope="col" class="px-4 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-6 py-3.5">
+                                <span class="sr-only">Действия</span>
+                            </th>
                         </tr>
-                    </thead>
+                        </thead>
 
-                    <tbody
-                        class="divide-y divide-gray-100 dark:divide-gray-800"
-                    >
+                        <tbody class="divide-y">
                         <tr
-                            v-for="standard in standards.data"
+                            v-for="standard in filteredStandards"
                             :key="standard.id"
-                            class="transition-colors hover:bg-violet-50/40 dark:hover:bg-violet-500/5"
+                            class="transition-colors hover:bg-muted/40"
                         >
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-6 py-4">
                                 <span
-                                    class="inline-flex items-center rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 font-mono text-xs font-semibold text-violet-700 dark:border-violet-500/20 dark:bg-violet-500/10 dark:text-violet-300"
+                                    class="inline-flex items-center rounded-lg bg-violet-500/10 px-2.5 py-1.5 font-mono text-xs font-semibold text-violet-700 tabular-nums dark:text-violet-400"
                                 >
                                     {{ standard.code }}
                                 </span>
                             </td>
 
                             <td class="px-6 py-4">
-                                <span
-                                    class="font-medium text-gray-900 dark:text-white"
-                                >
+                                <p class="font-semibold">
                                     {{ standard.name }}
-                                </span>
+                                </p>
                             </td>
 
-                            <td class="px-6 py-4">
-                                <span
-                                    class="inline-flex items-center gap-2 text-gray-600 dark:text-gray-300"
-                                >
-                                    <Layers3 class="h-4 w-4 text-gray-400" />
-                                    {{ standard.connections_count }}
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                <span
-                                    v-if="standard.is_active"
-                                    class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:text-emerald-300"
-                                >
-                                    <CheckCircle2 class="h-3.5 w-3.5" />
-                                    Активен
-                                </span>
-
-                                <span
-                                    v-else
-                                    class="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400"
-                                >
-                                    <XCircle class="h-3.5 w-3.5" />
-                                    Неактивен
-                                </span>
-                            </td>
-
-                            <td class="px-6 py-4">
-                                <div
-                                    class="flex items-center justify-end gap-2"
-                                >
-                                    <Link
-                                        :href="edit(standard.id).url"
-                                        :aria-label="`Изменить стандарт ${standard.name}`"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300"
+                            <td class="px-4 py-4 text-center">
+                                    <span
+                                        class="inline-flex min-w-9 justify-center rounded-lg bg-sky-500/10 px-2.5 py-1.5 font-semibold text-sky-700 tabular-nums dark:text-sky-400"
                                     >
-                                        <Pencil class="h-4 w-4" />
-                                    </Link>
+                                        {{ standard.connections_count }}
+                                    </span>
+                            </td>
 
-                                    <button
-                                        type="button"
-                                        :aria-label="`Удалить стандарт ${standard.name}`"
-                                        class="inline-flex h-9 w-9 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-500 transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:outline-none dark:border-gray-700 dark:bg-gray-900 dark:text-gray-400 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-400"
+                            <td class="px-4 py-4">
+                                    <span
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                        :class="standard.is_active ? activeBadge : inactiveBadge"
+                                    >
+                                        <span
+                                            class="size-1.5 rounded-full"
+                                            :class="standard.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                        />
+                                        {{ standard.is_active ? 'Активен' : 'Неактивен' }}
+                                    </span>
+                            </td>
+
+                            <td class="px-6 py-4">
+                                <div class="flex items-center justify-end gap-2">
+                                    <Button
+                                        as-child
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9"
+                                    >
+                                        <Link :href="edit(standard.id).url">
+                                            <Pencil :size="16" />
+                                            <span class="sr-only">Изменить</span>
+                                        </Link>
+                                    </Button>
+
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="size-9 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                                        :disabled="standard.connections_count > 0"
+                                        :title="standard.connections_count > 0 ? 'Нельзя удалить: стандарт используется в характеристиках' : 'Удалить'"
                                         @click="openDeleteDialog(standard)"
                                     >
-                                        <Trash2 class="h-4 w-4" />
-                                    </button>
+                                        <Trash2 :size="16" />
+                                        <span class="sr-only">Удалить</span>
+                                    </Button>
                                 </div>
                             </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                        </tbody>
+                    </table>
+                </div>
+            </template>
+        </section>
 
-            <!-- Пагинация -->
-            <div
-                v-if="standards.last_page > 1"
-                class="flex flex-col gap-4 border-t border-gray-200 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-6 dark:border-gray-800"
-            >
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Показано
-                    <span class="font-semibold text-gray-900 dark:text-white">
-                        {{ standards.from }}–{{ standards.to }}
-                    </span>
-                    из
-                    <span class="font-semibold text-gray-900 dark:text-white">
-                        {{ standards.total }}
-                    </span>
-                </p>
+        <!-- Пагинация -->
+        <nav
+            v-if="standards.last_page > 1"
+            class="flex flex-col gap-4 border-t border-border px-5 py-4 sm:flex-row sm:items-center sm:justify-between"
+            aria-label="Пагинация стандартов"
+        >
+            <p class="text-sm text-muted-foreground">
+                Показано
+                <span class="font-medium text-foreground tabular-nums">
+                    {{ standards.from }}–{{ standards.to }}
+                </span>
+                из
+                <span class="font-medium text-foreground tabular-nums">
+                    {{ standards.total }}
+                </span>
+            </p>
 
-                <nav
-                    aria-label="Пагинация стандартов"
-                    class="flex flex-wrap items-center gap-1"
+            <div class="flex items-center gap-1">
+                <Button
+                    v-if="standards.links[0]?.url"
+                    as-child
+                    variant="outline"
+                    size="icon"
+                    class="size-9"
                 >
-                    <template
-                        v-for="(link, index) in standards.links"
-                        :key="index"
-                    >
-                        <Link
-                            v-if="link.url"
-                            :href="link.url"
-                            preserve-scroll
-                            :aria-current="link.active ? 'page' : undefined"
-                            class="inline-flex min-h-9 min-w-9 items-center justify-center rounded-lg border px-3 text-sm font-medium transition"
-                            :class="
-                                link.active
-                                    ? 'border-violet-600 bg-violet-600 text-white shadow-sm'
-                                    : 'border-gray-200 bg-white text-gray-600 hover:border-violet-300 hover:bg-violet-50 hover:text-violet-700 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-violet-500/40 dark:hover:bg-violet-500/10 dark:hover:text-violet-300'
-                            "
-                            v-html="link.label"
-                        />
+                    <Link :href="standards.links[0].url" preserve-scroll>
+                        <span class="sr-only">Предыдущая страница</span>
+                        <span aria-hidden="true">←</span>
+                    </Link>
+                </Button>
 
-                        <span
-                            v-else
-                            class="inline-flex min-h-9 min-w-9 cursor-not-allowed items-center justify-center rounded-lg border border-gray-100 px-3 text-sm text-gray-300 dark:border-gray-800 dark:text-gray-600"
-                            v-html="link.label"
-                        />
-                    </template>
-                </nav>
+                <template v-for="(link, index) in standards.links.slice(1, -1)" :key="index">
+                    <Button
+                        v-if="link.url"
+                        as-child
+                        :variant="link.active ? 'default' : 'outline'"
+                        size="icon"
+                        class="size-9"
+                    >
+                        <Link :href="link.url" preserve-scroll>
+                            {{ link.label }}
+                        </Link>
+                    </Button>
+                    <span
+                        v-else
+                        class="inline-flex size-9 items-center justify-center text-sm"
+                    >
+                        {{ link.label }}
+                    </span>
+                </template>
+
+                <Button
+                    v-if="standards.links[standards.links.length - 1]?.url"
+                    as-child
+                    variant="outline"
+                    size="icon"
+                    class="size-9"
+                >
+                    <Link :href="standards.links[standards.links.length - 1].url!" preserve-scroll>
+                        <span class="sr-only">Следующая страница</span>
+                        <span aria-hidden="true">→</span>
+                    </Link>
+                </Button>
             </div>
-        </div>
+        </nav>
     </div>
 
+    <!-- Диалог подтверждения удаления -->
     <ConfirmDeleteDialog
-        :open="deleteDialogOpen"
-        :item-name="deletingStandard?.name ?? ''"
-        description="Стандарт нельзя будет восстановить после удаления. Если он используется в товарах, сервер может запретить удаление."
-        :processing="deleting"
+        :open="deleteDialog.open"
+        :item-name="deleteDialog.name"
+        :loading="deleteDialog.loading"
+        @close="closeDeleteDialog"
         @confirm="confirmDelete"
-        @cancel="closeDeleteDialog"
     />
 </template>
