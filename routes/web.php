@@ -73,7 +73,7 @@ Route::middleware(['auth', 'verified'])
                 ->except(['show']);
 
             Route::resource('racks', RackController::class)
-                ->except(['show']);
+                ->except(['index', 'show']);
 
             Route::scopeBindings()->group(function () {
                 Route::resource('racks.locations', LocationController::class)
@@ -130,6 +130,9 @@ Route::middleware(['auth', 'verified'])
             ])->name('products.show');
 
             Route::get('/locations', [LocationController::class, 'getLocationsWithProduct'])->name('admin.locations.with-product');
+
+            Route::get('/racks', [RackController::class, 'index'])
+                ->name('racks.index');
 
             Route::get('/locations/{location}/products', [
                 RackController::class,

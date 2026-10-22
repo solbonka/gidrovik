@@ -41,8 +41,9 @@ class RoleAccessTest extends TestCase
 
             'кладовщик открывает дашборд' => [UserRole::WAREHOUSE, 'admin.dashboard', true],
             'кладовщик открывает остатки' => [UserRole::WAREHOUSE, 'admin.stock.index', true],
-            'кладовщик открычает приход' => [UserRole::WAREHOUSE, 'admin.stock.receipt.create', true],
+            'кладовщик открывает приход' => [UserRole::WAREHOUSE, 'admin.stock.receipt.create', true],
             'кладовщик открывает инвентаризацию' => [UserRole::WAREHOUSE, 'admin.stock.inventory.create', true],
+            'кладовщик открывает стеллажи' => [UserRole::WAREHOUSE, 'admin.racks.index', true],
             'кладовщик не открывает справочники' => [UserRole::WAREHOUSE, 'admin.countries.index', false],
             'кладовщик не открывает создание товара' => [UserRole::WAREHOUSE, 'admin.products.create', false],
             'кладовщик не открывает пользователей' => [UserRole::WAREHOUSE, 'admin.users.index', false],
@@ -51,6 +52,7 @@ class RoleAccessTest extends TestCase
             'наблюдатель открывает остатки' => [UserRole::VIEWER, 'admin.stock.index', true],
             'наблюдатель открывает список товаров' => [UserRole::VIEWER, 'admin.products.index', true],
             'наблюдатель открывает историю движений' => [UserRole::VIEWER, 'admin.stock.movements.index', true],
+            'наблюдатель открывает стеллажи' => [UserRole::VIEWER, 'admin.racks.index', true],
             'наблюдатель не открывает приход' => [UserRole::VIEWER, 'admin.stock.receipt.create', false],
             'наблюдатель не открывает справочники' => [UserRole::VIEWER, 'admin.countries.index', false],
             'наблюдатель не открывает пользователей' => [UserRole::VIEWER, 'admin.users.index', false],
