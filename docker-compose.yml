@@ -23,11 +23,28 @@ services:
             - .env
         ports:
             - '${VITE_PORT:-5173}:5173'
+            - '${RABBITMQ_PORT:-5672}:5672'
+        depends_on:
+            - db
+            - rabbitmq
+
+    queue-worker:
+        build: docker
+        restart: always
+        volumes:
+            - .:/var/www/html
+        env_file:
+            - .env
+        command: php artisan queue:work --sleep=3 --tries=3 --max-time=3600
+        depends_on:
+            - php-fpm
+            - rabbitmq
+            - db
 
     db:
-        image: postgres:10.1
+        image: postgres:18.6
         volumes:
-            - ./docker/postgres/data:/var/lib/postgresql/data
+            - ./docker/postgres/data:/var/lib/postgresql
         restart: always
         environment:
             - POSTGRES_DB=${DB_DATABASE}

@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Enums\Permission;
+use App\Enums\UserRole;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -47,6 +48,10 @@ class HandleInertiaRequests extends Middleware
                     $user->role->permissions(),
                 )
                 : [],
+
+            'roles' => collect(UserRole::cases())
+                ->mapWithKeys(fn (UserRole $role): array => [$role->value => $role->label()])
+                ->all(),
 
             'sidebarOpen' => ! $request->hasCookie('sidebar_state')
                 || $request->cookie('sidebar_state') === 'true',

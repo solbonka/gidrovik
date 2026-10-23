@@ -73,6 +73,30 @@ return [
             'after_commit' => false,
         ],
 
+        'amqp' => [
+            'driver' => 'amqp',
+            'host' => env('RABBITMQ_HOST', 'rabbitmq'),
+            'port' => env('RABBITMQ_PORT', 5672),
+            'user' => env('RABBITMQ_USER', 'guest'),
+            'password' => env('RABBITMQ_PASSWORD', 'guest'),
+            'vhost' => env('RABBITMQ_VHOST', '/'),
+            'queue' => env('RABBITMQ_QUEUE', 'default'),
+            'retry_after' => (int) env('RABBITMQ_RETRY_AFTER', 90),
+            'after_commit' => false,
+        ],
+
+        'rabbitmq' => [
+            'driver' => 'amqp',
+            'host' => env('RABBITMQ_HOST', 'rabbitmq'),
+            'port' => env('RABBITMQ_PORT', 5672),
+            'user' => env('RABBITMQ_USER', 'guest'),
+            'password' => env('RABBITMQ_PASSWORD', 'guest'),
+            'vhost' => env('RABBITMQ_VHOST', '/'),
+            'queue' => env('RABBITMQ_QUEUE', 'default'),
+            'retry_after' => (int) env('RABBITMQ_RETRY_AFTER', 90),
+            'after_commit' => false,
+        ],
+
         'deferred' => [
             'driver' => 'deferred',
         ],

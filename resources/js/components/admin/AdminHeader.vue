@@ -1,4 +1,3 @@
-
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
@@ -49,12 +48,14 @@ const userInitials = computed(() => {
 const userRole = computed(() => {
     const role = user.value?.role
 
+    const roleLabels: Record<string, string> = (page.props.roles as Record<string, string> | undefined) ?? {}
+
     if (typeof role === 'string' && role.trim()) {
-        return role.trim()
+        return roleLabels[role.trim()] ?? role.trim()
     }
 
     if (typeof role === 'object' && role?.name?.trim()) {
-        return role.name.trim()
+        return roleLabels[role.name.trim()] ?? role.name.trim()
     }
 
     return 'Учётная запись'

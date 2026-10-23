@@ -943,7 +943,9 @@ const closeProductDetails = (): void => {
             }
         "
     >
-        <DialogContent class="max-h-[90vh] w-[95vw] max-w-2xl overflow-y-auto">
+        <DialogContent
+            class="max-h-[90vh] w-[95vw] max-w-2xl overflow-x-hidden overflow-y-auto [&>*]:min-w-0"
+        >
             <DialogHeader>
                 <DialogTitle>
                     Ячейка {{ locationModal.locationCode }}
@@ -1163,37 +1165,38 @@ const closeProductDetails = (): void => {
                             </p>
                         </div>
 
-                        <div v-else class="space-y-2">
+                        <div v-else class="space-y-1.5">
                             <button
                                 v-for="product in locationModal.products"
                                 :key="product.id"
                                 type="button"
-                                class="group flex w-full items-center justify-between gap-3 rounded-xl border bg-card p-4 text-left transition hover:border-primary/30 hover:bg-muted/40"
+                                :title="product.name"
+                                class="group flex w-full min-w-0 items-center justify-between gap-3 rounded-lg border bg-card px-3 py-2.5 text-left transition hover:border-primary/30 hover:bg-muted/40"
                                 @click="showProductDetails(product)"
                             >
-                                <span class="min-w-0">
-                                    <span class="block truncate font-medium">
-                                        {{ product.name }}
-                                    </span>
-                                    <span class="block text-xs text-muted-foreground">
-                                        {{ product.sku || 'Без артикула' }}
-                                    </span>
+                            <span class="min-w-0 flex-1">
+                                <span
+                                    class="line-clamp-2 block text-[13px] leading-snug font-medium break-words"
+                                >
+                                    {{ product.name }}
                                 </span>
+                                <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    {{ product.sku || 'Без артикула' }}
+                                </span>
+                            </span>
 
-                                <span class="flex shrink-0 items-center gap-3">
-                                    <span class="text-right">
-                                        <span class="block font-bold tabular-nums">
-                                            {{ formatQuantity(product.quantity) }}
-                                        </span>
-                                        <span class="text-xs text-muted-foreground">
-                                            шт.
-                                        </span>
+                                <span class="flex shrink-0 items-center gap-2">
+                                <span class="text-right">
+                                    <span class="block text-sm font-bold tabular-nums">
+                                        {{ formatQuantity(product.quantity) }}
                                     </span>
-                                    <ChevronRight
-                                        :size="18"
-                                        class="text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary"
-                                    />
+                                    <span class="text-[11px] text-muted-foreground">шт.</span>
                                 </span>
+                                <ChevronRight
+                                    :size="16"
+                                    class="text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary"
+                                />
+                            </span>
                             </button>
                         </div>
                     </div>
@@ -1221,13 +1224,12 @@ const closeProductDetails = (): void => {
             }
         "
     >
-        <DialogContent class="max-h-[85vh] w-[95vw] max-w-xl overflow-y-auto">
+        <DialogContent
+            class="max-h-[85vh] w-[95vw] max-w-xl overflow-x-hidden overflow-y-auto [&>*]:min-w-0"
+        >
             <DialogHeader>
-                <DialogTitle>
-                    {{
-                        productDetailsModal.product?.name ||
-                        'Расположение товара'
-                    }}
+                <DialogTitle class="pr-6 text-base leading-snug break-words">
+                    {{ productDetailsModal.product?.name || 'Расположение товара' }}
                 </DialogTitle>
                 <DialogDescription>
                     {{

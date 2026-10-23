@@ -28,7 +28,8 @@ RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-xpm \
         zip \
         gd \
         intl \
-        opcache
+        opcache \
+        sockets
 
 
 # Установка Node.js через nvm

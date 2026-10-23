@@ -2,7 +2,9 @@
 
 namespace App\Providers;
 
+use App\Queue\Connectors\AmqpConnector;
 use Carbon\CarbonImmutable;
+use Illuminate\Queue\QueueManager;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -23,6 +25,14 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (class_exists('PhpAmqpLib\Connection\AbstractConnection')) {
+            $manager = $this->app->make(QueueManager::class);
+
+            $manager->addConnector('amqp', function () {
+                return new AmqpConnector;
+            });
+        }
+
         $this->configureDefaults();
     }
 
