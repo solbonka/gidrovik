@@ -10,6 +10,7 @@ use App\Models\Location;
 use App\Models\Product;
 use App\Models\Rack;
 use App\Models\StockMovement;
+use App\Models\Warehouse;
 use App\Services\Admin\RackService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -25,7 +26,9 @@ class RackController extends Controller
 
     public function index(): Response
     {
-        $racks = Rack::query()
+        $warehouseId = request()->integer('warehouse_id');
+
+        $query = Rack::query()
             ->with([
                 'locations' => function ($query) {
                     $query
@@ -37,8 +40,13 @@ class RackController extends Controller
                 },
             ])
             ->withCount('locations')
-            ->orderBy('code')
-            ->get();
+            ->orderBy('code');
+
+        if ($warehouseId > 0) {
+            $query->where('warehouse_id', $warehouseId);
+        }
+
+        $racks = $query->get();
 
         // Get all location IDs for batch query
         $locationIds = $racks->pluck('locations.*.id')->flatten()->filter();
@@ -116,17 +124,34 @@ class RackController extends Controller
                 'rack_name' => $location->rack->name,
             ]);
 
+        // Get warehouses for filter
+        $warehouses = Warehouse::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        $selectedWarehouse = $warehouseId > 0
+            ? Warehouse::query()->find($warehouseId, ['id', 'name'])
+            : null;
+
         return Inertia::render('admin/racks/Index', [
             'racks' => $racks,
             'allProducts' => $allProducts,
             'allLocations' => $allLocations,
             'categories' => $categories,
+            'warehouses' => $warehouses,
+            'selectedWarehouse' => $selectedWarehouse,
         ]);
     }
 
     public function create(): Response
     {
-        return Inertia::render('admin/racks/Create');
+        $warehouses = Warehouse::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
+        return Inertia::render('admin/racks/Create', [
+            'warehouses' => $warehouses,
+        ]);
     }
 
     public function store(StoreRackRequest $request): RedirectResponse
@@ -139,8 +164,13 @@ class RackController extends Controller
 
     public function edit(Rack $rack): Response
     {
+        $warehouses = Warehouse::query()
+            ->orderBy('name')
+            ->get(['id', 'name']);
+
         return Inertia::render('admin/racks/Edit', [
             'rack' => $rack->load('locations'),
+            'warehouses' => $warehouses,
         ]);
     }
 

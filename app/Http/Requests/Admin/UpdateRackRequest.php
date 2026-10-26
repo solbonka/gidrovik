@@ -32,6 +32,10 @@ class UpdateRackRequest extends FormRequest
                 'string',
                 'max:255',
             ],
+            'warehouse_id' => [
+                'required',
+                'exists:warehouses,id',
+            ],
         ];
     }
 
@@ -82,6 +86,7 @@ class UpdateRackRequest extends FormRequest
         return [
             'code' => 'код стеллажа',
             'name' => 'название',
+            'warehouse_id' => 'склад',
         ];
     }
 }

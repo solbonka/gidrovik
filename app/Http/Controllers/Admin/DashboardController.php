@@ -8,6 +8,7 @@ use App\Models\Location;
 use App\Models\Product;
 use App\Models\Rack;
 use App\Models\StockMovement;
+use App\Models\Warehouse;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,6 +25,8 @@ class DashboardController extends Controller
             'categories' => Category::query()
                 ->where('is_active', true)
                 ->count(),
+
+            'warehouses' => Warehouse::query()->count(),
 
             'racks' => Rack::query()->count(),
 

@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\StockTransferController;
 use App\Http\Controllers\Admin\StockWriteOffController;
 use App\Http\Controllers\Admin\ThreadController;
 use App\Http\Controllers\Admin\UserController;
+use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +71,9 @@ Route::middleware(['auth', 'verified'])
                 ->except(['show']);
 
             Route::resource('countries', CountryController::class)
+                ->except(['show']);
+
+            Route::resource('warehouses', WarehouseController::class)
                 ->except(['show']);
 
             Route::resource('racks', RackController::class)

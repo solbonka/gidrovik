@@ -11,6 +11,7 @@ import {
     ArrowRight,
     ArrowUpFromLine,
     Boxes,
+    Building2,
     ClipboardCheck,
     Grid2X2,
     History,
@@ -29,18 +30,13 @@ defineOptions({
     layout: AdminLayout,
 });
 
-interface StockByUnit {
-    unit: string;
-    quantity: string;
-}
-
 interface Statistics {
     products: number;
     categories: number;
+    warehouses: number;
     racks: number;
     locations: number;
     products_with_stock: number;
-    stock_by_unit: StockByUnit[];
     products_below_minimum: number;
 }
 
@@ -83,11 +79,12 @@ function formatNumber(value: number | string | null | undefined): string {
 /* ---------- Карточки показателей ---------- */
 
 interface StatisticCard {
-    key: 'products' | 'categories' | 'racks' | 'locations';
+    key: 'products' | 'categories' | 'warehouses' | 'racks' | 'locations';
     title: string;
     description: string;
     icon: Component;
     tone: string;
+    href: string;
 }
 
 const statisticCards: StatisticCard[] = [
@@ -97,6 +94,7 @@ const statisticCards: StatisticCard[] = [
         description: 'Активных в каталоге',
         icon: Package,
         tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        href: '/admin/products',
     },
     {
         key: 'categories',
@@ -104,6 +102,15 @@ const statisticCards: StatisticCard[] = [
         description: 'Активных категорий',
         icon: Tags,
         tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+        href: '/admin/categories',
+    },
+    {
+        key: 'warehouses',
+        title: 'Склады',
+        description: 'Всего складов',
+        icon: Building2,
+        tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        href: '/admin/warehouses',
     },
     {
         key: 'racks',
@@ -111,6 +118,7 @@ const statisticCards: StatisticCard[] = [
         description: 'Всего стеллажей',
         icon: Grid2X2,
         tone: 'bg-sky-500/10 text-sky-600 dark:text-sky-400',
+        href: '/admin/racks',
     },
     {
         key: 'locations',
@@ -118,6 +126,7 @@ const statisticCards: StatisticCard[] = [
         description: 'Всего ячеек',
         icon: Boxes,
         tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
+        href: '/admin/locations',
     },
 ];
 
@@ -138,6 +147,13 @@ const quickActions = [
         href: '/admin/products/create',
         icon: PackagePlus,
         tone: 'bg-primary/10 text-primary',
+    },
+    {
+        title: 'Добавить склад',
+        description: 'Создать новый склад',
+        href: '/admin/warehouses/create',
+        icon: Building2,
+        tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
     },
     {
         title: 'Приход товара',
@@ -317,11 +333,12 @@ function route(movement: Movement): { from: string; to: string } {
                 </Link>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                <div
+            <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+                <Link
                     v-for="card in statisticCards"
                     :key="card.key"
-                    class="rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition hover:shadow-md"
+                    :href="card.href"
+                    class="group block rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                 >
                     <div class="flex items-start justify-between gap-3">
                         <div>
@@ -341,15 +358,18 @@ function route(movement: Movement): { from: string; to: string } {
                             <component :is="card.icon" :size="20" />
                         </div>
                     </div>
-                    <p class="mt-3 text-xs text-muted-foreground">
-                        {{ card.description }}
-                    </p>
-                </div>
+                    <div class="mt-3 flex items-center justify-between gap-2">
+                        <p class="text-xs text-muted-foreground">
+                            {{ card.description }}
+                        </p>
+                        <ArrowRight :size="15" class="shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
+                    </div>
+                </Link>
             </div>
 
-            <div class="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <div class="mt-4">
                 <!-- Товары с остатком -->
-                <div class="rounded-2xl border bg-card p-5 shadow-sm">
+                <Link href="/admin/stock" class="group block rounded-2xl border bg-card p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-primary/30 hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none">
                     <div class="flex items-center gap-3">
                         <div
                             class="flex size-10 items-center justify-center rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
@@ -382,45 +402,13 @@ function route(movement: Movement): { from: string; to: string } {
                             :style="{ width: `${stockCoverage}%` }"
                         />
                     </div>
-                    <p class="mt-2 text-xs text-muted-foreground">
-                        {{ stockCoverage }}% позиций с ненулевым остатком
-                    </p>
-                </div>
-
-                <!-- Остатки по единицам -->
-                <div class="rounded-2xl border bg-card p-5 shadow-sm">
-                    <h3 class="text-sm font-semibold">
-                        Остатки по единицам измерения
-                    </h3>
-
-                    <div
-                        v-if="statistics.stock_by_unit.length === 0"
-                        class="mt-4 flex items-center gap-3 rounded-xl bg-muted/50 p-4"
-                    >
-                        <Package :size="20" class="text-muted-foreground" />
-                        <p class="text-sm text-muted-foreground">
-                            На складе пока нет учтённых остатков.
+                    <div class="mt-2 flex items-center justify-between gap-2">
+                        <p class="text-xs text-muted-foreground">
+                            {{ stockCoverage }}% позиций с ненулевым остатком
                         </p>
+                        <ArrowRight :size="15" class="shrink-0 text-muted-foreground transition group-hover:translate-x-0.5 group-hover:text-primary" />
                     </div>
-
-                    <div
-                        v-else
-                        class="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                    >
-                        <div
-                            v-for="stock in statistics.stock_by_unit"
-                            :key="stock.unit"
-                            class="rounded-xl bg-muted/50 px-4 py-3"
-                        >
-                            <p class="text-xs font-medium text-muted-foreground">
-                                {{ stock.unit }}
-                            </p>
-                            <p class="mt-1 text-xl font-bold tabular-nums">
-                                {{ formatNumber(stock.quantity) }}
-                            </p>
-                        </div>
-                    </div>
-                </div>
+                </Link>
             </div>
         </section>
 

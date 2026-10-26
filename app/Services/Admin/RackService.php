@@ -12,6 +12,7 @@ class RackService
         return Rack::query()->create([
             'code' => strtoupper(trim($data['code'])),
             'name' => $data['name'] ?? null,
+            'warehouse_id' => $data['warehouse_id'],
         ]);
     }
 
@@ -20,6 +21,7 @@ class RackService
         $rack->update([
             'code' => strtoupper(trim($data['code'])),
             'name' => $data['name'] ?? null,
+            'warehouse_id' => $data['warehouse_id'],
         ]);
 
         return $rack->fresh();

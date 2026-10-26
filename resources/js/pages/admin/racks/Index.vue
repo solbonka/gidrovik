@@ -4,7 +4,7 @@ import { computed, ref, watch } from 'vue';
 import type { Component } from 'vue';
 import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
-import { create, destroy, edit } from '@/routes/admin/racks';
+import { create, destroy, edit, index } from '@/routes/admin/racks';
 import {
     destroy as destroyLocation,
     store as storeLocation,
@@ -17,6 +17,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
 import {
     ArrowLeft,
@@ -35,6 +36,7 @@ import {
     Boxes,
     Package,
     X,
+    Building2,
 } from '@lucide/vue';
 
 defineOptions({
@@ -105,6 +107,14 @@ interface Props {
         id: number;
         name: string;
     }[];
+    warehouses: {
+        id: number;
+        name: string;
+    }[];
+    selectedWarehouse: {
+        id: number;
+        name: string;
+    } | null;
 }
 
 type Operation = 'receipt' | 'write_off' | 'transfer' | 'return' | 'inventory';
@@ -198,6 +208,27 @@ const deleteConfirmation = ref({
     location: null as Location | null,
     loading: false,
 });
+
+/* ---------- Фильтр по складу ---------- */
+
+const selectedWarehouseId = ref<string | null>(
+    props.selectedWarehouse?.id.toString() ?? null,
+);
+
+const onWarehouseChange = (value: string): void => {
+    selectedWarehouseId.value = value === 'all' ? null : value;
+
+    router.get(
+        index().url,
+        {
+            warehouse_id: selectedWarehouseId.value,
+        },
+        {
+            preserveState: true,
+            replace: true,
+        },
+    );
+};
 
 const currentOperation = computed(
     () =>
@@ -728,12 +759,30 @@ const closeProductDetails = (): void => {
                 </div>
             </div>
 
-            <Button as-child class="w-full sm:w-auto">
-                <Link :href="create().url">
-                    <Plus :size="18" class="mr-2" />
-                    Добавить стеллаж
-                </Link>
-            </Button>
+            <div class="flex items-center gap-2">
+                <Select :model-value="selectedWarehouseId ?? 'all'" @update:model-value="onWarehouseChange">
+                    <SelectTrigger class="w-[200px]">
+                        <SelectValue placeholder="Все склады" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Все склады</SelectItem>
+                        <SelectItem
+                            v-for="warehouse in warehouses"
+                            :key="warehouse.id"
+                            :value="warehouse.id.toString()"
+                        >
+                            {{ warehouse.name }}
+                        </SelectItem>
+                    </SelectContent>
+                </Select>
+
+                <Button as-child class="w-full sm:w-auto">
+                    <Link :href="create().url">
+                        <Plus :size="18" class="mr-2" />
+                        Добавить стеллаж
+                    </Link>
+                </Button>
+            </div>
         </header>
 
         <!-- Сводка -->

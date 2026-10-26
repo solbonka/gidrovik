@@ -14,6 +14,7 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { index, update } from '@/routes/admin/racks';
 
 defineOptions({
@@ -29,11 +30,18 @@ interface Rack {
     id: number;
     code: string;
     name: string | null;
+    warehouse_id: number | null;
     locations: Location[];
+}
+
+interface Warehouse {
+    id: number;
+    name: string;
 }
 
 interface Props {
     rack: Rack;
+    warehouses: Warehouse[];
 }
 
 const props = defineProps<Props>();
@@ -41,6 +49,7 @@ const props = defineProps<Props>();
 const form = useForm({
     code: props.rack.code,
     name: props.rack.name ?? '',
+    warehouse_id: props.rack.warehouse_id,
 });
 
 const submit = (): void => {
@@ -124,6 +133,36 @@ const locationsLabel = computed(
                 </div>
 
                 <div class="space-y-6 p-6">
+                    <!-- Склад -->
+                    <div class="space-y-2">
+                        <Label for="warehouse_id">
+                            Склад
+                            <span class="text-destructive" aria-hidden="true">*</span>
+                        </Label>
+
+                        <Select v-model="form.warehouse_id" required>
+                            <SelectTrigger id="warehouse_id" class="h-11 rounded-xl">
+                                <SelectValue placeholder="Выберите склад" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="warehouse in warehouses"
+                                    :key="warehouse.id"
+                                    :value="warehouse.id.toString()"
+                                >
+                                    {{ warehouse.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <p
+                            v-if="form.errors.warehouse_id"
+                            class="text-sm text-destructive"
+                        >
+                            {{ form.errors.warehouse_id }}
+                        </p>
+                    </div>
+
                     <!-- Код -->
                     <div class="space-y-2">
                         <Label for="code">

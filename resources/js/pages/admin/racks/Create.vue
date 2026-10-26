@@ -12,15 +12,26 @@ import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { index, store } from '@/routes/admin/racks';
 
 defineOptions({
     layout: AdminLayout,
 });
 
+interface Warehouse {
+    id: number;
+    name: string;
+}
+
+const props = defineProps<{
+    warehouses: Warehouse[];
+}>();
+
 const form = useForm({
     code: '',
     name: '',
+    warehouse_id: null as number | null,
 });
 
 const submit = (): void => {
@@ -82,6 +93,36 @@ const submit = (): void => {
                 </div>
 
                 <div class="space-y-6 p-6">
+                    <!-- Склад -->
+                    <div class="space-y-2">
+                        <Label for="warehouse_id">
+                            Склад
+                            <span class="text-destructive" aria-hidden="true">*</span>
+                        </Label>
+
+                        <Select v-model="form.warehouse_id" required>
+                            <SelectTrigger id="warehouse_id" class="h-11 rounded-xl">
+                                <SelectValue placeholder="Выберите склад" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem
+                                    v-for="warehouse in warehouses"
+                                    :key="warehouse.id"
+                                    :value="warehouse.id.toString()"
+                                >
+                                    {{ warehouse.name }}
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+
+                        <p
+                            v-if="form.errors.warehouse_id"
+                            class="text-sm text-destructive"
+                        >
+                            {{ form.errors.warehouse_id }}
+                        </p>
+                    </div>
+
                     <!-- Код -->
                     <div class="space-y-2">
                         <Label for="code">

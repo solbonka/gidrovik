@@ -99,6 +99,7 @@ const navigationGroups: NavigationGroup[] = [
     {
         title: 'Хранение',
         items: [
+            { name: 'Склады', href: '/admin/warehouses', icon: Building2, permission: 'catalog.manage' },
             { name: 'Стеллажи и ячейки', href: '/admin/racks', icon: Grid2X2, permission: 'view' },
         ],
     },
