@@ -738,30 +738,30 @@ const closeProductDetails = (): void => {
 <template>
     <Head title="Склады и ячейки" />
 
-    <div class="space-y-8">
+    <div class="min-w-0 space-y-5 sm:space-y-8">
         <!-- Заголовок -->
         <header
             class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
         >
-            <div class="flex items-center gap-4">
+            <div class="flex min-w-0 items-center gap-3 sm:gap-4">
                 <div
-                    class="flex size-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
+                    class="flex size-10 shrink-0 sm:size-12 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-sm"
                 >
                     <Grid2X2 :size="24" />
                 </div>
                 <div>
-                    <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
+                    <h1 class="text-xl font-bold tracking-tight sm:text-2xl lg:text-3xl">
                         Склады и ячейки
                     </h1>
-                    <p class="mt-1 text-sm text-muted-foreground">
+                    <p class="mt-1 text-sm leading-relaxed text-muted-foreground">
                         Управление стеллажами, ячейками и остатками товаров
                     </p>
                 </div>
             </div>
 
-            <div class="flex items-center gap-2">
+            <div class="flex w-full min-w-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                 <Select :model-value="selectedWarehouseId ?? 'all'" @update:model-value="onWarehouseChange">
-                    <SelectTrigger class="w-[200px]">
+                    <SelectTrigger class="w-full sm:w-[200px]">
                         <SelectValue placeholder="Все склады" />
                     </SelectTrigger>
                     <SelectContent>
@@ -790,7 +790,7 @@ const closeProductDetails = (): void => {
             <div
                 v-for="card in summaryCards"
                 :key="card.title"
-                class="flex items-center gap-4 rounded-2xl border bg-card p-5 shadow-sm"
+                class="flex min-w-0 items-center gap-3 rounded-2xl border bg-card p-4 shadow-sm sm:gap-4 sm:p-5"
             >
                 <div
                     class="flex size-11 shrink-0 items-center justify-center rounded-xl"
@@ -818,7 +818,7 @@ const closeProductDetails = (): void => {
             <article
                 v-for="rack in racks"
                 :key="rack.id"
-                class="flex flex-col rounded-2xl border bg-card p-5 shadow-sm transition hover:shadow-md"
+                class="flex min-w-0 flex-col rounded-2xl border bg-card p-3 shadow-sm transition hover:shadow-md sm:p-5"
             >
                 <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
@@ -886,7 +886,7 @@ const closeProductDetails = (): void => {
                 </div>
 
                 <!-- Ячейки -->
-                <div class="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-4">
+                <div class="mt-4 grid grid-cols-3 gap-1.5 min-[420px]:grid-cols-4 sm:mt-5 sm:gap-2">
                     <button
                         v-for="cell in rack.locations || []"
                         :key="cell.id"
@@ -929,7 +929,7 @@ const closeProductDetails = (): void => {
                             Добавить ячейку
                         </Button>
 
-                        <div v-else class="flex gap-2">
+                        <div v-else class="flex flex-col gap-2 min-[420px]:flex-row">
                             <input
                                 v-model="newLocationNumber[rack.id]"
                                 type="number"
@@ -943,7 +943,7 @@ const closeProductDetails = (): void => {
                                 @keydown.esc="cancelAddLocation"
                             />
 
-                            <Button @click="addLocation(rack)">
+                            <Button class="w-full min-[420px]:w-auto" @click="addLocation(rack)">
                                 Добавить
                             </Button>
 
@@ -993,7 +993,7 @@ const closeProductDetails = (): void => {
         "
     >
         <DialogContent
-            class="max-h-[90vh] w-[95vw] max-w-2xl overflow-x-hidden overflow-y-auto [&>*]:min-w-0"
+            class="max-h-[90dvh] w-[calc(100vw-1rem)] max-w-2xl overflow-x-hidden overflow-y-auto p-4 sm:w-[95vw] sm:p-6 [&>*]:min-w-0"
         >
             <DialogHeader>
                 <DialogTitle>
@@ -1255,6 +1255,7 @@ const closeProductDetails = (): void => {
             <div class="flex justify-end border-t pt-4">
                 <Button
                     variant="outline"
+                    class="w-full sm:w-auto"
                     :disabled="locationModal.operationLoading"
                     @click="closeLocationModal"
                 >
@@ -1274,7 +1275,7 @@ const closeProductDetails = (): void => {
         "
     >
         <DialogContent
-            class="max-h-[85vh] w-[95vw] max-w-xl overflow-x-hidden overflow-y-auto [&>*]:min-w-0"
+            class="max-h-[85dvh] w-[calc(100vw-1rem)] max-w-xl overflow-x-hidden overflow-y-auto p-4 sm:w-[95vw] sm:p-6 [&>*]:min-w-0"
         >
             <DialogHeader>
                 <DialogTitle class="pr-6 text-base leading-snug break-words">
@@ -1321,9 +1322,9 @@ const closeProductDetails = (): void => {
                     <div
                         v-for="location in productDetailsModal.locations"
                         :key="location.id"
-                        class="flex items-center justify-between rounded-xl border bg-card p-3"
+                        class="flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-3"
                     >
-                        <p class="font-medium">
+                        <p class="min-w-0 break-words font-medium">
                             {{ location.code || `Ячейка ${location.number}` }}
                         </p>
                         <p class="font-bold tabular-nums">
@@ -1348,7 +1349,7 @@ const closeProductDetails = (): void => {
             }
         "
     >
-        <DialogContent class="w-[95vw] max-w-md">
+        <DialogContent class="w-[calc(100vw-1rem)] max-w-md p-4 sm:w-[95vw] sm:p-6">
             <DialogHeader>
                 <DialogTitle>Подтверждение удаления</DialogTitle>
                 <DialogDescription>
@@ -1365,9 +1366,10 @@ const closeProductDetails = (): void => {
                 история складских движений.
             </p>
 
-            <div class="flex justify-end gap-3">
+            <div class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3">
                 <Button
                     variant="outline"
+                    class="w-full sm:w-auto"
                     :disabled="deleteConfirmation.loading"
                     @click="closeDeleteConfirmation"
                 >
@@ -1376,6 +1378,7 @@ const closeProductDetails = (): void => {
 
                 <Button
                     variant="destructive"
+                    class="w-full sm:w-auto"
                     :disabled="deleteConfirmation.loading"
                     @click="confirmDelete"
                 >
