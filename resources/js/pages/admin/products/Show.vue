@@ -265,12 +265,20 @@ const stockPercent = computed<number | null>(() => {
                     </div>
                 </div>
 
-                <Button as-child class="w-full lg:w-auto">
-                    <Link :href="edit(product.id).url">
-                        <Pencil :size="16" class="mr-2" />
-                        Редактировать
-                    </Link>
-                </Button>
+                <div class="flex flex-col gap-3 sm:flex-row">
+                    <Button as-child class="w-full sm:flex-1">
+                        <Link :href="edit(product.id).url">
+                            <Pencil :size="16" class="mr-2" />
+                            Редактировать
+                        </Link>
+                    </Button>
+                    <Button as-child variant="outline" class="w-full sm:flex-1">
+                        <Link :href="route('admin.products.images', { product: product.id })">
+                            <Package :size="16" class="mr-2" />
+                            Изображения
+                        </Link>
+                    </Button>
+                </div>
             </div>
         </header>
 
@@ -551,6 +559,37 @@ const stockPercent = computed<number | null>(() => {
                 <p class="mt-3 text-sm font-medium">Подключения не указаны</p>
                 <p class="mt-1 text-xs text-muted-foreground">
                     Для товара не заданы параметры подключения
+                </p>
+            </div>
+        </section>
+
+        <!-- Изображения -->
+        <section class="overflow-hidden rounded-2xl border bg-card shadow-sm">
+            <div class="flex items-center justify-between border-b px-5 py-4 sm:px-6">
+                <div class="flex items-center gap-3">
+                    <div
+                        class="flex size-10 items-center justify-center rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400"
+                    >
+                        <Package :size="20" />
+                    </div>
+                    <div>
+                        <h2 class="font-semibold">Изображения</h2>
+                        <p class="mt-0.5 text-xs text-muted-foreground">
+                            Фотографии товара
+                        </p>
+                    </div>
+                </div>
+                <Button as-child variant="outline" size="sm">
+                    <Link :href="route('admin.products.images', { product: product.id })">
+                        Управление
+                        <ArrowRight :size="14" class="ml-1.5" />
+                    </Link>
+                </Button>
+            </div>
+
+            <div class="p-5 sm:p-6">
+                <p class="text-sm text-muted-foreground">
+                    Перейдите в раздел управления изображениями для загрузки и редактирования фотографий товара.
                 </p>
             </div>
         </section>

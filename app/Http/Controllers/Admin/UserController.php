@@ -48,7 +48,15 @@ class UserController extends Controller
         );
 
         return Inertia::render('admin/users/Index', [
-            'users' => $users,
+            'users' => $users->through(fn (User $user): array => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'role' => $user->role->value,
+                'is_employee' => $user->is_employee,
+                'email_verified_at' => $user->email_verified_at?->toISOString(),
+                'created_at' => $user->created_at->toISOString(),
+            ]),
             'filters' => [
                 'search' => $search,
             ],
@@ -82,5 +90,25 @@ class UserController extends Controller
             'success',
             "Роль пользователя «{$user->name}» изменена на «{$role->label()}».",
         );
+    }
+
+    public function toggleEmployee(Request $request, User $user): RedirectResponse
+    {
+        if ($user->is($request->user())) {
+            return back()->with('error', 'Нельзя изменить собственный статус сотрудника.');
+        }
+
+        $user->update(['is_employee' => ! $user->is_employee]);
+
+        return back()->with('success', $user->is_employee
+            ? "Пользователь «{$user->name}» добавлен в сотрудники."
+            : "Пользователь «{$user->name}» удалён из сотрудников."
+        );
+    }
+
+    /** Alias for Wayfinder compatibility */
+    public function toggle(Request $request, User $user): RedirectResponse
+    {
+        return $this->toggleEmployee($request, $user);
     }
 }

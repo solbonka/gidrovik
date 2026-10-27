@@ -4,12 +4,15 @@ namespace App\Services\Admin;
 
 use App\Models\Product;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class ProductService
 {
     public function create(array $data): Product
     {
         return DB::transaction(function () use ($data): Product {
+            $slug = $data['slug'] ?? Str::slug($data['name']);
+
             $product = Product::query()->create([
                 'category_id' => $data['category_id'],
                 'product_type_id' => $data['product_type_id'] ?? null,
@@ -18,6 +21,11 @@ class ProductService
                 'minimum_stock' => $data['minimum_stock'] ?? null,
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
+                'retail_price' => $data['retail_price'] ?? 0,
+                'published' => $data['published'] ?? false,
+                'slug' => $slug,
+                'meta_title' => $data['meta_title'] ?? null,
+                'meta_description' => $data['meta_description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
                 'unit' => $data['unit'] ?? 'шт.',
                 'manufacturer_id' => $data['manufacturer_id'] ?? null,
@@ -41,7 +49,7 @@ class ProductService
     public function update(Product $product, array $data): Product
     {
         return DB::transaction(function () use ($product, $data): Product {
-            $product->update([
+            $updateData = [
                 'category_id' => $data['category_id'],
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
@@ -49,11 +57,27 @@ class ProductService
                 'minimum_stock' => $data['minimum_stock'] ?? null,
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
+                'retail_price' => $data['retail_price'] ?? 0,
+                'published' => $data['published'] ?? false,
                 'is_active' => $data['is_active'] ?? true,
                 'unit' => $data['unit'] ?? 'шт.',
                 'manufacturer_id' => $data['manufacturer_id'] ?? null,
                 'country_id' => $data['country_id'] ?? null,
-            ]);
+            ];
+
+            // Update slug if name changed
+            if (isset($data['name']) && $data['name'] !== $product->name) {
+                $updateData['slug'] = $data['slug'] ?? Str::slug($data['name']);
+            }
+
+            if (isset($data['meta_title'])) {
+                $updateData['meta_title'] = $data['meta_title'];
+            }
+            if (isset($data['meta_description'])) {
+                $updateData['meta_description'] = $data['meta_description'];
+            }
+
+            $product->update($updateData);
 
             $product->characteristicValues()->delete();
             $product->connections()->delete();

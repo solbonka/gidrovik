@@ -31,7 +31,7 @@ class VerificationNotificationTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('verification.send'))
-            ->assertRedirect(route('home'));
+            ->assertRedirect(route('store.home'));
 
         Mail::assertQueued(VerifyEmail::class, function ($mail) use ($user) {
             return $mail->hasTo($user->email);

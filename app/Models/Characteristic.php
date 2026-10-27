@@ -29,6 +29,7 @@ class Characteristic extends Model
             Category::class,
             'category_characteristic'
         )
+            ->select('categories.*')
             ->withPivot([
                 'is_required',
                 'sort_order',

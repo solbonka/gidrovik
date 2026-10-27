@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Location;
+use App\Models\Order;
 use App\Models\Product;
 use App\Models\Rack;
 use App\Models\StockMovement;
@@ -51,6 +52,18 @@ class DashboardController extends Controller
                     ) < products.minimum_stock'
                 )
                 ->count(),
+
+            // Order statistics
+            'total_orders' => Order::query()->count(),
+            'new_orders' => Order::query()
+                ->where('status', 'new')
+                ->count(),
+            'orders_today' => Order::query()
+                ->whereDate('created_at', today())
+                ->count(),
+            'revenue_today' => Order::query()
+                ->whereDate('created_at', today())
+                ->sum('total_amount'),
         ];
 
         $stockByUnit = DB::table('product_location')

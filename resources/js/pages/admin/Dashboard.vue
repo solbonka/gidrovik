@@ -21,9 +21,11 @@ import {
     PackageMinus,
     PackagePlus,
     RotateCcw,
+    ShoppingCart,
     Tags,
     Undo2,
     Warehouse,
+    TrendingUp,
 } from '@lucide/vue';
 
 defineOptions({
@@ -38,6 +40,10 @@ interface Statistics {
     locations: number;
     products_with_stock: number;
     products_below_minimum: number;
+    total_orders: number;
+    new_orders: number;
+    orders_today: number;
+    revenue_today: string | number;
 }
 
 interface Movement {
@@ -127,6 +133,30 @@ const statisticCards: StatisticCard[] = [
         icon: Boxes,
         tone: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
         href: '/admin/locations',
+    },
+    {
+        key: 'total_orders',
+        title: 'Заказы',
+        description: 'Всего заказов',
+        icon: ShoppingCart,
+        tone: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        href: '/admin/orders',
+    },
+    {
+        key: 'new_orders',
+        title: 'Новые заказы',
+        description: 'Ожидают обработки',
+        icon: ShoppingCart,
+        tone: 'bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        href: '/admin/orders?status=new',
+    },
+    {
+        key: 'orders_today',
+        title: 'Заказы сегодня',
+        description: 'За текущий день',
+        icon: TrendingUp,
+        tone: 'bg-violet-500/10 text-violet-600 dark:text-violet-400',
+        href: '/admin/orders',
     },
 ];
 

@@ -37,11 +37,40 @@
         @fonts
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
+
+        {{-- Extract OG meta from Inertia shared data --}}
+        @php
+            $inertiaMeta = $page['shared']['meta'] ?? [];
+        @endphp
+
         <x-inertia::head>
             <title>{{ config('app.name', 'Laravel') }}</title>
+
+            {{-- Canonical URL --}}
+            @if(isset($inertiaMeta['canonical']))
+                <link rel="canonical" href="{{ $inertiaMeta['canonical'] }}" />
+            @endif
+
+            {{-- OG / Social tags --}}
+            @if(isset($inertiaMeta['title']))
+                <meta property="og:title" content="{{ $inertiaMeta['title'] }}" />
+            @endif
+            @if(isset($inertiaMeta['description']))
+                <meta name="description" content="{{ $inertiaMeta['description'] }}" />
+                <meta property="og:description" content="{{ $inertiaMeta['description'] }}" />
+            @endif
+            @if(isset($inertiaMeta['image']))
+                <meta property="og:image" content="{{ $inertiaMeta['image'] }}" />
+            @endif
+            @if(isset($inertiaMeta['type']))
+                <meta property="og:type" content="{{ $inertiaMeta['type'] }}" />
+            @endif
+            @if(isset($inertiaMeta['url']))
+                <meta property="og:url" content="{{ $inertiaMeta['url'] }}" />
+            @endif
         </x-inertia::head>
     </head>
     <body class="font-sans antialiased">
-        <x-inertia::app />
+        <x-inertia::app :inertia-page="$page" />
     </body>
 </html>

@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/select';
 import { index } from '@/routes/admin/users';
 import { update } from '@/routes/admin/users/role';
+import { toggle } from '@/routes/admin/users/employee';
 import type { UserRole } from '@/types/auth';
 
 defineOptions({
@@ -34,6 +35,7 @@ interface UserRow {
     name: string;
     email: string;
     role: UserRole;
+    is_employee: boolean;
     email_verified_at: string | null;
     created_at: string;
 }
@@ -79,14 +81,15 @@ const saving = ref<number | null>(null);
 const draftRoles = reactive<Record<number, string>>({});
 
 function syncDrafts(): void {
+    if (!props.users.data) return;
     props.users.data.forEach((user) => {
         draftRoles[user.id] = user.role;
     });
 }
 
-syncDrafts();
-
-watch(() => props.users.data, syncDrafts);
+watch(() => props.users.data, (val) => {
+    if (val) syncDrafts();
+}, { immediate: true });
 
 const currentUserId = computed(
     () => (page.props.auth?.user as { id?: number } | undefined)?.id ?? null,
@@ -113,7 +116,7 @@ const stats = computed(() => [
     },
     {
         title: 'На странице',
-        value: props.users.data.length,
+        value: props.users.data?.length ?? 0,
         icon: UserRound,
         tone: 'bg-muted text-muted-foreground',
     },
@@ -173,6 +176,31 @@ function changeRole(user: UserRow, value: unknown): void {
                 toast.error('Не удалось изменить роль пользователя.');
             },
 
+            onFinish: () => {
+                saving.value = null;
+            },
+        },
+    );
+}
+
+function toggleEmployee(user: UserRow): void {
+    if (saving.value !== null || user.id === currentUserId.value) {
+        return;
+    }
+
+    saving.value = user.id;
+
+    router.put(
+        toggle(user.id).url,
+        {},
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                user.is_employee = !user.is_employee;
+            },
+            onError: () => {
+                toast.error('Не удалось изменить статус сотрудника.');
+            },
             onFinish: () => {
                 saving.value = null;
             },
@@ -242,7 +270,7 @@ function formatDate(value: string | null): string {
                     <p class="mt-0.5 text-sm text-muted-foreground">
                         Показано:
                         <span class="font-medium text-foreground tabular-nums">
-                            {{ props.users.data.length }}
+                            {{ props.users.data?.length ?? 0 }}
                         </span>
                         из
                         <span class="font-medium text-foreground tabular-nums">
@@ -276,7 +304,7 @@ function formatDate(value: string | null): string {
             </div>
 
             <div
-                v-if="props.users.data.length === 0"
+                v-if="!props.users.data || props.users.data.length === 0"
                 class="flex flex-col items-center px-6 py-16 text-center"
             >
                 <div class="mb-4 flex size-16 items-center justify-center rounded-full bg-muted">
@@ -334,6 +362,23 @@ function formatDate(value: string | null): string {
                         </div>
 
                         <div class="space-y-1.5">
+                            <button
+                                :disabled="user.id === currentUserId || saving !== null"
+                                @click="toggleEmployee(user)"
+                                :class="[
+                                    'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition',
+                                    user.is_employee
+                                        ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400'
+                                        : 'bg-slate-100 text-slate-500 ring-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700',
+                                    (user.id === currentUserId || saving !== null) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                ]"
+                            >
+                                <span :class="user.is_employee ? 'bg-emerald-500' : 'bg-slate-400'" class="size-2 rounded-full" />
+                                {{ user.is_employee ? 'Сотрудник' : 'Покупатель' }}
+                            </button>
+                        </div>
+
+                        <div class="space-y-1.5">
                             <label class="text-xs font-medium text-muted-foreground" :for="`role-${user.id}`">
                                 Роль
                             </label>
@@ -380,6 +425,12 @@ function formatDate(value: string | null): string {
                                     class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
                                 >
                                     Роль
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="px-6 py-3.5 text-xs font-semibold tracking-wider text-muted-foreground uppercase"
+                                >
+                                    Статус
                                 </th>
                                 <th
                                     scope="col"
@@ -436,6 +487,23 @@ function formatDate(value: string | null): string {
                                     >
                                         {{ roleLabel(user.role) }}
                                     </span>
+                                </td>
+
+                                <td class="px-6 py-4">
+                                    <button
+                                        :disabled="user.id === currentUserId || saving !== null"
+                                        @click="toggleEmployee(user)"
+                                        :class="[
+                                            'inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset transition',
+                                            user.is_employee
+                                                ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400 hover:bg-emerald-500/20'
+                                                : 'bg-slate-100 text-slate-500 ring-slate-300 dark:bg-slate-800 dark:text-slate-400 dark:ring-slate-700',
+                                            (user.id === currentUserId || saving !== null) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer',
+                                        ]"
+                                    >
+                                        <span :class="user.is_employee ? 'bg-emerald-500' : 'bg-slate-400'" class="size-2 rounded-full" />
+                                        {{ user.is_employee ? 'Сотрудник' : 'Покупатель' }}
+                                    </button>
                                 </td>
 
                                 <td class="px-4 py-4 text-muted-foreground">

@@ -7,8 +7,10 @@ use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DiameterController;
 use App\Http\Controllers\Admin\LocationController;
 use App\Http\Controllers\Admin\ManufacturerController;
+use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductCreateController;
+use App\Http\Controllers\Admin\ProductImageController;
 use App\Http\Controllers\Admin\ProductTypeController;
 use App\Http\Controllers\Admin\RackController;
 use App\Http\Controllers\Admin\StandardController;
@@ -22,19 +24,21 @@ use App\Http\Controllers\Admin\StockWriteOffController;
 use App\Http\Controllers\Admin\ThreadController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WarehouseController;
-use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\Store\StoreHomeController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', WelcomeController::class)->name('home');
+Route::get('/', StoreHomeController::class)->name('store.home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => redirect('/admin'))
         ->name('dashboard');
 });
 
+require __DIR__.'/store.php';
+require __DIR__.'/seo.php';
 require __DIR__.'/settings.php';
 
-Route::middleware(['auth', 'verified'])
+Route::middleware(['auth', 'verified', 'employee'])
     ->prefix('admin')
     ->name('admin.')
     ->group(function () {
@@ -117,6 +121,32 @@ Route::middleware(['auth', 'verified'])
                 ProductCreateController::class,
                 'characteristics',
             ])->name('products.categories.characteristics');
+
+            // Product images
+            Route::get('/products/{product}/images', [
+                ProductImageController::class,
+                'index',
+            ])->name('products.images');
+
+            Route::post('/products/{product}/images', [
+                ProductImageController::class,
+                'store',
+            ])->name('products.images.store');
+
+            Route::patch('/products/{product}/images/{imageId}', [
+                ProductImageController::class,
+                'update',
+            ])->name('products.images.update');
+
+            Route::post('/products/{product}/images/reorder', [
+                ProductImageController::class,
+                'reorder',
+            ])->name('products.images.reorder');
+
+            Route::delete('/products/{product}/images/{imageId}', [
+                ProductImageController::class,
+                'destroy',
+            ])->name('products.images.destroy');
         });
 
         Route::middleware('permission:view')->group(function () {
@@ -221,5 +251,26 @@ Route::middleware(['auth', 'verified'])
 
             Route::put('/users/{user}/role', [UserController::class, 'updateRole'])
                 ->name('users.role.update');
+
+            Route::put('/users/{user}/employee', [UserController::class, 'toggleEmployee'])
+                ->name('users.employee.toggle');
+        });
+
+        // Orders
+        Route::middleware('permission:orders.manage')->group(function () {
+            Route::get('/orders', [AdminOrderController::class, 'index'])
+                ->name('orders.index');
+
+            Route::get('/orders/{order}', [AdminOrderController::class, 'show'])
+                ->name('orders.show');
+
+            Route::put('/orders/{order}/status', [AdminOrderController::class, 'updateStatus'])
+                ->name('orders.status.update');
+
+            Route::post('/orders/{order}/complete', [AdminOrderController::class, 'markAsCompleted'])
+                ->name('orders.complete');
+
+            Route::post('/orders/{order}/cancel', [AdminOrderController::class, 'markAsCancelled'])
+                ->name('orders.cancel');
         });
     });

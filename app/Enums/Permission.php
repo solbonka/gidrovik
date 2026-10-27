@@ -9,6 +9,7 @@ enum Permission: string
     case STOCK_OPERATE = 'stock.operate';
     case STOCK_CORRECT = 'stock.correct';
     case USERS_MANAGE = 'users.manage';
+    case ORDERS_MANAGE = 'orders.manage';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum Permission: string
             self::STOCK_OPERATE => 'Складские операции',
             self::STOCK_CORRECT => 'Корректировка движений',
             self::USERS_MANAGE => 'Управление пользователями',
+            self::ORDERS_MANAGE => 'Управление заказами',
         };
     }
 }

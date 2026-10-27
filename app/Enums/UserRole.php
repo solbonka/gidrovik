@@ -41,6 +41,7 @@ enum UserRole: string
                 Permission::CATALOG_MANAGE,
                 Permission::STOCK_OPERATE,
                 Permission::STOCK_CORRECT,
+                Permission::ORDERS_MANAGE,
             ],
             self::WAREHOUSE => [
                 Permission::VIEW,

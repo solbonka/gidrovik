@@ -28,6 +28,7 @@ import {
     Palette,
     ChevronDown,
     Users,
+    ShoppingCart,
 } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
 import type { Permission } from '@/types/auth';
@@ -106,6 +107,7 @@ const navigationGroups: NavigationGroup[] = [
     {
         title: 'Склад',
         items: [
+            { name: 'Заказы', href: '/admin/orders', icon: ShoppingCart, permission: 'orders.manage' },
             { name: 'Остатки', href: '/admin/stock', icon: Boxes, permission: 'view' },
             { name: 'Приход товара', href: '/admin/stock/receipt', icon: ArrowDownToLine, permission: 'stock.operate' },
             { name: 'Перемещение', href: '/admin/stock/transfer', icon: ArrowLeftRight, permission: 'stock.operate' },
@@ -198,7 +200,7 @@ function closeSidebar(): void {
                 class="flex h-16 shrink-0 items-center justify-between border-b border-sidebar-border px-5"
             >
                 <Link
-                    href="/admin"
+                    href="/"
                     class="flex min-w-0 items-center gap-3 rounded-md text-lg font-bold text-sidebar-foreground transition-opacity hover:opacity-80"
                     @click="closeSidebar"
                 >
@@ -378,7 +380,7 @@ function closeSidebar(): void {
                             <div
                                 class="truncate text-sm font-semibold text-sidebar-accent-foreground"
                             >
-                                Большой склад
+                                Склады
                             </div>
 
                             <div

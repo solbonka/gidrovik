@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class Product extends Model
 {
@@ -25,6 +26,10 @@ class Product extends Model
         'unit',
         'manufacturer_id',
         'country_id',
+        'retail_price',
+        'published',
+        'meta_title',
+        'meta_description',
     ];
 
     protected $casts = [
@@ -32,6 +37,8 @@ class Product extends Model
         'is_active' => 'boolean',
         'minimum_stock' => 'decimal:3',
         'unit' => 'string',
+        'retail_price' => 'decimal:2',
+        'published' => 'boolean',
     ];
 
     public function category(): BelongsTo
@@ -61,6 +68,7 @@ class Product extends Model
             Location::class,
             'product_location'
         )
+            ->select('locations.*')
             ->using(ProductLocation::class)
             ->withPivot('quantity')
             ->withTimestamps();
@@ -88,5 +96,30 @@ class Product extends Model
     public function country(): BelongsTo
     {
         return $this->belongsTo(Country::class);
+    }
+
+    public function getSlugAttribute(): string
+    {
+        return $this->attributes['slug'] ?? Str::slug($this->name);
+    }
+
+    public function images(): HasMany
+    {
+        return $this->hasMany(ProductImage::class)
+            ->orderBy('display_order');
+    }
+
+    /**
+     * Resolve stock status for the store.
+     */
+    public function getStockStatusAttribute(): string
+    {
+        $total = (int) $this->total_quantity;
+
+        if ($total > 0) {
+            return 'in_stock';
+        }
+
+        return 'backorder';
     }
 }

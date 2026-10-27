@@ -139,6 +139,11 @@ class ProductController extends Controller
                 'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,
+                'retail_price' => $product->retail_price,
+                'published' => $product->published,
+                'slug' => $product->slug,
+                'meta_title' => $product->meta_title,
+                'meta_description' => $product->meta_description,
                 'is_active' => $product->is_active,
                 'unit' => $product->unit,
                 'manufacturer' => $product->manufacturer ? [
@@ -213,11 +218,13 @@ class ProductController extends Controller
                     ->map(fn ($location) => [
                         'id' => $location->id,
                         'code' => $location->code,
-                        'rack' => [
-                            'id' => $location->rack->id,
-                            'code' => $location->rack->code,
-                            'name' => $location->rack->name,
-                        ],
+                        'rack' => $location->rack
+                            ? [
+                                'id' => $location->rack->id,
+                                'code' => $location->rack->code,
+                                'name' => $location->rack->name,
+                            ]
+                            : null,
                         'number' => $location->number,
                         'quantity' => rtrim(
                             rtrim(
@@ -277,6 +284,11 @@ class ProductController extends Controller
                 'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,
+                'retail_price' => $product->retail_price,
+                'published' => $product->published,
+                'slug' => $product->slug,
+                'meta_title' => $product->meta_title,
+                'meta_description' => $product->meta_description,
                 'is_active' => $product->is_active,
                 'unit' => $product->unit,
                 'manufacturer_id' => $product->manufacturer_id,
