@@ -81,7 +81,8 @@ class StockBalanceController extends Controller
                     $query->where(function (Builder $query) use ($word): void {
                         $query
                             ->where('products.name', 'ilike', "%{$word}%")
-                            ->orWhere('products.sku', 'ilike', "%{$word}%");
+                            ->orWhere('products.code', 'ilike', "%{$word}%")
+                            ->orWhere('products.article', 'ilike', "%{$word}%");
                     });
                 }
             });
@@ -173,7 +174,8 @@ class StockBalanceController extends Controller
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'sku' => $product->sku,
+                    'code' => $product->code,
+                    'article' => $product->article,
                     'category' => $product->category?->name,
                     'unit' => $product->unit,
                     'stock_quantity' => rtrim(

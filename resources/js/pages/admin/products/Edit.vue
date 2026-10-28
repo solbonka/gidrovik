@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { ArrowLeft, Package } from '@lucide/vue';
+import { ArrowLeft, Camera, Package } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductForm from '@/components/admin/products/ProductForm.vue';
 import type {
@@ -40,7 +40,7 @@ defineProps<Props>();
                     <Package :size="24" />
                 </div>
 
-                <div class="min-w-0">
+                <div class="min-w-0 flex-1">
                     <h1 class="text-2xl font-bold tracking-tight sm:text-3xl">
                         Редактирование товара
                     </h1>
@@ -49,10 +49,31 @@ defineProps<Props>();
                     </p>
 
                     <div class="mt-3 flex flex-wrap items-center gap-2">
+                        <!-- Actions -->
+                        <Link
+                            :href="route('admin.products.images', { product: product.id })"
+                            class="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-3 py-1.5 text-xs font-medium text-muted-foreground transition hover:bg-muted hover:text-primary"
+                        >
+                            <Camera :size="14" />
+                            Добавить фото
+                        </Link>
+
                         <span
                             class="inline-flex rounded-md border bg-muted/50 px-2 py-1 font-mono text-xs"
                         >
-                            {{ product.sku }}
+                            <div class="space-y-1">
+                                <p
+                                    class="text-xs font-medium tracking-wider text-muted-foreground uppercase"
+                                >
+                                    Код товара / Артикул
+                                </p>
+                                <p class="font-mono text-sm">
+                                    {{ product.code }}
+                                    <span v-if="product.article" class="text-muted-foreground">
+                                        / {{ product.article }}
+                                    </span>
+                                </p>
+                            </div>
                         </span>
 
                         <span

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
-import { Head, Link, useForm } from '@inertiajs/vue3';
+import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { Check, ClipboardCheck, Info, LoaderCircle } from '@lucide/vue';
 import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
@@ -20,7 +20,8 @@ defineOptions({
 interface ProductOption {
     id: number;
     name: string;
-    sku: string | null;
+    code: string | null;
+    article: string | null;
     characteristics?: string;
     category_id?: number | string | null;
 }
@@ -47,8 +48,14 @@ interface Props {
     }[];
 }
 
-interface CurrentStockResponse {
-    quantity: number;
+interface Props {
+    products: ProductOption[];
+    locations: LocationOption[];
+    categories?: {
+        id: number;
+        name: string;
+    }[];
+    current_quantity?: number;
 }
 
 const props = defineProps<Props>();
@@ -65,7 +72,7 @@ const form = useForm({
     comment: '',
 });
 
-const currentQuantity = ref<number | null>(null);
+const currentQuantity = ref<number | null>(props.current_quantity ?? null);
 const loadingQuantity = ref(false);
 const quantityError = ref('');
 
@@ -120,12 +127,12 @@ const zeroWarning = computed(() =>
         : undefined,
 );
 
-let requestController: AbortController | null = null;
+let requestCancelToken: { cancel: boolean } | null = null;
 
 watch(
     [() => form.product_id, () => form.location_id],
     async ([productId, locationId]) => {
-        requestController?.abort();
+        requestCancelToken?.cancel && cancelCurrentRequest();
         currentQuantity.value = null;
         quantityError.value = '';
 
@@ -134,36 +141,39 @@ watch(
             return;
         }
 
-        const controller = new AbortController();
-        requestController = controller;
+        const cancelToken = { cancel: false };
+        requestCancelToken = cancelToken;
         loadingQuantity.value = true;
 
         try {
-            const params = new URLSearchParams({
+            await router.get(route('stock.inventory.current.api', {
                 product_id: productId,
-                location_id: String(locationId),
-            });
-
-            const response = await fetch(
-                `/admin/stock/inventory/current?${params.toString()}`,
-                {
-                    headers: {
-                        Accept: 'application/json',
-                    },
-                    credentials: 'same-origin',
-                    signal: controller.signal,
+                location_id: Number(locationId),
+            }), {}, {
+                preserveState: true,
+                preserveScroll: true,
+                only: ['current_quantity'],
+                onCancel: () => {
+            },
+                onSuccess: (page) => {
+                    if (!cancelToken.cancel) {
+                        currentQuantity.value = Number(page.props.current_quantity ?? 0);
+                    }
                 },
-            );
-
-            if (!response.ok) {
-                throw new Error('Не удалось загрузить текущий остаток.');
-            }
-
-            const data = (await response.json()) as CurrentStockResponse;
-
-            if (!controller.signal.aborted) {
-                currentQuantity.value = data.quantity;
-            }
+                onError: (error) => {
+                    if (!cancelToken.cancel) {
+                        quantityError.value =
+                            error && Array.isArray(error) && error[0]
+                                ? error[0]
+                                : 'Не удалось загрузить текущий остаток.';
+                    }
+                },
+                onFinish: () => {
+                    if (!cancelToken.cancel) {
+                        loadingQuantity.value = false;
+                    }
+                },
+            });
         } catch (error: unknown) {
             if (error instanceof DOMException && error.name === 'AbortError') {
                 return;
@@ -173,13 +183,16 @@ watch(
                 error instanceof Error
                     ? error.message
                     : 'Не удалось загрузить текущий остаток.';
-        } finally {
-            if (!controller.signal.aborted) {
-                loadingQuantity.value = false;
-            }
+            loadingQuantity.value = false;
         }
     },
 );
+
+function cancelCurrentRequest(): void {
+    if (requestCancelToken) {
+        requestCancelToken.cancel = true;
+    }
+}
 
 const submit = (): void => {
     if (currentQuantity.value === null || loadingQuantity.value) {

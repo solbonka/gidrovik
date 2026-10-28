@@ -41,7 +41,8 @@ const props = defineProps<{
             id: number
             product_id: number
             name: string
-            sku: string | null
+            code: string | null;
+            article: string | null;
             quantity: number
             price: string
             subtotal: string
@@ -144,8 +145,13 @@ function cancelOrder() {
                         >
                             <div class="min-w-0 flex-1">
                                 <div class="font-medium text-slate-900">{{ item.name }}</div>
-                                <p v-if="item.sku" class="mt-0.5 text-xs text-slate-400">
-                                    Арт: {{ item.sku }}
+                                <p
+                                    v-if="item.code || item.article"
+                                    class="mt-0.5 text-xs text-slate-400"
+                                >
+                                    <span v-if="item.code">{{ item.code }}</span>
+                                    <span v-if="item.code && item.article"> / </span>
+                                    <span v-if="item.article">{{ item.article }}</span>
                                 </p>
                                 <div class="mt-1 text-xs text-slate-500">
                                     {{ formatPrice(item.price) }} ₽ × {{ item.quantity }}

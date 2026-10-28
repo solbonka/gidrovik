@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Store;
 
 use App\Http\Controllers\Controller;
+use App\Models\Favorite;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,7 +24,8 @@ class ProductController extends Controller
             'id' => $product->id,
             'name' => $product->name,
             'slug' => $product->slug,
-            'sku' => $product->sku,
+            'code' => $product->code,
+            'article' => $product->article,
             'description' => $product->description,
             'price' => $product->retail_price ?? '0',
             'stock_status' => $product->stock_status,
@@ -62,9 +64,18 @@ class ProductController extends Controller
                 'stock_status' => $p->stock_status,
             ]);
 
+        // Get favorite product IDs for authenticated user
+        $favoriteProductIds = [];
+        if (auth()->check()) {
+            $favoriteProductIds = Favorite::where('user_id', auth()->id())
+                ->pluck('product_id')
+                ->toArray();
+        }
+
         return Inertia::render('store/products/Show', [
             'product' => $productData,
             'related_products' => $relatedProducts,
+            'favorite_product_ids' => $favoriteProductIds,
         ])->with([
             'title' => $product->meta_title,
             'description' => $product->meta_description,

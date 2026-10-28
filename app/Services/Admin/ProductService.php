@@ -14,22 +14,22 @@ class ProductService
             $slug = $data['slug'] ?? Str::slug($data['name']);
 
             $product = Product::query()->create([
-                'category_id' => $data['category_id'],
+                'category_id' => $data['category_id'] ?? null,
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
-                'sku' => $data['sku'],
-                'minimum_stock' => $data['minimum_stock'] ?? null,
+                'code' => $data['code'],
+                'article' => $data['article'] ?? null,
+                'minimum_stock' => $data['minimum_stock'] ?? '0',
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,
-                'retail_price' => $data['retail_price'] ?? 0,
-                'published' => $data['published'] ?? false,
-                'slug' => $slug,
-                'meta_title' => $data['meta_title'] ?? null,
-                'meta_description' => $data['meta_description'] ?? null,
                 'is_active' => $data['is_active'] ?? true,
-                'unit' => $data['unit'] ?? 'шт.',
+                'unit' => $data['unit'],
                 'manufacturer_id' => $data['manufacturer_id'] ?? null,
                 'country_id' => $data['country_id'] ?? null,
+                'retail_price' => $data['retail_price'] ?? null,
+                'published' => $data['published'] ?? true,
+                'meta_title' => $data['meta_title'] ?? null,
+                'meta_description' => $data['meta_description'] ?? null,
             ]);
 
             $this->syncCharacteristics(
@@ -53,7 +53,8 @@ class ProductService
                 'category_id' => $data['category_id'],
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
-                'sku' => $data['sku'],
+                'code' => $data['code'],
+                'article' => $data['article'] ?? null,
                 'minimum_stock' => $data['minimum_stock'] ?? null,
                 'angle' => $data['angle'] ?? null,
                 'description' => $data['description'] ?? null,

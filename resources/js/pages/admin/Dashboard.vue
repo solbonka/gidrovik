@@ -49,7 +49,8 @@ interface Statistics {
 interface Movement {
     id: number;
     product_name: string;
-    sku: string | null;
+    code: string | null;
+    article: string | null;
     type: string;
     type_label: string;
     quantity: number | string;
@@ -526,8 +527,14 @@ function route(movement: Movement): { from: string; to: string } {
                                 <p class="break-words text-sm font-semibold">
                                     {{ movement.product_name }}
                                 </p>
-                                <p class="mt-0.5 text-xs text-muted-foreground">
-                                    {{ movement.sku || 'Без артикула' }}
+                                <p v-if="movement.code" class="mt-0.5 text-xs text-muted-foreground">
+                                    Код: {{ movement.code }}
+                                </p>
+                                <p v-if="movement.article" class="mt-0.5 text-xs text-muted-foreground">
+                                    Артикул: {{ movement.article }}
+                                </p>
+                                <p v-if="!movement.code && !movement.article" class="mt-0.5 text-xs text-muted-foreground">
+                                    Без кода/артикула
                                 </p>
                             </div>
                             <p class="shrink-0 text-base font-bold tabular-nums">
@@ -598,8 +605,14 @@ function route(movement: Movement): { from: string; to: string } {
                                 <div class="font-medium">
                                     {{ movement.product_name }}
                                 </div>
-                                <div class="mt-0.5 text-xs text-muted-foreground">
-                                    Артикул: {{ movement.sku || '—' }}
+                                <div v-if="movement.code" class="mt-0.5 text-xs text-muted-foreground">
+                                    Код: {{ movement.code }}
+                                </div>
+                                <div v-if="movement.article" class="mt-0.5 text-xs text-muted-foreground">
+                                    Артикул: {{ movement.article }}
+                                </div>
+                                <div v-if="!movement.code && !movement.article" class="mt-0.5 text-xs text-muted-foreground">
+                                    Без кода/артикула
                                 </div>
                             </td>
 

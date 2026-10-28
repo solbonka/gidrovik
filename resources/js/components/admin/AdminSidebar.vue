@@ -105,9 +105,14 @@ const navigationGroups: NavigationGroup[] = [
         ],
     },
     {
-        title: 'Склад',
+        title: 'Магазин',
         items: [
             { name: 'Заказы', href: '/admin/orders', icon: ShoppingCart, permission: 'orders.manage' },
+        ],
+    },
+    {
+        title: 'Склад',
+        items: [
             { name: 'Остатки', href: '/admin/stock', icon: Boxes, permission: 'view' },
             { name: 'Приход товара', href: '/admin/stock/receipt', icon: ArrowDownToLine, permission: 'stock.operate' },
             { name: 'Перемещение', href: '/admin/stock/transfer', icon: ArrowLeftRight, permission: 'stock.operate' },

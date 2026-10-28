@@ -20,7 +20,8 @@ defineOptions({
 interface ProductOption {
     id: number;
     name: string;
-    sku: string;
+    code: string | null;
+    article: string | null;
     unit: string;
     stock_quantity?: number;
     minimum_stock?: number | null;

@@ -32,7 +32,7 @@ class StockInventoryController extends Controller
             ->where('is_active', true)
             ->with(['characteristicValues.characteristic:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'category_id']);
+            ->get(['id', 'name', 'code', 'article', 'category_id']);
 
         $products = $products->map(function (Product $product) {
             $characteristics = $product->characteristicValues->map(function ($cv) {
@@ -42,7 +42,8 @@ class StockInventoryController extends Controller
             return [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'characteristics' => $characteristics,
                 'category_id' => $product->category_id,
             ];
@@ -68,28 +69,28 @@ class StockInventoryController extends Controller
             'products' => $products,
             'locations' => $locations,
             'categories' => $categories,
+            'current_quantity' => null,
         ]);
     }
 
-    public function current(Request $request): JsonResponse
+    public function current(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'location_id' => ['required', 'integer', 'exists:locations,id'],
         ]);
+        $validator->validate();
 
         $quantity = DB::table('product_location')
-            ->where('product_id', (int) $validated['product_id'])
-            ->where('location_id', (int) $validated['location_id'])
+            ->where('product_id', (int) $request->product_id)
+            ->where('location_id', (int) $request->location_id)
             ->value('quantity');
 
-        return response()->json([
-            'quantity' => bcadd(
-                (string) ($quantity ?? '0'),
-                '0',
-                3,
-            ),
-        ]);
+        return redirect()->back()->with('current_quantity', bcadd(
+            (string) ($quantity ?? '0'),
+            '0',
+            3,
+        ));
     }
 
     public function store(

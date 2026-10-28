@@ -67,7 +67,7 @@ class ImportFittings extends Command
             'types' => ProductType::query()->where('category_id', $category->id)->pluck('id', 'name')->all(),
         ];
 
-        $existing = Product::query()->pluck('id', 'sku')->all();
+        $existing = Product::query()->pluck('id', 'code')->all();
 
         $dry = (bool) $this->option('dry-run');
         $show = (int) $this->option('show');
@@ -255,7 +255,8 @@ class ImportFittings extends Command
             'category_id' => $ref['category_id'],
             'product_type_id' => $typeId,
             'name' => $name,
-            'sku' => $sku,
+                'code' => $sku,
+                'article' => null,
             'angle' => $angle,
             'is_active' => true,
             'unit' => 'шт.',

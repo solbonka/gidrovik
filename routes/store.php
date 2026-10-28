@@ -3,6 +3,7 @@
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CatalogController;
 use App\Http\Controllers\Store\CheckoutController;
+use App\Http\Controllers\Store\FavoriteController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductController as StoreProductController;
 use App\Http\Controllers\Store\SearchController;
@@ -20,10 +21,19 @@ Route::get('/', StoreHomeController::class)->name('store.home');
 Route::get('/catalog', [CatalogController::class, 'index'])->name('store.catalog.index');
 
 // Product
-Route::get('/products/{product:slug}', [StoreProductController::class, '__invoke'])->name('store.products.show');
+Route::get('/products/{product:slug}', StoreProductController::class)->name('store.products.show');
 
 // Search
-Route::get('/search', [SearchController::class, '__invoke'])->name('store.search.index');
+Route::get('/search', SearchController::class)->name('store.search.index');
+
+// Favorites (auth only)
+Route::middleware('auth')->group(function () {
+    Route::get('/favorites', [FavoriteController::class, 'index'])->name('store.favorites.index');
+    Route::get('/favorites/api', [FavoriteController::class, 'getFavorites'])->name('store.favorites.api');
+    Route::post('/favorites', [FavoriteController::class, 'store'])->name('store.favorites.store');
+    Route::delete('/favorites', [FavoriteController::class, 'destroy'])->name('store.favorites.destroy');
+    Route::post('/favorites/toggle', [FavoriteController::class, 'toggle'])->name('store.favorites.toggle');
+});
 
 // Cart (public + auth)
 Route::get('/cart', [CartController::class, 'index'])->name('store.cart.index');

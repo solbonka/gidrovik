@@ -269,7 +269,7 @@ class FittingsSeeder extends Seeder
                 [$sku, $name, $characteristic, $isItaly] = $product;
 
                 // Проверяем, существует ли товар
-                $existing = Product::where('sku', $sku)->first();
+                $existing = Product::where('code', $sku)->first();
                 if ($existing) {
                     echo "Товар с SKU {$sku} уже существует, пропускаем...\n";
 
@@ -277,7 +277,8 @@ class FittingsSeeder extends Seeder
                 }
 
                 $newProduct = Product::create([
-                    'sku' => $sku,
+                    'code' => $sku,
+                    'article' => null,
                     'name' => $name,
                     'category_id' => $category_id,
                     'unit' => $unit,

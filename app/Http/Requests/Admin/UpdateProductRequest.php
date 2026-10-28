@@ -37,12 +37,13 @@ class UpdateProductRequest extends FormRequest
                 'max:255',
             ],
 
-            'sku' => [
+            'code' => [
                 'required',
                 'string',
                 'max:255',
-                Rule::unique('products', 'sku')->ignore($product),
+                Rule::unique('products', 'code')->ignore($product),
             ],
+            'article' => ['nullable', 'string', 'max:255'],
 
             'minimum_stock' => [
                 'nullable',
@@ -53,7 +54,7 @@ class UpdateProductRequest extends FormRequest
             'angle' => [
                 'nullable',
                 'integer',
-                Rule::in([45, 90]),
+                Rule::in([0, 45, 90, 180]),
             ],
 
             'description' => [

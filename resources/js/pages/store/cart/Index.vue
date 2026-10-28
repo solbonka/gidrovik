@@ -1,14 +1,14 @@
 <script setup lang="ts">
+import { Head, router } from '@inertiajs/vue3'
 import {
-    Minus,
-    Package,
-    Plus,
-    Trash2,
-} from '@lucide/vue'
-import { router } from '@inertiajs/vue3'
+    PhCaretLeft,
+    PhShoppingCart,
+    PhMinus,
+    PhPlus,
+    PhTrash,
+    PhPackage,
+} from '@phosphor-icons/vue'
 import { ref } from 'vue'
-
-import { Button } from '@/components/ui/button'
 
 const props = defineProps<{
     items: Array<{
@@ -17,7 +17,8 @@ const props = defineProps<{
         product_slug: string
         quantity: number
         name: string
-        sku: string | null
+        code: string | null
+        article: string | null
         price: string
         subtotal: string
         stock_status: string
@@ -41,6 +42,7 @@ function updateQuantity(itemId: number, newQty: number) {
         { quantity: newQty },
         {
             preserveState: true,
+            preserveScroll: true,
             onFinish: () => { loadingItemId.value = null },
         }
     )
@@ -52,6 +54,7 @@ function removeItem(itemId: number) {
         route('store.cart.destroy', { itemId }),
         {
             preserveState: true,
+            preserveScroll: true,
             onFinish: () => { loadingItemId.value = null },
         }
     )
@@ -59,130 +62,165 @@ function removeItem(itemId: number) {
 </script>
 
 <template>
-    <div class="mx-auto max-w-4xl px-5 py-8 lg:px-10">
-            <h1 class="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">Корзина</h1>
+    <Head title="Корзина" />
 
-            <div v-if="items.length > 0" class="mt-8">
-                <!-- Items -->
-                <div class="space-y-4">
-                    <div
-                        v-for="item in items"
-                        :key="item.id"
-                        class="flex gap-4 rounded-xl border border-slate-200 bg-white p-4"
-                    >
-                        <!-- Image -->
-                        <div class="hidden size-20 shrink-0 items-center justify-center rounded-lg bg-slate-100 sm:flex">
-                            <div v-if="item.image_path" class="h-full w-full overflow-hidden rounded-lg">
-                                <img :src="item.image_path" :alt="item.name" class="h-full w-full object-cover" />
-                            </div>
-                            <div v-else class="text-slate-300">
-                                <Package :size="24" />
+    <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-10 lg:py-12">
+        <!-- Header -->
+        <div class="mb-8 flex items-center gap-4">
+            <a
+                :href="route('store.catalog.index')"
+                class="flex size-10 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-orange-500 dark:hover:text-orange-400"
+            >
+                <PhCaretLeft :size="20" weight="bold" />
+            </a>
+            <div>
+                <h1 class="text-2xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-3xl">Корзина</h1>
+                <p class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ item_count }} {{ item_count === 1 ? 'товар' : item_count < 5 ? 'товара' : 'товаров' }}
+                </p>
+            </div>
+        </div>
+
+        <div v-if="items.length > 0" class="grid gap-8 lg:grid-cols-[1fr_380px]">
+            <!-- Items -->
+            <div class="space-y-3">
+                <div
+                    v-for="item in items"
+                    :key="item.id"
+                    class="flex gap-4 rounded-2xl border border-zinc-200 bg-white p-4 transition hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900"
+                >
+                    <!-- Image -->
+                    <div class="hidden size-24 shrink-0 overflow-hidden rounded-xl bg-zinc-100 sm:flex">
+                        <div v-if="item.image_path" class="h-full w-full">
+                            <img :src="item.image_path" :alt="item.name" class="h-full w-full object-cover" />
+                        </div>
+                        <div v-else class="flex h-full w-full items-center justify-center text-zinc-300">
+                            <PhPackage :size="32" weight="light" />
+                        </div>
+                    </div>
+
+                    <!-- Info -->
+                    <div class="flex flex-1 flex-col justify-between">
+                        <div>
+                            <a
+                                :href="route('store.products.show', { product: item.product_slug })"
+                                class="text-sm font-semibold text-zinc-900 transition hover:text-orange-600 dark:text-zinc-100 dark:hover:text-orange-400"
+                            >
+                                {{ item.name }}
+                            </a>
+                            <div class="mt-1 flex flex-wrap gap-2">
+                                <span v-if="item.code" class="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                    Код: {{ item.code }}
+                                </span>
+                                <span v-if="item.article" class="rounded-md bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">
+                                    Артикул: {{ item.article }}
+                                </span>
                             </div>
                         </div>
 
-                        <!-- Info -->
-                        <div class="flex flex-1 flex-col justify-between">
-                            <div>
-                                <a
-                                    :href="route('store.products.show', { product: item.product_slug })"
-                                    class="text-sm font-semibold text-slate-900 hover:text-emerald-700"
-                                >
-                                    {{ item.name }}
-                                </a>
-                                <p v-if="item.sku" class="mt-0.5 text-xs text-slate-400">
-                                    Арт: {{ item.sku }}
-                                </p>
-                            </div>
-
-                            <div class="mt-3 flex items-end justify-between">
-                                <!-- Quantity controls -->
-                                <div class="flex items-center rounded-lg border border-slate-200">
-                                    <button
-                                        @click="updateQuantity(item.id, item.quantity - 1)"
-                                        :disabled="loadingItemId === item.id"
-                                        class="px-2.5 py-1.5 text-slate-500 hover:text-emerald-700 disabled:opacity-50"
-                                    >
-                                        <Minus :size="14" />
-                                    </button>
-                                    <input
-                                        type="number"
-                                        :value="item.quantity"
-                                        min="0.001"
-                                        step="0.1"
-                                        @change="updateQuantity(item.id, parseFloat(($event.target as HTMLInputElement).value) || 1)"
-                                        class="w-12 border-none text-center text-sm focus:ring-0"
-                                    />
-                                    <button
-                                        @click="updateQuantity(item.id, item.quantity + 1)"
-                                        :disabled="loadingItemId === item.id"
-                                        class="px-2.5 py-1.5 text-slate-500 hover:text-emerald-700 disabled:opacity-50"
-                                    >
-                                        <Plus :size="14" />
-                                    </button>
-                                </div>
-
-                                <!-- Price -->
-                                <div class="text-right">
-                                    <div class="text-lg font-extrabold text-slate-900">
-                                        {{ formatPrice(item.subtotal) }} ₽
-                                    </div>
-                                    <div class="text-xs text-slate-400">
-                                        {{ formatPrice(item.price) }} ₽ × {{ item.quantity }}
-                                    </div>
-                                </div>
-
-                                <!-- Remove -->
+                        <div class="mt-3 flex items-end justify-between">
+                            <!-- Quantity controls -->
+                            <div class="flex items-center rounded-full border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
                                 <button
-                                    @click="removeItem(item.id)"
+                                    @click="updateQuantity(item.id, item.quantity - 1)"
                                     :disabled="loadingItemId === item.id"
-                                    class="ml-3 text-slate-400 hover:text-rose-600 disabled:opacity-50"
+                                    class="flex size-8 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-200 hover:text-orange-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-700"
                                 >
-                                    <Trash2 :size="18" />
+                                    <PhMinus :size="14" weight="bold" />
+                                </button>
+                                <input
+                                    type="number"
+                                    :value="item.quantity"
+                                    min="0.001"
+                                    step="0.1"
+                                    @change="updateQuantity(item.id, parseFloat(($event.target as HTMLInputElement).value) || 1)"
+                                    class="w-12 border-none bg-transparent text-center text-sm font-semibold text-zinc-900 focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                />
+                                <button
+                                    @click="updateQuantity(item.id, item.quantity + 1)"
+                                    :disabled="loadingItemId === item.id"
+                                    class="flex size-8 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-200 hover:text-orange-600 disabled:opacity-50 dark:text-zinc-400 dark:hover:bg-zinc-700"
+                                >
+                                    <PhPlus :size="14" weight="bold" />
                                 </button>
                             </div>
+
+                            <!-- Price -->
+                            <div class="text-right">
+                                <div class="text-lg font-black tracking-tight text-zinc-950 dark:text-white">
+                                    {{ formatPrice(item.subtotal) }} ₽
+                                </div>
+                                <div class="text-xs text-zinc-400">
+                                    {{ formatPrice(item.price) }} ₽ × {{ item.quantity }}
+                                </div>
+                            </div>
+
+                            <!-- Remove -->
+                            <button
+                                @click="removeItem(item.id)"
+                                :disabled="loadingItemId === item.id"
+                                class="ml-3 flex size-8 items-center justify-center rounded-full text-zinc-400 transition hover:bg-rose-50 hover:text-rose-600 disabled:opacity-50 dark:hover:bg-rose-500/10 dark:hover:text-rose-400"
+                            >
+                                <PhTrash :size="18" weight="bold" />
+                            </button>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Summary -->
-                <div class="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-6">
-                    <div class="flex items-center justify-between">
-                        <div class="text-lg font-bold text-slate-900">Итого:</div>
-                        <div class="text-2xl font-extrabold text-slate-950">
-                            {{ formatPrice(total) }} ₽
+            <!-- Summary -->
+            <div class="lg:sticky lg:top-28">
+                <div class="rounded-2xl border border-zinc-200 bg-white p-6 dark:border-zinc-800 dark:bg-zinc-900">
+                    <h2 class="text-lg font-bold text-zinc-950 dark:text-white">Итого</h2>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">Доставка</span>
+                        <span class="text-sm font-semibold text-emerald-600 dark:text-emerald-400">Бесплатно</span>
+                    </div>
+                    <div class="mt-2 flex items-baseline justify-between">
+                        <span class="text-sm text-zinc-500 dark:text-zinc-400">НДС</span>
+                        <span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Включён</span>
+                    </div>
+                    <div class="mt-4 border-t border-zinc-200 pt-4 dark:border-zinc-800">
+                        <div class="flex items-baseline justify-between">
+                            <span class="text-base font-bold text-zinc-950 dark:text-white">К оплате:</span>
+                            <span class="text-2xl font-black tracking-tight text-zinc-950 dark:text-white">
+                                {{ formatPrice(total) }} ₽
+                            </span>
                         </div>
                     </div>
 
-                    <div class="mt-6 flex flex-col gap-3 sm:flex-row">
-                        <a
-                            :href="route('store.catalog.index')"
-                            class="flex-1 rounded-xl border border-slate-200 py-3 text-center text-sm font-semibold text-slate-700 hover:border-emerald-300 hover:bg-emerald-50 sm:flex-none"
-                        >
-                            Продолжить покупки
-                        </a>
+                    <div class="mt-6 flex flex-col gap-3">
                         <a
                             :href="route('store.checkout.create')"
-                            class="flex-1 rounded-xl bg-emerald-600 py-3 text-center text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700 sm:flex-none"
+                            class="flex h-12 items-center justify-center rounded-full bg-orange-500 px-6 text-sm font-bold text-zinc-950 shadow-lg shadow-orange-500/25 transition hover:bg-orange-400"
                         >
                             Оформить заказ
                         </a>
+                        <a
+                            :href="route('store.catalog.index')"
+                            class="flex h-12 items-center justify-center rounded-full border border-zinc-200 bg-white px-6 text-sm font-semibold text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 dark:hover:border-orange-500 dark:hover:text-orange-400"
+                        >
+                            <PhCaretLeft :size="16" class="mr-2" />
+                            Продолжить покупки
+                        </a>
                     </div>
                 </div>
             </div>
-
-            <!-- Empty cart -->
-            <div v-else class="rounded-2xl border border-slate-200 bg-white p-16 text-center">
-                <div class="mx-auto flex size-16 items-center justify-center rounded-2xl bg-slate-100 text-slate-400">
-                    <Package :size="32" />
-                </div>
-                <h3 class="mt-4 text-lg font-bold text-slate-900">Корзина пуста</h3>
-                <p class="mt-2 text-sm text-slate-500">Добавьте товары из каталога</p>
-                <a
-                    :href="route('store.catalog.index')"
-                    class="mt-6 inline-block rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white hover:bg-emerald-700"
-                >
-                    Перейти в каталог
-                </a>
-            </div>
         </div>
+
+        <!-- Empty cart -->
+        <div v-else class="rounded-3xl border border-dashed border-zinc-300 bg-white p-16 text-center dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="mx-auto mb-4 flex size-16 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800">
+                <PhShoppingCart :size="32" weight="light" />
+            </div>
+            <h3 class="text-xl font-extrabold text-zinc-900 dark:text-zinc-100">Корзина пуста</h3>
+            <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Добавьте товары из каталога</p>
+            <a
+                :href="route('store.catalog.index')"
+                class="mt-6 inline-flex h-12 items-center rounded-full bg-orange-500 px-8 text-sm font-bold text-zinc-950 shadow-lg shadow-orange-500/25 transition hover:bg-orange-400"
+            >
+                Перейти в каталог
+            </a>
+        </div>
+    </div>
 </template>

@@ -94,7 +94,8 @@ export interface ProductFormInitial {
     category_id: number | null;
     product_type_id: number | null;
     name: string;
-    sku: string;
+    code: string;
+    article: string | null;
     minimum_stock: number | null;
     angle: number | null;
     description: string | null;
@@ -151,7 +152,8 @@ const form = useForm({
     category_id: (props.initial?.category_id ?? null) as number | null,
     product_type_id: (props.initial?.product_type_id ?? null) as number | null,
     name: props.initial?.name ?? '',
-    sku: props.initial?.sku ?? '',
+    code: props.initial?.code ?? '',
+    article: props.initial?.article ?? '',
     // Строка, чтобы пустое поле превращалось в null, а не в ''
     minimum_stock:
         props.initial?.minimum_stock !== null &&
@@ -429,22 +431,38 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                     </StockField>
                 </div>
 
-                <StockField
-                    label="Артикул"
-                    for-id="sku"
-                    required
-                    :error="form.errors.sku"
-                >
-                    <Input
-                        id="sku"
-                        v-model="form.sku"
-                        type="text"
-                        autocomplete="off"
-                        placeholder="Например: FIT-001"
-                        class="h-11 rounded-xl font-mono"
-                        :aria-invalid="!!form.errors.sku"
-                    />
-                </StockField>
+                <div class="grid gap-6 md:grid-cols-2">
+                    <StockField
+                        label="Код товара"
+                        for-id="code"
+                        required
+                        :error="form.errors.code"
+                    >
+                        <Input
+                            id="code"
+                            v-model="form.code"
+                            type="text"
+                            autocomplete="off"
+                            placeholder="Например: FIT-001"
+                            class="h-11 rounded-xl font-mono"
+                            :aria-invalid="!!form.errors.code"
+                        />
+                    </StockField>
+                    <StockField
+                        label="Артикул"
+                        for-id="article"
+                        :error="form.errors.article"
+                    >
+                        <Input
+                            id="article"
+                            v-model="form.article"
+                            type="text"
+                            autocomplete="off"
+                            class="h-11 rounded-xl font-mono"
+                            :aria-invalid="!!form.errors.article"
+                        />
+                    </StockField>
+                </div>
 
                 <StockField
                     label="Минимальный остаток"
@@ -504,8 +522,10 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                         :aria-invalid="!!form.errors.angle"
                     >
                         <option :value="null">Не указан</option>
+                        <option :value="0">0°</option>
                         <option :value="45">45°</option>
                         <option :value="90">90°</option>
+                        <option :value="180">180°</option>
                     </select>
                 </StockField>
 

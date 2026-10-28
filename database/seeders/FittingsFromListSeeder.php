@@ -82,7 +82,7 @@ class FittingsFromListSeeder extends Seeder
 
             $payload = $this->buildPayload($category->id, $name, $sku);
 
-            $existing = Product::query()->where('sku', $sku)->first();
+            $existing = Product::query()->where('code', $sku)->first();
 
             if ($existing) {
                 $service->update($existing, $payload);
@@ -156,7 +156,8 @@ class FittingsFromListSeeder extends Seeder
             'category_id' => $categoryId,
             'product_type_id' => $this->resolveTypeId($categoryId, $typeToken),
             'name' => $name,
-            'sku' => $sku,
+            'code' => $sku,
+            'article' => null,
             'angle' => $angle,
             'is_active' => true,
             'unit' => 'шт.',

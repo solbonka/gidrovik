@@ -96,7 +96,7 @@ class RackController extends Controller
             ->where('is_active', true)
             ->with(['characteristicValues.characteristic:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'unit', 'category_id'])
+            ->get(['id', 'name', 'code', 'article', 'unit', 'category_id'])
             ->map(function ($product) {
                 $characteristics = $product->characteristicValues->map(function ($cv) {
                     return $cv->characteristic->name.': '.$cv->value;
@@ -105,7 +105,8 @@ class RackController extends Controller
                 return [
                     'id' => $product->id,
                     'name' => $product->name,
-                    'sku' => $product->sku,
+                    'code' => $product->code,
+                    'article' => $product->article,
                     'unit' => $product->unit,
                     'characteristics' => $characteristics,
                     'category_id' => $product->category_id,
@@ -239,7 +240,8 @@ class RackController extends Controller
             ->select([
                 'products.id',
                 'products.name',
-                'products.sku',
+                'products.code',
+                'products.article',
                 'product_location.quantity',
             ])
             ->get()
@@ -247,7 +249,8 @@ class RackController extends Controller
                 return [
                     'id' => $item->id,
                     'name' => $item->name,
-                    'sku' => $item->sku,
+                    'code' => $item->code ?? null,
+                    'article' => $item->article ?? null,
                     'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
                 ];
             });

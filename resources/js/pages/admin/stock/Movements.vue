@@ -42,7 +42,8 @@ interface Movement {
     product: {
         id: number;
         name: string;
-        sku: string | null;
+        code: string | null;
+        article: string | null;
     };
     from_location: {
         code: string;
@@ -517,7 +518,7 @@ const pageButtonBase =
                                     {{ movement.product.name }}
                                 </h3>
                                 <p class="mt-0.5 font-mono text-xs text-muted-foreground">
-                                    {{ movement.product.sku || 'Без артикула' }}
+                                    {{ movement.product.code || movement.product.article || 'Без кода/артикула' }}
                                 </p>
                             </div>
 
@@ -610,7 +611,7 @@ const pageButtonBase =
                                     {{ movement.product.name }}
                                 </div>
                                 <div class="mt-0.5 font-mono text-xs text-muted-foreground">
-                                    {{ movement.product.sku || 'Без артикула' }}
+                                    {{ movement.product.code || movement.product.article || 'Без кода/артикула' }}
                                 </div>
                             </td>
 

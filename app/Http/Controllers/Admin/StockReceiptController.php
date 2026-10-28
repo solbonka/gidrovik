@@ -11,7 +11,6 @@ use App\Models\Product;
 use App\Services\Admin\StockMovementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -31,7 +30,8 @@ class StockReceiptController extends Controller
             ->get([
                 'id',
                 'name',
-                'sku',
+                'code',
+                'article',
                 'unit',
                 'minimum_stock',
                 'category_id',
@@ -56,17 +56,12 @@ class StockReceiptController extends Controller
                 ->implode(', ');
 
             // Временная диагностика передачи категории.
-            if ($product->id === 49) {
-                Log::debug('Stock receipt product diagnostic', [
-                    'id' => $product->id,
-                    'category_id' => $product->category_id,
-                ]);
-            }
 
             return [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'unit' => $product->unit,
                 'minimum_stock' => $product->minimum_stock,
                 'stock_quantity' => $stockQuantities->get($product->id, 0),
@@ -94,12 +89,6 @@ class StockReceiptController extends Controller
                         : null,
                 ];
             });
-
-        Log::debug('Stock receipt response diagnostic', [
-            'products_count' => $products->count(),
-            'first_product' => $products->first(),
-            'categories_count' => $categories->count(),
-        ]);
 
         return Inertia::render('admin/stock/Receipt', [
             'products' => $products,

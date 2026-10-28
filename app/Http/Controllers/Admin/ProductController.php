@@ -51,7 +51,8 @@ class ProductController extends Controller
                                         ["%{$word}%"],
                                     )
                                     ->orWhereRaw(
-                                        'LOWER(sku) LIKE ?',
+                                        'LOWER(code) LIKE ?',
+                                        'LOWER(article) LIKE ?',
                                         ["%{$word}%"],
                                     );
                             });
@@ -135,7 +136,8 @@ class ProductController extends Controller
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,
@@ -280,7 +282,8 @@ class ProductController extends Controller
                 'category_id' => $product->category_id,
                 'product_type_id' => $product->product_type_id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'minimum_stock' => $product->minimum_stock,
                 'angle' => $product->angle,
                 'description' => $product->description,

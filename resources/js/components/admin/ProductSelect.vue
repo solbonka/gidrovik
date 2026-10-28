@@ -13,7 +13,8 @@ import type { AcceptableValue } from 'reka-ui';
 interface ProductOption {
     id: number
     name: string
-    sku: string | null
+    code: string | null
+    article: string | null
     unit?: string
     stock_quantity?: number
     minimum_stock?: number | null
@@ -104,14 +105,16 @@ const filteredProducts = computed(() => {
 
         result = result.filter((product) => {
             const name = product.name.toLowerCase()
-            const sku = product.sku?.toLowerCase() ?? ''
+            const code = product.code?.toLowerCase() ?? ''
+            const article = product.article?.toLowerCase() ?? ''
             const characteristics =
                 product.characteristics?.toLowerCase() ?? ''
 
             return searchTerms.every(
                 (term) =>
                     name.includes(term) ||
-                    sku.includes(term) ||
+                    code.includes(term) ||
+                    article.includes(term) ||
                     characteristics.includes(term),
             )
         })
@@ -187,10 +190,12 @@ const handleSelect = (value: AcceptableValue): void => {
 
                         <div class="flex flex-wrap items-center gap-x-2 text-xs">
                             <span
-                                v-if="selectedProduct.sku"
+                                v-if="selectedProduct.code || selectedProduct.article"
                                 class="text-muted-foreground"
                             >
-                                {{ selectedProduct.sku }}
+                                <span v-if="selectedProduct.code">{{ selectedProduct.code }}</span>
+                                <span v-if="selectedProduct.code && selectedProduct.article"> / </span>
+                                <span v-if="selectedProduct.article">{{ selectedProduct.article }}</span>
                             </span>
 
                             <span
@@ -283,10 +288,12 @@ const handleSelect = (value: AcceptableValue): void => {
 
                         <div class="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs">
                             <span
-                                v-if="product.sku"
+                                v-if="product.code || product.article"
                                 class="text-muted-foreground"
                             >
-                                {{ product.sku }}
+                                <span v-if="product.code">{{ product.code }}</span>
+                                <span v-if="product.code && product.article"> / </span>
+                                <span v-if="product.article">{{ product.article }}</span>
                             </span>
 
                             <span

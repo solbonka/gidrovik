@@ -64,7 +64,8 @@ class OrderController extends Controller
             'items' => $order->items->map(fn ($item) => [
                 'id' => $item->id,
                 'name' => $item->product_name,
-                'sku' => $item->product_sku,
+                    'code' => $item->product_code ?? null,
+                    'article' => $item->article ?? null,
                 'quantity' => (float) $item->quantity,
                 'price' => number_format((float) $item->price, 2, '.', ''),
                 'subtotal' => number_format((float) $item->subtotal, 2, '.', ''),

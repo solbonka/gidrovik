@@ -8,7 +8,6 @@ use App\Models\ProductImage;
 use App\Services\ImageService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -37,7 +36,7 @@ class ProductImageController extends Controller
         ]);
     }
 
-    public function store(Request $request, Product $product): JsonResponse
+    public function store(Request $request, Product $product): RedirectResponse
     {
         $request->validate([
             'images' => 'required|array|min:1',
@@ -45,8 +44,6 @@ class ProductImageController extends Controller
             'alt' => 'nullable|array',
             'alt.*' => 'string|max:255',
         ]);
-
-        $uploaded = [];
 
         foreach ($request->file('images') as $index => $file) {
             $originalName = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
@@ -59,28 +56,18 @@ class ProductImageController extends Controller
             // Generate optimized sizes
             $this->imageService->store($path);
 
-            $image = ProductImage::create([
+            ProductImage::create([
                 'product_id' => $product->id,
                 'image_path' => $path,
                 'alt' => $request->input('alt.' . $index) ?? null,
                 'display_order' => $index,
             ]);
-
-            $uploaded[] = [
-                'id' => $image->id,
-                'path' => $image->url,
-                'alt' => $image->alt,
-                'display_order' => $image->display_order,
-            ];
         }
 
-        return response()->json([
-            'success' => true,
-            'images' => $uploaded,
-        ]);
+        return back()->with('success', 'Изображения загружены.');
     }
 
-    public function update(Request $request, Product $product, int $imageId): JsonResponse
+    public function update(Request $request, Product $product, int $imageId): RedirectResponse
     {
         $request->validate([
             'alt' => 'nullable|string|max:255',
@@ -94,18 +81,10 @@ class ProductImageController extends Controller
             'display_order' => $request->input('display_order', $image->display_order),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'image' => [
-                'id' => $image->id,
-                'path' => $image->url,
-                'alt' => $image->alt,
-                'display_order' => $image->display_order,
-            ],
-        ]);
+        return back()->with('success', 'Изображение обновлено.');
     }
 
-    public function reorder(Request $request, Product $product): JsonResponse
+    public function reorder(Request $request, Product $product): RedirectResponse
     {
         $request->validate([
             'order' => 'required|array',
@@ -118,7 +97,7 @@ class ProductImageController extends Controller
                 ->update(['display_order' => $index]);
         }
 
-        return response()->json(['success' => true]);
+        return back()->with('success', 'Порядок изображений обновлен.');
     }
 
     public function destroy(Product $product, int $imageId): RedirectResponse

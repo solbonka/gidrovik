@@ -20,7 +20,8 @@ return new class extends Migration
                 ->constrained()
                 ->restrictOnDelete();
             $table->string('product_name'); // snapshot
-            $table->string('product_sku')->nullable(); // snapshot
+            $table->string('product_code')->nullable();
+            $table->string('article')->nullable();
             $table->decimal('price', 12, 2); // snapshot price
             $table->decimal('quantity', 12, 3);
             $table->decimal('subtotal', 12, 2);

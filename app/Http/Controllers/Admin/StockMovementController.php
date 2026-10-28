@@ -26,7 +26,7 @@ class StockMovementController extends Controller
 
         $movements = StockMovement::query()
             ->with([
-                'product:id,name,sku',
+                'product:id,name,code,article',
                 'fromLocation.rack:id,code,name',
                 'toLocation.rack:id,code,name',
                 'user:id,name',
@@ -49,7 +49,8 @@ class StockMovementController extends Controller
                             function ($nestedQuery) use ($search): void {
                                 $nestedQuery
                                     ->where('name', 'like', "%{$search}%")
-                                    ->orWhere('sku', 'like', "%{$search}%");
+                                    ->orWhere('code', 'like', "%{$search}%")
+                                    ->orWhere('article', 'like', "%{$search}%");
                             },
                         ),
                     );
@@ -68,7 +69,8 @@ class StockMovementController extends Controller
                 'product' => [
                     'id' => $movement->product->id,
                     'name' => $movement->product->name,
-                    'sku' => $movement->product->sku,
+                    'code' => $movement->product->code,
+                    'article' => $movement->product->article,
                 ],
                 'from_location' => $movement->fromLocation
                     ? [

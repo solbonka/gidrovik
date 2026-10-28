@@ -92,7 +92,8 @@ interface Location {
 interface Product {
     id: number;
     name: string;
-    sku: string;
+    code: string;
+    article: string | null;
     angle: number | null;
     description: string | null;
     is_active: boolean;
@@ -240,7 +241,20 @@ const stockPercent = computed<number | null>(() => {
                                 class="inline-flex items-center gap-1.5 rounded-lg border bg-muted/50 px-2.5 py-1.5 font-mono text-sm"
                             >
                                 <Hash :size="14" class="text-muted-foreground" />
-                                {{ product.sku }}
+                            <div class="space-y-1">
+                                <p v-if="product.code" class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                                    Код товара
+                                </p>
+                                <p v-if="product.article" class="text-xs font-medium tracking-wider text-muted-foreground uppercase">
+                                    Артикул
+                                </p>
+                                <p v-if="product.code" class="font-mono text-sm">
+                                    {{ product.code }}
+                                </p>
+                                <p v-if="product.article" class="font-mono text-sm text-muted-foreground">
+                                    {{ product.article }}
+                                </p>
+                            </div>
                             </span>
 
                             <span

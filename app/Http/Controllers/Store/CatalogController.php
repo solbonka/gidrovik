@@ -5,8 +5,12 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Characteristic;
+use App\Models\Diameter;
+use App\Models\Favorite;
 use App\Models\Manufacturer;
 use App\Models\Product;
+use App\Models\ProductConnection;
+use App\Models\Standard;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -23,6 +27,7 @@ class CatalogController extends Controller
 
         // Filter by category
         $categoryId = $request->input('category');
+        $categoryModel = null;
         if ($categoryId) {
             // Could be slug or ID
             $categoryModel = Category::where('slug', $categoryId)->first();
@@ -35,6 +40,32 @@ class CatalogController extends Controller
         $manufacturerId = $request->input('manufacturer');
         if ($manufacturerId) {
             $query->where('manufacturer_id', $manufacturerId);
+        }
+
+        // Filter by price range
+        $minPrice = $request->input('min_price');
+        $maxPrice = $request->input('max_price');
+        if ($minPrice !== null && $minPrice !== '') {
+            $query->where('retail_price', '>=', (float) $minPrice);
+        }
+        if ($maxPrice !== null && $maxPrice !== '') {
+            $query->where('retail_price', '<=', (float) $maxPrice);
+        }
+
+        // Filter by standard (connection type)
+        $standardId = $request->input('standard');
+        if ($standardId) {
+            $query->whereHas('connections', function ($q) use ($standardId) {
+                $q->where('standard_id', $standardId);
+            });
+        }
+
+        // Filter by diameter
+        $diameterId = $request->input('diameter');
+        if ($diameterId) {
+            $query->whereHas('connections', function ($q) use ($diameterId) {
+                $q->where('diameter_id', $diameterId);
+            });
         }
 
         // Filter by characteristics
@@ -68,7 +99,8 @@ class CatalogController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'slug' => $product->slug,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'price' => $product->retail_price ?? '0',
                 'image_path' => $product->images->first() ? $imageService->url($product->images->first()->image_path, 'thumbnail') : null,
                 'stock_status' => $product->stock_status,
@@ -119,15 +151,60 @@ class CatalogController extends Controller
                 ->map(fn ($items) => $items->pluck('value')->values());
         }
 
+        // Get favorite product IDs for authenticated user
+        $favoriteProductIds = [];
+        if (auth()->check()) {
+            $favoriteProductIds = Favorite::where('user_id', auth()->id())
+                ->pluck('product_id')
+                ->toArray();
+        }
+
+        // Get available standards for current category
+        $standards = collect();
+        if ($categoryModel) {
+            $standards = \DB::table('standards')
+                ->join('product_connections', 'standards.id', '=', 'product_connections.standard_id')
+                ->join('products', 'product_connections.product_id', '=', 'products.id')
+                ->where('products.category_id', $categoryModel->id)
+                ->where('products.is_active', true)
+                ->where('products.published', true)
+                ->distinct()
+                ->orderBy('standards.name')
+                ->select('standards.id', 'standards.name')
+                ->get();
+        }
+
+        // Get available diameters for current category
+        $diameters = collect();
+        if ($categoryModel) {
+            $diameters = \DB::table('diameters')
+                ->join('product_connections', 'diameters.id', '=', 'product_connections.diameter_id')
+                ->join('products', 'product_connections.product_id', '=', 'products.id')
+                ->where('products.category_id', $categoryModel->id)
+                ->where('products.is_active', true)
+                ->where('products.published', true)
+                ->distinct()
+                ->orderBy('diameters.value')
+                ->select('diameters.id', 'diameters.value')
+                ->get();
+        }
+
         return Inertia::render('store/catalog/Index', [
             'products' => $products,
             'categories' => $categories,
             'manufacturers' => $manufacturers,
             'characteristics' => $characteristics,
             'characteristic_values' => $charValues,
+            'favorite_product_ids' => $favoriteProductIds,
+            'standards' => $standards,
+            'diameters' => $diameters,
             'filters' => [
                 'category' => $categoryId,
                 'manufacturer' => $manufacturerId,
+                'standard' => $standardId,
+                'diameter' => $diameterId,
+                'min_price' => $minPrice,
+                'max_price' => $maxPrice,
                 'characteristics' => $characteristics,
                 'sort' => $sort,
                 'direction' => $direction,

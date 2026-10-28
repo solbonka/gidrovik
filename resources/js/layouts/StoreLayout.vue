@@ -1,25 +1,34 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3'
 import {
-    ArrowRight,
-    Boxes,
-    ChevronDown,
-    LogIn,
-    LogOut,
-    Menu,
-    Package,
-    Phone,
-    Search,
-    ShoppingCart,
-    User,
-    X,
-} from '@lucide/vue'
-import { computed, onMounted, ref, watch } from 'vue'
+    PhArrowCounterClockwise,
+    PhCaretRight,
+    PhDrop,
+    PhGearSix,
+    PhHeart,
+    PhHouse,
+    PhList,
+    PhMagnifyingGlass,
+    PhMapPin,
+    PhMoon,
+    PhPhone,
+    PhShieldCheck,
+    PhShoppingCart,
+    PhSignIn,
+    PhSignOut,
+    PhSquaresFour,
+    PhSun,
+    PhTruck,
+    PhUser,
+    PhWallet,
+    PhX,
+} from '@phosphor-icons/vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { toast } from 'vue-sonner'
+import { Toaster } from '@/components/ui/sonner'
 
 import { login, logout } from '@/routes'
 import { dashboard } from '@/routes/admin'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 
 const props = defineProps<{
     title?: string
@@ -28,14 +37,85 @@ const props = defineProps<{
 
 const page = usePage()
 const cartCount = computed(() => props.cartCount ?? 0)
+const user = computed(() => page.props.auth.user)
 
-// Check if user is an employee (has is_employee flag)
+// Сотрудник (есть флаг is_employee)
 const isEmployee = computed(() => page.props.auth.user?.is_employee === true)
 
-// Mobile menu
+// ---------- Toast notifications ----------
+watch(
+    () => page.props.flash as {
+        success?: string | null
+        error?: string | null
+        toast?: { type?: string; message?: string } | null
+    } | undefined,
+    (flash) => {
+        if (!flash) return
+
+        if (flash.toast) {
+            const type = flash.toast.type || 'success'
+            const message = flash.toast.message || ''
+            if (type === 'error') {
+                toast.error(message)
+            } else {
+                toast.success(message)
+            }
+            return
+        }
+
+        if (flash.error) {
+            toast.error(flash.error)
+            return
+        }
+
+        if (flash.success) {
+            toast.success(flash.success)
+        }
+    },
+    { immediate: true },
+)
+
+// ---------- Тема ----------
+type Appearance = 'light' | 'dark' | 'system'
+
+const STORAGE_KEY = 'appearance'
+const appearance = ref<Appearance>('system')
+const systemDark = ref(false)
+let mediaQuery: MediaQueryList | null = null
+
+const isDark = computed(() =>
+    appearance.value === 'dark' || (appearance.value === 'system' && systemDark.value),
+)
+
+function applyTheme() {
+    document.documentElement.classList.toggle('dark', isDark.value)
+    document.documentElement.style.colorScheme = isDark.value ? 'dark' : 'light'
+}
+
+function toggleTheme() {
+    appearance.value = isDark.value ? 'light' : 'dark'
+}
+
+function onSystemChange(e: MediaQueryListEvent) {
+    systemDark.value = e.matches
+}
+
+watch(appearance, (value) => {
+    try {
+        localStorage.setItem(STORAGE_KEY, value)
+        document.cookie = `${STORAGE_KEY}=${value};path=/;max-age=31536000;SameSite=Lax`
+    } catch {
+        /* хранилище недоступно — не страшно */
+    }
+    applyTheme()
+})
+
+watch(systemDark, applyTheme)
+
+// ---------- Мобильное меню ----------
 const mobileMenuOpen = ref(false)
 
-// Header search
+// ---------- Поиск ----------
 const searchQuery = ref('')
 
 function performSearch() {
@@ -46,265 +126,504 @@ function performSearch() {
     }
 }
 
-// Close mobile menu on route change
+function doLogout() {
+    mobileMenuOpen.value = false
+    router.post(logout().url)
+}
+
+// Закрываем меню при переходе на другую страницу
 watch(() => page.url, () => {
     mobileMenuOpen.value = false
 })
 
-onMounted(() => {
-    // Close mobile menu on escape
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') mobileMenuOpen.value = false
-    })
+// Блокируем прокрутку страницы, когда открыто меню
+watch(mobileMenuOpen, (open) => {
+    document.body.style.overflow = open ? 'hidden' : ''
 })
+
+function onKeydown(e: KeyboardEvent) {
+    if (e.key === 'Escape') mobileMenuOpen.value = false
+}
+
+onMounted(() => {
+    document.addEventListener('keydown', onKeydown)
+
+    mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    systemDark.value = mediaQuery.matches
+    mediaQuery.addEventListener('change', onSystemChange)
+
+    try {
+        const saved = localStorage.getItem(STORAGE_KEY) as Appearance | null
+        if (saved === 'light' || saved === 'dark' || saved === 'system') {
+            appearance.value = saved
+        }
+    } catch {
+        /* ignore */
+    }
+    applyTheme()
+})
+
+onBeforeUnmount(() => {
+    document.removeEventListener('keydown', onKeydown)
+    mediaQuery?.removeEventListener('change', onSystemChange)
+    document.body.style.overflow = ''
+})
+
+// Подсветка активного пункта нижней навигации (без route().current — он падает в Ziggy)
+const currentPath = computed(() => (page.url ?? '').split('?')[0].split('#')[0])
+
+function isActive(name: string): boolean {
+    try {
+        const routeName = name.replace(/\.\*$/, '.index')
+        const path = new URL(route(routeName), 'http://localhost').pathname
+        if (path === '/') return currentPath.value === '/'
+        return currentPath.value === path || currentPath.value.startsWith(path + '/')
+    } catch {
+        return false
+    }
+}
 </script>
 
 <template>
-    <div class="min-h-screen flex flex-col bg-white text-slate-900">
+    <div class="flex min-h-screen flex-col bg-zinc-50 text-zinc-900 antialiased transition-colors selection:bg-orange-500/30 dark:bg-zinc-950 dark:text-zinc-100">
         <Head :title="title" />
 
-        <!-- Top bar -->
-        <div class="hidden border-b border-slate-100 bg-slate-50 sm:block">
-            <div class="mx-auto flex h-9 max-w-7xl items-center justify-between px-5 lg:px-10">
-                <div class="flex items-center gap-4 text-xs text-slate-500">
-                    <span class="flex items-center gap-1.5">
-                        <Phone :size="12" />
-                        +7 (XXX) XXX-XX-XX
-                    </span>
-                </div>
-                <div class="flex items-center gap-4 text-xs text-slate-500">
-                    <Link :href="route('store.pages.delivery')" class="hover:text-emerald-700">Доставка</Link>
-                    <span class="text-slate-300">|</span>
-                    <Link :href="route('store.pages.payment')" class="hover:text-emerald-700">Оплата</Link>
-                    <span class="text-slate-300">|</span>
-                    <Link :href="route('store.pages.returns')" class="hover:text-emerald-700">Возврат</Link>
-                </div>
+        <!-- Верхняя полоса (только десктоп) -->
+        <div class="hidden border-b border-zinc-800 bg-zinc-950 text-zinc-400 md:block">
+            <div class="mx-auto flex h-9 max-w-7xl items-center justify-between px-6 text-xs lg:px-10">
+                <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-2 transition hover:text-white">
+                    <PhPhone :size="14" weight="fill" class="text-orange-500" />
+                    +7 (XXX) XXX-XX-XX
+                </a>
+                <nav class="flex items-center gap-6">
+                    <Link :href="route('store.pages.delivery')" class="transition hover:text-white">Доставка</Link>
+                    <Link :href="route('store.pages.payment')" class="transition hover:text-white">Оплата</Link>
+                    <Link :href="route('store.pages.returns')" class="transition hover:text-white">Возврат</Link>
+                </nav>
             </div>
         </div>
 
-        <!-- Main header -->
-        <header class="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur">
-            <div class="mx-auto flex h-16 max-w-7xl items-center gap-4 px-5 lg:px-10">
-                <!-- Mobile menu button -->
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    class="md:hidden"
-                    @click="mobileMenuOpen = !mobileMenuOpen"
-                >
-                    <Menu v-if="!mobileMenuOpen" :size="20" />
-                    <X v-else :size="20" />
-                </Button>
-
-                <!-- Logo -->
-                <Link :href="route('store.home')" class="flex shrink-0 items-center gap-2.5">
-                    <div class="flex size-9 items-center justify-center rounded-lg bg-emerald-600 text-white">
-                        <Package :size="18" :stroke-width="2" />
-                    </div>
-                    <div class="hidden sm:block">
-                        <div class="text-[17px] font-extrabold leading-tight text-slate-900">Гидровик</div>
-                        <div class="text-[8px] font-bold uppercase tracking-[0.18em] text-slate-400">интернет-магазин</div>
-                    </div>
-                </Link>
-
-                <!-- Catalog button -->
-                <Link :href="route('store.catalog.index')" class="hidden shrink-0 md:block">
-                    <Button variant="outline" class="gap-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100">
-                        <Boxes :size="16" />
-                        Каталог
-                        <ChevronDown :size="14" class="ml-1" />
-                    </Button>
-                </Link>
-
-                <!-- Search -->
-                <form @submit.prevent="performSearch" class="flex flex-1 items-center">
-                    <div class="relative w-full">
-                        <Input
-                            v-model="searchQuery"
-                            type="text"
-                            placeholder="Поиск по названию или артикулу"
-                            class="h-10 rounded-xl border-slate-200 bg-slate-50 pr-10 focus:border-emerald-400 focus:bg-white focus:ring-emerald-400"
-                        />
-                        <button type="submit" class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-emerald-600">
-                            <Search :size="16" />
-                        </button>
-                    </div>
-                </form>
-
-                <!-- Actions -->
-                <div class="flex shrink-0 items-center gap-1">
-                    <!-- Admin panel link (visible for employees) -->
-                    <Link
-                        v-if="$page.props.auth.user && isEmployee"
-                        :href="dashboard().url"
-                        class="hidden sm:flex"
+        <!-- Шапка -->
+        <header class="sticky top-0 z-40 border-b border-zinc-200/80 bg-white/80 backdrop-blur-xl transition-colors dark:border-zinc-800 dark:bg-zinc-950/80">
+            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-10">
+                <div class="flex h-14 items-center gap-2 sm:gap-3 md:h-[72px] md:gap-5">
+                    <!-- Кнопка меню (мобильные) -->
+                    <button
+                        type="button"
+                        class="-ml-2 flex size-10 items-center justify-center rounded-full text-zinc-800 transition hover:bg-zinc-100 active:scale-95 dark:text-zinc-100 dark:hover:bg-zinc-800 md:hidden"
+                        aria-label="Открыть меню"
+                        @click="mobileMenuOpen = true"
                     >
-                        <Button variant="outline" size="sm" class="gap-1.5 border-slate-200 bg-slate-50 text-slate-600 hover:bg-slate-100 hover:text-slate-900">
-                            <Boxes :size="16" />
-                            <span class="hidden lg:inline">Админ</span>
-                        </Button>
+                        <PhList :size="24" />
+                    </button>
+
+                    <!-- Логотип -->
+                    <Link :href="route('store.home')" class="flex shrink-0 items-center gap-2.5">
+                        <div class="flex size-9 items-center justify-center rounded-xl bg-zinc-950 text-orange-500 dark:bg-orange-500 dark:text-zinc-950 md:size-10">
+                            <PhDrop :size="22" weight="fill" />
+                        </div>
+                        <div class="leading-none">
+                            <div class="text-lg font-black tracking-tight md:text-xl">Гидровик</div>
+                            <div class="mt-1 hidden text-[9px] font-semibold uppercase tracking-[0.22em] text-zinc-400 sm:block">интернет-магазин</div>
+                        </div>
                     </Link>
 
-                    <Link :href="route('store.cart.index')" class="relative hidden sm:flex">
-                        <Button variant="ghost" size="icon" class="relative">
-                            <ShoppingCart :size="20" />
+                    <!-- Каталог (десктоп) -->
+                    <Link
+                        :href="route('store.catalog.index')"
+                        class="hidden h-11 shrink-0 items-center gap-2 rounded-full bg-zinc-950 px-5 text-sm font-semibold text-white transition hover:bg-orange-500 hover:text-zinc-950 dark:bg-white dark:text-zinc-950 dark:hover:bg-orange-500 md:inline-flex"
+                    >
+                        <PhSquaresFour :size="18" weight="bold" />
+                        Каталог
+                    </Link>
+
+                    <!-- Поиск (десктоп) -->
+                    <form class="hidden flex-1 md:block" @submit.prevent="performSearch">
+                        <div class="group relative">
+                            <PhMagnifyingGlass :size="18" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition group-focus-within:text-orange-500" />
+                            <input
+                                v-model="searchQuery"
+                                type="search"
+                                placeholder="Поиск по названию или артикулу"
+                                class="h-11 w-full rounded-full border border-transparent bg-zinc-100 pl-11 pr-14 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/15 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:bg-zinc-900"
+                            />
+                            <button
+                                type="submit"
+                                class="absolute right-1.5 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full bg-orange-500 text-zinc-950 transition hover:bg-orange-400"
+                                aria-label="Найти"
+                            >
+                                <PhMagnifyingGlass :size="16" weight="bold" />
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="flex-1 md:hidden" />
+
+                    <!-- Действия -->
+                    <div class="flex shrink-0 items-center gap-0.5 sm:gap-1">
+                        <Link
+                            v-if="user && isEmployee"
+                            :href="dashboard().url"
+                            class="mr-1 hidden h-10 items-center gap-1.5 rounded-full border border-zinc-200 px-4 text-sm font-semibold text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-700 dark:text-zinc-300 dark:hover:border-orange-500 dark:hover:text-orange-400 lg:inline-flex"
+                        >
+                            <PhGearSix :size="16" weight="bold" />
+                            Админ
+                        </Link>
+
+                        <button
+                            type="button"
+                            class="hidden size-10 items-center justify-center rounded-full text-zinc-600 transition hover:bg-zinc-100 hover:text-orange-500 active:scale-95 dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-orange-400 sm:flex"
+                            :aria-label="isDark ? 'Включить светлую тему' : 'Включить тёмную тему'"
+                            :title="isDark ? 'Светлая тема' : 'Тёмная тема'"
+                            @click="toggleTheme"
+                        >
+                            <PhSun v-if="isDark" :size="21" />
+                            <PhMoon v-else :size="21" />
+                        </button>
+
+                        <Link
+                            v-if="user"
+                            :href="route('store.favorites.index')"
+                            class="hidden size-10 items-center justify-center rounded-full text-zinc-600 transition hover:bg-zinc-100 hover:text-rose-500 dark:text-zinc-300 dark:hover:bg-zinc-800 sm:flex"
+                            aria-label="Избранное"
+                        >
+                            <PhHeart :size="21" />
+                        </Link>
+
+                        <Link
+                            :href="route('store.cart.index')"
+                            class="relative flex size-10 items-center justify-center rounded-full text-zinc-700 transition hover:bg-zinc-100 hover:text-orange-500 dark:text-zinc-200 dark:hover:bg-zinc-800 dark:hover:text-orange-400"
+                            aria-label="Корзина"
+                        >
+                            <PhShoppingCart :size="22" />
                             <span
                                 v-if="cartCount > 0"
-                                class="absolute -right-1 -top-1 flex size-5 items-center justify-center rounded-full bg-emerald-600 text-[10px] font-bold text-white"
+                                class="absolute right-0 top-0 flex min-w-[18px] items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-[18px] text-zinc-950 ring-2 ring-white dark:ring-zinc-950"
                             >
                                 {{ cartCount }}
                             </span>
-                        </Button>
-                    </Link>
+                        </Link>
 
-                    <Link
-                        v-if="!$page.props.auth.user"
-                        :href="login().url"
-                    >
-                        <Button variant="ghost" size="sm" class="gap-1.5">
-                            <LogIn :size="16" />
-                            <span class="hidden sm:inline">Войти</span>
-                        </Button>
-                    </Link>
+                        <Link
+                            v-if="user"
+                            :href="route('store.orders.index')"
+                            class="hidden h-10 items-center gap-2 rounded-full px-3.5 text-sm font-semibold text-zinc-700 transition hover:bg-zinc-100 dark:text-zinc-200 dark:hover:bg-zinc-800 sm:flex"
+                        >
+                            <PhUser :size="18" />
+                            <span class="hidden lg:inline">Заказы</span>
+                        </Link>
 
-                    <Link
-                        v-if="$page.props.auth.user"
-                        :href="route('store.orders.index')"
-                    >
-                        <Button variant="ghost" size="sm" class="gap-1.5">
-                            <User :size="16" />
-                            <span class="hidden sm:inline">Заказы</span>
-                        </Button>
-                    </Link>
+                        <Link
+                            v-else
+                            :href="login().url"
+                            class="ml-1 flex h-10 items-center gap-2 rounded-full bg-zinc-950 px-4 text-sm font-semibold text-white transition hover:bg-orange-500 hover:text-zinc-950 dark:bg-white dark:text-zinc-950 dark:hover:bg-orange-500"
+                        >
+                            <PhSignIn :size="16" weight="bold" />
+                            Войти
+                        </Link>
 
-                    <button
-                        v-if="$page.props.auth.user"
-                        @click="router.post(logout().url)"
-                        class="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 transition hover:bg-slate-50"
-                    >
-                        <LogOut :size="16" />
-                        <span class="hidden sm:inline">Выйти</span>
-                    </button>
+                        <button
+                            v-if="user"
+                            type="button"
+                            class="hidden size-10 items-center justify-center rounded-full text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-white sm:flex"
+                            aria-label="Выйти"
+                            @click="doLogout"
+                        >
+                            <PhSignOut :size="20" />
+                        </button>
+                    </div>
                 </div>
-            </div>
 
-            <!-- Mobile menu -->
-            <div
-                v-if="mobileMenuOpen"
-                class="border-t border-slate-100 md:hidden"
-            >
-                <div class="space-y-1 px-4 py-3">
-                    <Link
-                        :href="route('store.catalog.index')"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        @click="mobileMenuOpen = false"
-                    >
-                        <Boxes :size="18" />
-                        Каталог
-                    </Link>
-                    <Link
-                        :href="route('store.cart.index')"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        @click="mobileMenuOpen = false"
-                    >
-                        <ShoppingCart :size="18" />
-                        Корзина
-                        <span v-if="cartCount > 0" class="ml-auto rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                            {{ cartCount }}
-                        </span>
-                    </Link>
-                    <Link
-                        v-if="!$page.props.auth.user"
-                        :href="login().url"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        @click="mobileMenuOpen = false"
-                    >
-                        <LogIn :size="18" />
-                        Войти
-                    </Link>
-                    <Link
-                        v-else
-                        :href="route('store.orders.index')"
-                        class="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                        @click="mobileMenuOpen = false"
-                    >
-                        <User :size="18" />
-                        Мои заказы
-                    </Link>
-                    <button
-                        v-if="$page.props.auth.user"
-                        @click="() => { mobileMenuOpen = false; router.post(logout().url) }"
-                        class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    >
-                        <LogOut :size="18" />
-                        Выйти
-                    </button>
-                </div>
+                <!-- Поиск на мобильных -->
+                <form class="pb-3 md:hidden" @submit.prevent="performSearch">
+                    <div class="group relative">
+                        <PhMagnifyingGlass :size="18" class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-400 transition group-focus-within:text-orange-500" />
+                        <input
+                            v-model="searchQuery"
+                            type="search"
+                            placeholder="Название или артикул"
+                            class="h-11 w-full rounded-full border border-transparent bg-zinc-100 pl-11 pr-4 text-base text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/15 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-orange-500"
+                        />
+                    </div>
+                </form>
             </div>
         </header>
 
-        <!-- Main content -->
-        <main class="flex-1">
+        <!-- Мобильное меню (выезжающая панель) -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition-opacity duration-200"
+                leave-active-class="transition-opacity duration-200"
+                enter-from-class="opacity-0"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="mobileMenuOpen"
+                    class="fixed inset-0 z-50 bg-zinc-950/60 backdrop-blur-sm md:hidden"
+                    @click="mobileMenuOpen = false"
+                />
+            </Transition>
+
+            <Transition
+                enter-active-class="transition-transform duration-300 ease-out"
+                leave-active-class="transition-transform duration-200 ease-in"
+                enter-from-class="-translate-x-full"
+                leave-to-class="-translate-x-full"
+            >
+                <aside
+                    v-if="mobileMenuOpen"
+                    class="fixed inset-y-0 left-0 z-50 flex w-[86%] max-w-sm flex-col bg-white text-zinc-900 shadow-2xl dark:bg-zinc-950 dark:text-zinc-100 md:hidden"
+                >
+                    <div class="flex h-14 items-center justify-between border-b border-zinc-100 px-4 dark:border-zinc-800">
+                        <div class="flex items-center gap-2.5">
+                            <div class="flex size-9 items-center justify-center rounded-xl bg-zinc-950 text-orange-500 dark:bg-orange-500 dark:text-zinc-950">
+                                <PhDrop :size="20" weight="fill" />
+                            </div>
+                            <span class="text-lg font-black tracking-tight">Гидровик</span>
+                        </div>
+                        <button
+                            type="button"
+                            class="flex size-10 items-center justify-center rounded-full text-zinc-500 hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                            aria-label="Закрыть меню"
+                            @click="mobileMenuOpen = false"
+                        >
+                            <PhX :size="22" />
+                        </button>
+                    </div>
+
+                    <nav class="flex-1 space-y-6 overflow-y-auto px-4 py-5">
+                        <div class="space-y-1">
+                            <Link
+                                :href="route('store.catalog.index')"
+                                class="flex items-center gap-3 rounded-2xl bg-orange-500 px-4 py-3.5 text-base font-bold text-zinc-950"
+                            >
+                                <PhSquaresFour :size="22" weight="bold" />
+                                Каталог
+                                <PhCaretRight :size="16" weight="bold" class="ml-auto" />
+                            </Link>
+                            <Link
+                                :href="route('store.cart.index')"
+                                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900"
+                            >
+                                <PhShoppingCart :size="22" class="text-zinc-400" />
+                                Корзина
+                                <span v-if="cartCount > 0" class="ml-auto rounded-full bg-orange-500 px-2 py-0.5 text-[11px] font-bold text-zinc-950">
+                                    {{ cartCount }}
+                                </span>
+                            </Link>
+                            <Link
+                                v-if="user"
+                                :href="route('store.favorites.index')"
+                                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900"
+                            >
+                                <PhHeart :size="22" class="text-zinc-400" />
+                                Избранное
+                            </Link>
+                            <Link
+                                v-if="user"
+                                :href="route('store.orders.index')"
+                                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900"
+                            >
+                                <PhUser :size="22" class="text-zinc-400" />
+                                Мои заказы
+                            </Link>
+                            <Link
+                                v-if="user && isEmployee"
+                                :href="dashboard().url"
+                                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900"
+                            >
+                                <PhGearSix :size="22" class="text-zinc-400" />
+                                Админ-панель
+                            </Link>
+                        </div>
+
+                        <div>
+                            <div class="mb-2 px-4 text-[11px] font-bold uppercase tracking-[0.18em] text-zinc-400">Информация</div>
+                            <div class="space-y-1">
+                                <Link :href="route('store.pages.delivery')" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900">
+                                    <PhTruck :size="22" class="text-zinc-400" /> Доставка
+                                </Link>
+                                <Link :href="route('store.pages.payment')" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900">
+                                    <PhWallet :size="22" class="text-zinc-400" /> Оплата
+                                </Link>
+                                <Link :href="route('store.pages.returns')" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900">
+                                    <PhArrowCounterClockwise :size="22" class="text-zinc-400" /> Возврат
+                                </Link>
+                                <Link :href="route('store.pages.privacy')" class="flex items-center gap-3 rounded-2xl px-4 py-3 text-[15px] font-medium text-zinc-700 active:bg-zinc-100 dark:text-zinc-200 dark:active:bg-zinc-900">
+                                    <PhShieldCheck :size="22" class="text-zinc-400" /> Персональные данные
+                                </Link>
+                            </div>
+                        </div>
+                    </nav>
+
+                    <div class="space-y-2.5 border-t border-zinc-100 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] dark:border-zinc-800">
+                        <button
+                            type="button"
+                            class="flex w-full items-center gap-3 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100"
+                            role="switch"
+                            :aria-checked="isDark"
+                            @click="toggleTheme"
+                        >
+                            <PhMoon v-if="!isDark" :size="20" class="text-zinc-500" />
+                            <PhSun v-else :size="20" class="text-amber-300" />
+                            Тёмная тема
+                            <span
+                                class="ml-auto flex h-6 w-11 items-center rounded-full p-0.5 transition-colors"
+                                :class="isDark ? 'bg-orange-500' : 'bg-zinc-300'"
+                            >
+                                <span
+                                    class="size-5 rounded-full bg-white shadow transition-transform"
+                                    :class="isDark ? 'translate-x-5' : 'translate-x-0'"
+                                />
+                            </span>
+                        </button>
+
+                        <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-3 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
+                            <PhPhone :size="20" weight="fill" class="text-orange-500" />
+                            +7 (XXX) XXX-XX-XX
+                        </a>
+                        <button
+                            v-if="user"
+                            type="button"
+                            class="flex w-full items-center justify-center gap-2 rounded-2xl border border-zinc-200 py-3 text-sm font-semibold text-zinc-600 active:bg-zinc-50 dark:border-zinc-800 dark:text-zinc-300 dark:active:bg-zinc-900"
+                            @click="doLogout"
+                        >
+                            <PhSignOut :size="18" />
+                            Выйти
+                        </button>
+                        <Link
+                            v-else
+                            :href="login().url"
+                            class="flex w-full items-center justify-center gap-2 rounded-2xl bg-zinc-950 py-3 text-sm font-semibold text-white dark:bg-white dark:text-zinc-950"
+                        >
+                            <PhSignIn :size="18" weight="bold" />
+                            Войти
+                        </Link>
+                    </div>
+                </aside>
+            </Transition>
+        </Teleport>
+
+        <!-- Контент (отступ снизу под нижнюю навигацию на мобильных) -->
+        <main class="flex-1 pb-20 md:pb-0">
             <slot />
         </main>
 
-        <!-- Footer -->
-        <footer class="border-t border-slate-200 bg-slate-50">
-            <div class="mx-auto max-w-7xl px-5 py-12 lg:px-10">
-                <div class="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
-                    <!-- About -->
-                    <div>
+        <!-- Подвал -->
+        <footer class="overflow-hidden border-t border-zinc-800 bg-zinc-950 text-zinc-400">
+            <div class="mx-auto max-w-7xl px-4 pt-12 sm:px-6 md:pt-16 lg:px-10">
+                <div class="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4 lg:gap-10">
+                    <div class="col-span-2 lg:col-span-1">
                         <div class="flex items-center gap-2.5">
-                            <div class="flex size-8 items-center justify-center rounded-lg bg-emerald-600 text-white">
-                                <Package :size="16" :stroke-width="2" />
+                            <div class="flex size-10 items-center justify-center rounded-xl bg-orange-500 text-zinc-950">
+                                <PhDrop :size="22" weight="fill" />
                             </div>
-                            <span class="text-sm font-extrabold text-slate-900">Гидровик</span>
+                            <span class="text-xl font-black tracking-tight text-white">Гидровик</span>
                         </div>
-                        <p class="mt-3 text-sm leading-6 text-slate-500">
+                        <p class="mt-4 max-w-xs text-sm leading-6">
                             Промышленное гидравлическое оборудование и комплектующие.
                         </p>
                     </div>
 
-                    <!-- Catalog -->
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">Каталог</h3>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-600">
-                            <li><Link :href="route('store.catalog.index')" class="hover:text-emerald-700">Все товары</Link></li>
-                            <li><Link :href="route('store.catalog.index')" class="hover:text-emerald-700">Производители</Link></li>
+                        <h3 class="text-xs font-bold uppercase tracking-[0.18em] text-white">Каталог</h3>
+                        <ul class="mt-4 space-y-3 text-sm">
+                            <li><Link :href="route('store.catalog.index')" class="transition hover:text-orange-400">Все товары</Link></li>
+                            <li><Link :href="route('store.catalog.index')" class="transition hover:text-orange-400">Производители</Link></li>
                         </ul>
                     </div>
 
-                    <!-- Information -->
                     <div>
-                        <h3 class="text-sm font-bold text-slate-900">Информация</h3>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-600">
-                            <li><Link :href="route('store.pages.delivery')" class="hover:text-emerald-700">Доставка</Link></li>
-                            <li><Link :href="route('store.pages.payment')" class="hover:text-emerald-700">Оплата</Link></li>
-                            <li><Link :href="route('store.pages.returns')" class="hover:text-emerald-700">Возврат</Link></li>
-                            <li><Link :href="route('store.pages.privacy')" class="hover:text-emerald-700">Персональные данные</Link></li>
+                        <h3 class="text-xs font-bold uppercase tracking-[0.18em] text-white">Информация</h3>
+                        <ul class="mt-4 space-y-3 text-sm">
+                            <li><Link :href="route('store.pages.delivery')" class="transition hover:text-orange-400">Доставка</Link></li>
+                            <li><Link :href="route('store.pages.payment')" class="transition hover:text-orange-400">Оплата</Link></li>
+                            <li><Link :href="route('store.pages.returns')" class="transition hover:text-orange-400">Возврат</Link></li>
+                            <li><Link :href="route('store.pages.privacy')" class="transition hover:text-orange-400">Персональные данные</Link></li>
                         </ul>
                     </div>
 
-                    <!-- Contacts -->
-                    <div>
-                        <h3 class="text-sm font-bold text-slate-900">Контакты</h3>
-                        <ul class="mt-3 space-y-2 text-sm text-slate-600">
-                            <li class="flex items-center gap-2">
-                                <Phone :size="14" />
-                                +7 (XXX) XXX-XX-XX
+                    <div class="col-span-2 lg:col-span-1">
+                        <h3 class="text-xs font-bold uppercase tracking-[0.18em] text-white">Контакты</h3>
+                        <ul class="mt-4 space-y-3 text-sm">
+                            <li>
+                                <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-2.5 transition hover:text-orange-400">
+                                    <PhPhone :size="18" weight="fill" class="shrink-0 text-orange-500" />
+                                    +7 (XXX) XXX-XX-XX
+                                </a>
                             </li>
-                            <li class="flex items-center gap-2">
-                                <svg :size="14" class="text-slate-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                            <li class="flex items-start gap-2.5">
+                                <PhMapPin :size="18" weight="fill" class="mt-0.5 shrink-0 text-orange-500" />
                                 г. Город, ул. Улица
                             </li>
                         </ul>
                     </div>
                 </div>
 
-                <div class="mt-10 border-t border-slate-200 pt-6 text-center text-xs text-slate-400">
-                    &copy; {{ new Date().getFullYear() }} Гидровик. Все права защищены.
+                <div class="mt-12 flex flex-col gap-2 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500 sm:flex-row sm:justify-between sm:text-left">
+                    <span>&copy; {{ new Date().getFullYear() }} Гидровик. Все права защищены.</span>
+                    <Link :href="route('store.pages.privacy')" class="transition hover:text-zinc-300">Политика обработки персональных данных</Link>
+                </div>
+
+                <div
+                    aria-hidden="true"
+                    class="pointer-events-none mt-8 select-none text-center text-[16vw] font-black leading-[0.78] tracking-tighter text-white/[0.04] md:text-[11rem]"
+                >
+                    ГИДРОВИК
                 </div>
             </div>
         </footer>
+
+        <!-- Нижняя навигация (только мобильные) -->
+        <nav class="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90 md:hidden">
+            <div class="mx-auto grid h-16 max-w-md grid-cols-4">
+                <Link
+                    :href="route('store.home')"
+                    class="relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition active:scale-95"
+                    :class="isActive('store.home') ? 'text-orange-600 dark:text-orange-400' : 'text-zinc-500 dark:text-zinc-400'"
+                >
+                    <span v-if="isActive('store.home')" class="absolute top-0 h-0.5 w-8 rounded-full bg-orange-500" />
+                    <PhHouse :size="23" :weight="isActive('store.home') ? 'fill' : 'regular'" />
+                    Главная
+                </Link>
+                <Link
+                    :href="route('store.catalog.index')"
+                    class="relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition active:scale-95"
+                    :class="isActive('store.catalog.*') ? 'text-orange-600 dark:text-orange-400' : 'text-zinc-500 dark:text-zinc-400'"
+                >
+                    <span v-if="isActive('store.catalog.*')" class="absolute top-0 h-0.5 w-8 rounded-full bg-orange-500" />
+                    <PhSquaresFour :size="23" :weight="isActive('store.catalog.*') ? 'fill' : 'regular'" />
+                    Каталог
+                </Link>
+                <Link
+                    :href="route('store.cart.index')"
+                    class="relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition active:scale-95"
+                    :class="isActive('store.cart.*') ? 'text-orange-600 dark:text-orange-400' : 'text-zinc-500 dark:text-zinc-400'"
+                >
+                    <span v-if="isActive('store.cart.*')" class="absolute top-0 h-0.5 w-8 rounded-full bg-orange-500" />
+                    <span class="relative">
+                        <PhShoppingCart :size="23" :weight="isActive('store.cart.*') ? 'fill' : 'regular'" />
+                        <span
+                            v-if="cartCount > 0"
+                            class="absolute -right-2.5 -top-1.5 flex min-w-[18px] items-center justify-center rounded-full bg-orange-500 px-1 text-[10px] font-bold leading-[18px] text-zinc-950 ring-2 ring-white dark:ring-zinc-950"
+                        >
+                            {{ cartCount }}
+                        </span>
+                    </span>
+                    Корзина
+                </Link>
+                <Link
+                    :href="user ? route('store.orders.index') : login().url"
+                    class="relative flex flex-col items-center justify-center gap-1 text-[11px] font-semibold transition active:scale-95"
+                    :class="isActive('store.orders.*') ? 'text-orange-600 dark:text-orange-400' : 'text-zinc-500 dark:text-zinc-400'"
+                >
+                    <span v-if="isActive('store.orders.*')" class="absolute top-0 h-0.5 w-8 rounded-full bg-orange-500" />
+                    <PhUser :size="23" :weight="isActive('store.orders.*') ? 'fill' : 'regular'" />
+                    {{ user ? 'Заказы' : 'Войти' }}
+                </Link>
+            </div>
+        </nav>
+
+        <Toaster rich-colors close-button position="top-right" />
     </div>
 </template>

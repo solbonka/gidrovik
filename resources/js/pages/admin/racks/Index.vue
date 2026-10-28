@@ -43,6 +43,14 @@ defineOptions({
     layout: AdminLayout,
 });
 
+interface LocationProduct {
+    id: number;
+    name: string;
+    code: string | null;
+    article: string | null;
+    quantity: number;
+}
+
 interface Location {
     id: number;
     rack_id: number;
@@ -64,7 +72,8 @@ interface Rack {
 interface Product {
     id: number;
     name: string;
-    sku: string | null;
+    code: string | null;
+    article: string | null;
     unit: string;
     characteristics?: string;
     category_id?: number | string | null;
@@ -72,13 +81,6 @@ interface Product {
         id: number | string;
         name?: string;
     } | null;
-}
-
-interface LocationProduct {
-    id: number;
-    name: string;
-    sku: string | null;
-    quantity: string | number;
 }
 
 interface ProductStockLocation {
@@ -91,7 +93,8 @@ interface ProductStockLocation {
 interface ProductDetails {
     id: number;
     name: string;
-    sku: string | null;
+    code: string | null;
+    article: string | null;
     quantity: string | number;
 }
 
@@ -241,7 +244,8 @@ const productsForSelect = computed(() =>
     props.allProducts.map((product) => ({
         id: product.id,
         name: product.name,
-        sku: product.sku,
+        code: product.code,
+        article: product.article,
         unit: product.unit,
         characteristics: product.characteristics,
         category_id: product.category_id ?? product.category?.id ?? null,
@@ -253,7 +257,8 @@ const locationProductsForSelect = computed(() =>
     locationModal.value.products.map((product) => ({
         id: product.id,
         name: product.name,
-        sku: product.sku,
+        code: product.code,
+        article: product.article,
         unit: 'шт.',
     })),
 );
@@ -457,9 +462,9 @@ const confirmDelete = (): void => {
 
 /* ---------- Товары в ячейке ---------- */
 
-const viewLocationProducts = async (
+const viewLocationProducts = (
     location: Pick<Location, 'id' | 'code'>,
-): Promise<void> => {
+): void => {
     locationModal.value.open = true;
     locationModal.value.locationCode = location.code;
     locationModal.value.locationId = location.id;
@@ -467,38 +472,25 @@ const viewLocationProducts = async (
     locationModal.value.error = '';
     locationModal.value.products = [];
 
-    try {
-        const response = await fetch(
-            `/admin/locations/${location.id}/products`,
-            {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            },
-        );
-
-        if (!response.ok) {
-            throw new Error('Не удалось загрузить товары ячейки.');
-        }
-
-        const data: unknown = await response.json();
-
-        if (!Array.isArray(data)) {
-            throw new Error('Сервер вернул некорректный список товаров.');
-        }
-
-        // Не отображаем товары с нулевым остатком.
-        locationModal.value.products = (data as LocationProduct[]).filter(
-            (product) => Number(product.quantity) > 0,
-        );
-    } catch (error) {
-        console.error('Failed to load location products:', error);
-        locationModal.value.error =
-            'Не удалось загрузить товары. Попробуйте ещё раз.';
-    } finally {
-        locationModal.value.loading = false;
-    }
+    fetch(`/admin/locations/${location.id}/products`)
+        .then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            const products = data.products || [];
+            locationModal.value.products = (products as LocationProduct[]).filter(
+                (product) => Number(product.quantity) > 0,
+            );
+            locationModal.value.loading = false;
+        })
+        .catch((error) => {
+            console.error(error);
+            locationModal.value.error = `Не удалось загрузить товары: ${error.message}`;
+            locationModal.value.loading = false;
+        });
 };
 
 const closeLocationModal = (): void => {
@@ -552,7 +544,7 @@ watch(
     },
 );
 
-const submitOperation = async (): Promise<void> => {
+const submitOperation = (): void => {
     const locationId = locationModal.value.locationId;
     const operation = locationModal.value.operation;
 
@@ -586,99 +578,56 @@ const submitOperation = async (): Promise<void> => {
 
     locationModal.value.operationLoading = true;
 
-    try {
-        const formData = new FormData();
-        formData.append('product_id', operationForm.value.product_id);
-        formData.append('comment', operationForm.value.comment);
+    const data: Record<string, string | number> = {
+        product_id: Number(operationForm.value.product_id),
+        comment: operationForm.value.comment,
+        operation: operation,
+    };
 
-        let url: string;
+    switch (operation) {
+        case 'receipt':
+        case 'write_off':
+        case 'return':
+            data.location_id = Number(locationId);
+            data.quantity = quantity;
+            break;
 
-        switch (operation) {
-            case 'receipt':
-                url = '/admin/stock/receipt';
-                formData.append('location_id', String(locationId));
-                formData.append('quantity', String(quantity));
-                break;
+        case 'transfer':
+            data.from_location_id = Number(locationId);
+            data.to_location_id = Number(operationForm.value.to_location_id);
+            data.quantity = quantity;
+            break;
 
-            case 'write_off':
-                url = '/admin/stock/write-off';
-                formData.append('location_id', String(locationId));
-                formData.append('quantity', String(quantity));
-                break;
-
-            case 'transfer':
-                url = '/admin/stock/transfer';
-                formData.append('from_location_id', String(locationId));
-                formData.append(
-                    'to_location_id',
-                    operationForm.value.to_location_id,
-                );
-                formData.append('quantity', String(quantity));
-                break;
-
-            case 'return':
-                url = '/admin/stock/return';
-                formData.append('location_id', String(locationId));
-                formData.append('quantity', String(quantity));
-                break;
-
-            case 'inventory':
-                url = '/admin/stock/inventory';
-                formData.append('location_id', String(locationId));
-                formData.append('actual_quantity', String(quantity));
-                break;
-        }
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                Accept: 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN':
-                    document.querySelector<HTMLMetaElement>(
-                        'meta[name="csrf-token"]',
-                    )?.content ?? '',
-            },
-            body: formData,
-            credentials: 'same-origin',
-        });
-
-        const data = await response.json().catch(() => null);
-
-        if (!response.ok) {
-            let message = data?.message || 'Ошибка при выполнении операции.';
-
-            if (data?.errors) {
-                message =
-                    Object.values(data.errors).flat().join(', ') || message;
-            }
-
-            toast.error(message);
-            return;
-        }
-
-        toast.success('Операция успешно выполнена.');
-
-        locationModal.value.operation = null;
-        operationForm.value = emptyOperationForm();
-
-        await viewLocationProducts({
-            id: locationId,
-            code: locationModal.value.locationCode,
-        });
-
-        router.reload({ only: ['racks'] });
-    } catch (error) {
-        console.error('Operation error:', error);
-        toast.error('Не удалось выполнить операцию.');
-    } finally {
-        locationModal.value.operationLoading = false;
+        case 'inventory':
+            data.location_id = Number(locationId);
+            data.actual_quantity = quantity;
+            break;
     }
+
+    router.post(
+        route('stock.operation.execute').url,
+        data,
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                locationModal.value.operation = null;
+                operationForm.value = emptyOperationForm();
+                toast.success('Операция успешно выполнена.');
+            },
+            onError: (errors) => {
+                const message = Object.values(errors).flat().join(', ') || 'Ошибка при выполнении операции.';
+                toast.error(message);
+            },
+            onFinish: () => {
+                locationModal.value.operationLoading = false;
+            },
+        },
+    );
 };
 
 /* ---------- Расположение товара ---------- */
 
-const showProductDetails = async (product: LocationProduct): Promise<void> => {
+const showProductDetails = (product: LocationProduct): void => {
     productDetailsModal.value = {
         open: true,
         loading: true,
@@ -686,48 +635,37 @@ const showProductDetails = async (product: LocationProduct): Promise<void> => {
         product: {
             id: product.id,
             name: product.name,
-            sku: product.sku,
+            code: product.code,
+            article: product.article,
             quantity: product.quantity,
         },
         locations: [],
         totalQuantity: 0,
     };
 
-    try {
-        const response = await fetch(
-            `/admin/locations?product_id=${encodeURIComponent(String(product.id))}`,
-            {
-                headers: {
-                    Accept: 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest',
-                },
-            },
-        );
+    fetch(`/admin/products/${product.id}/locations`)
+        .then(async (response) => {
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        })
+        .then((data) => {
+            const locations = data.locations || [];
+            const filteredLocations = (locations as ProductStockLocation[]).filter(
+                (location) => Number(location.quantity) > 0,
+            );
 
-        if (!response.ok) {
-            throw new Error('Не удалось загрузить расположение товара.');
-        }
+            productDetailsModal.value.locations = filteredLocations;
+            productDetailsModal.value.totalQuantity = filteredLocations.reduce(
+                (sum, location) => sum + Number(location.quantity || 0),
+                0,
+            );
+            productDetailsModal.value.loading = false;
+        })
+        .catch((error) => {
+            productDetailsModal.value.error = `Не удалось загрузить данные товара: ${error.message}`;
+            productDetailsModal.value.loading = false;
+        });
 
-        const data = await response.json();
-
-        const locations = (
-            Array.isArray(data.locations)
-                ? (data.locations as ProductStockLocation[])
-                : []
-        ).filter((location) => Number(location.quantity) > 0);
-
-        productDetailsModal.value.locations = locations;
-        productDetailsModal.value.totalQuantity = locations.reduce(
-            (sum, location) => sum + Number(location.quantity || 0),
-            0,
-        );
-    } catch (error) {
-        console.error('Product details error:', error);
-        productDetailsModal.value.error =
-            'Не удалось загрузить расположение товара. Попробуйте ещё раз.';
-    } finally {
-        productDetailsModal.value.loading = false;
-    }
 };
 
 const closeProductDetails = (): void => {
@@ -1229,8 +1167,14 @@ const closeProductDetails = (): void => {
                                 >
                                     {{ product.name }}
                                 </span>
-                                <span class="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                                    {{ product.sku || 'Без артикула' }}
+                                <span v-if="product.code" class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    Код: {{ product.code }}
+                                </span>
+                                <span v-if="product.article" class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    Артикул: {{ product.article }}
+                                </span>
+                                <span v-if="!product.code && !product.article" class="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                                    Без кода/артикула
                                 </span>
                             </span>
 
@@ -1281,12 +1225,12 @@ const closeProductDetails = (): void => {
                 <DialogTitle class="pr-6 text-base leading-snug break-words">
                     {{ productDetailsModal.product?.name || 'Расположение товара' }}
                 </DialogTitle>
-                <DialogDescription>
-                    {{
-                        productDetailsModal.product?.sku
-                            ? `Артикул: ${productDetailsModal.product.sku} · остатки по ячейкам`
-                            : 'Остатки товара по ячейкам'
-                    }}
+                <DialogDescription class="flex flex-col gap-0.5">
+                    <template v-if="productDetailsModal.product?.code || productDetailsModal.product?.article">
+                        <span v-if="productDetailsModal.product?.code">Код: {{ productDetailsModal.product.code }} · остатки по ячейкам</span>
+                        <span v-if="productDetailsModal.product?.article">Артикул: {{ productDetailsModal.product.article }}</span>
+                    </template>
+                    <span v-else>Остатки товара по ячейкам</span>
                 </DialogDescription>
             </DialogHeader>
 

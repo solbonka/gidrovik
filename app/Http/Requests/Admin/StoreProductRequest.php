@@ -35,17 +35,18 @@ class StoreProductRequest extends FormRequest
                 'max:255',
             ],
 
-            'sku' => [
+            'code' => [
                 'required',
                 'string',
                 'max:255',
-                'unique:products,sku',
+                'unique:products,code',
             ],
+            'article' => ['nullable', 'string', 'max:255'],
 
             'angle' => [
                 'nullable',
                 'integer',
-                Rule::in([45, 90]),
+                Rule::in([0, 45, 90, 180]),
             ],
 
             'description' => [

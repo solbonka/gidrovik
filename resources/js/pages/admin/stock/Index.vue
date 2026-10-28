@@ -49,7 +49,8 @@ interface StockLocation {
 interface StockProduct {
     id: number;
     name: string;
-    sku: string | null;
+    code: string | null;
+    article: string | null;
     category: string | null;
     unit: string;
     stock_quantity: number | string;
@@ -475,7 +476,7 @@ const pageButtonBase =
                                     {{ product.name }}
                                 </h3>
                                 <p class="mt-0.5 text-xs text-muted-foreground">
-                                    {{ product.sku || 'Без артикула' }}
+                                    {{ product.code || product.article || 'Без кода/артикула' }}
                                     <template v-if="product.category">
                                         · {{ product.category }}
                                     </template>
@@ -613,7 +614,7 @@ const pageButtonBase =
                                     {{ product.name }}
                                 </div>
                                 <div class="mt-1 text-xs text-muted-foreground">
-                                    {{ product.sku || 'Без артикула' }}
+                                    {{ product.code || product.article || 'Без кода/артикула' }}
                                     <template v-if="product.category">
                                         · {{ product.category }}
                                     </template>

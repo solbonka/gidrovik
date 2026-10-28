@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\StandardController;
 use App\Http\Controllers\Admin\StockBalanceController;
 use App\Http\Controllers\Admin\StockInventoryController;
 use App\Http\Controllers\Admin\StockMovementController;
+use App\Http\Controllers\Admin\StockOperationApiController;
 use App\Http\Controllers\Admin\StockReceiptController;
 use App\Http\Controllers\Admin\StockReturnController;
 use App\Http\Controllers\Admin\StockTransferController;
@@ -168,10 +169,13 @@ Route::middleware(['auth', 'verified', 'employee'])
             Route::get('/racks', [RackController::class, 'index'])
                 ->name('racks.index');
 
-            Route::get('/locations/{location}/products', [
-                RackController::class,
-                'getLocationProducts',
-            ])->name('locations.products');
+            // Stock operation API endpoints (for Inertia router)
+            Route::post('/stock/operation', [StockOperationApiController::class, 'execute'])->name('stock.operation.execute');
+            Route::get('/locations/{location}/products', [StockOperationApiController::class, 'currentLocationProducts'])->name('locations.products.api');
+            Route::get('/products/{product}/locations', [StockOperationApiController::class, 'productLocation'])->name('products.locations.api');
+
+            // Inventory API endpoint
+            Route::get('/stock/inventory/current', [StockInventoryController::class, 'current'])->name('stock.inventory.current.api');
 
             Route::get('/stock', [StockBalanceController::class, 'index'])
                 ->name('stock.index');

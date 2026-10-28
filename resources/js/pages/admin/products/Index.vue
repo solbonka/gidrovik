@@ -46,7 +46,8 @@ interface ProductType {
 interface Product {
     id: number;
     name: string;
-    sku: string;
+    code: string;
+    article: string | null;
     is_active: boolean;
     stock_quantity: number | null;
     category: Category;
@@ -423,9 +424,12 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                                 <h3 class="break-words text-sm font-semibold">
                                     {{ product.name }}
                                 </h3>
-                                <p class="mt-1 font-mono text-xs text-muted-foreground">
-                                    {{ product.sku }}
-                                </p>
+                                <p v-if="product.code" class="mt-1 font-mono text-xs text-muted-foreground">
+                                        Код: {{ product.code }}
+                                    </p>
+                                <p v-if="product.article" class="font-mono text-xs text-muted-foreground">
+                                        Артикул: {{ product.article }}
+                                    </p>
                             </div>
 
                             <span
@@ -508,6 +512,7 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                         <thead>
                         <tr class="border-b bg-muted/40">
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Товар</th>
+                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Код товара</th>
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Артикул</th>
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Категория</th>
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Тип</th>
@@ -535,8 +540,18 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                                     <span
                                         class="inline-flex rounded-md border bg-muted/50 px-2 py-1 font-mono text-xs"
                                     >
-                                        {{ product.sku }}
+                                    {{ product.code }}
                                     </span>
+                            </td>
+
+                            <td class="px-5 py-4 whitespace-nowrap text-muted-foreground">
+                                    <span
+                                        v-if="product.article"
+                                        class="inline-flex rounded-md border bg-muted/50 px-2 py-1 font-mono text-xs"
+                                    >
+                                    {{ product.article }}
+                                    </span>
+                                    <span v-else>—</span>
                             </td>
 
                             <td class="px-5 py-4 text-muted-foreground">

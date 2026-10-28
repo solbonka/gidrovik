@@ -1,27 +1,31 @@
 <script setup lang="ts">
+import { Head, Link, router } from '@inertiajs/vue3'
 import {
-    ArrowLeft,
-    Box,
-    ChevronLeft,
-    ChevronRight,
-    Maximize2,
-    Package,
-    Phone,
-    ShoppingCart,
-    X,
-} from '@lucide/vue'
-import { router } from '@inertiajs/vue3'
-import { ref } from 'vue'
+    PhArrowsOut,
+    PhCaretLeft,
+    PhCaretRight,
+    PhCheck,
+    PhHeart,
+    PhMinus,
+    PhPackage,
+    PhPlus,
+    PhShieldCheck,
+    PhShoppingCart,
+    PhTruck,
+    PhX,
+} from '@phosphor-icons/vue'
 import { onKeyStroke } from '@vueuse/core'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-import { Button } from '@/components/ui/button'
+import ProductCard from '@/components/store/ProductCard.vue'
 
 const props = defineProps<{
     product: {
         id: number
         name: string
         slug: string
-        sku: string | null
+        code: string | null
+        article: string | null
         description: string | null
         price: string
         stock_status: string
@@ -33,9 +37,10 @@ const props = defineProps<{
         characteristics: Array<{
             id: number
             name: string
-            value: string | null
+            value: string
             unit: string | null
         }>
+        locations?: Array<{ rack_code: string; location_code: string; quantity: string }>
     }
     related_products: Array<{
         id: number
@@ -45,47 +50,48 @@ const props = defineProps<{
         image_path?: string | null
         stock_status: string
     }>
+    favorite_product_ids: number[]
 }>()
 
-const quantity = ref(1)
+// ---------- Избранное ----------
+const isFavorite = ref(props.favorite_product_ids.includes(props.product.id))
+
+// Update favorite status when product changes
+watch(() => props.product.id, () => {
+    isFavorite.value = props.favorite_product_ids.includes(props.product.id)
+})
+
+// Update favorite status when favorite_product_ids prop changes
+watch(() => props.favorite_product_ids, (newIds) => {
+    isFavorite.value = newIds.includes(props.product.id)
+}, { deep: true })
+
+function toggleFavorite() {
+    if (isFavorite.value) {
+        router.delete(route('store.favorites.destroy'), {
+            data: { product_id: props.product.id },
+            preserveScroll: true,
+            onSuccess: () => { isFavorite.value = false },
+        })
+    } else {
+        router.post(route('store.favorites.store'), {
+            product_id: props.product.id,
+        }, {
+            preserveScroll: true,
+            onSuccess: () => { isFavorite.value = true },
+        })
+    }
+}
+
+// ---------- Галерея ----------
+const quantity = ref<number>(1)
 const showPreview = ref(false)
 const previewIndex = ref(0)
 
-function formatPrice(price: string): string {
-    return new Intl.NumberFormat('ru-RU').format(parseFloat(price))
-}
+const currentImage = computed(() => props.product.images[previewIndex.value] ?? props.product.images[0])
 
-function stockStatusLabel(status: string): string {
-    const map: Record<string, string> = {
-        in_stock: 'В наличии',
-        out_of_stock: 'Нет в наличии',
-        backorder: 'Под заказ',
-    }
-    return map[status] || status
-}
-
-function stockStatusClass(status: string): string {
-    const map: Record<string, string> = {
-        in_stock: 'bg-emerald-100 text-emerald-700',
-        out_of_stock: 'bg-rose-100 text-rose-700',
-        backorder: 'bg-amber-100 text-amber-700',
-    }
-    return map[status] || 'bg-slate-100 text-slate-700'
-}
-
-function addToCart() {
-    router.post(
-        route('store.cart.store'),
-        { product_id: props.product.id, quantity: quantity.value },
-        {
-            preserveState: true,
-            only: ['item_count'],
-        }
-    )
-}
-
-function openPreview(index: number) {
-    previewIndex.value = index
+function openPreview() {
+    if (props.product.images.length === 0) return
     showPreview.value = true
     document.body.style.overflow = 'hidden'
 }
@@ -96,15 +102,11 @@ function closePreview() {
 }
 
 function prevImage() {
-    if (previewIndex.value > 0) {
-        previewIndex.value--
-    }
+    if (previewIndex.value > 0) previewIndex.value--
 }
 
 function nextImage() {
-    if (previewIndex.value < props.product.images.length - 1) {
-        previewIndex.value++
-    }
+    if (previewIndex.value < props.product.images.length - 1) previewIndex.value++
 }
 
 function selectThumbnail(index: number) {
@@ -124,304 +126,395 @@ onKeyStroke('ArrowRight', (e) => {
 })
 
 onKeyStroke('Escape', () => {
-    if (showPreview.value) {
-        closePreview()
+    if (showPreview.value) closePreview()
+})
+
+// ---------- Цена и наличие ----------
+function formatPrice(price: string): string {
+    return new Intl.NumberFormat('ru-RU').format(parseFloat(price))
+}
+
+const stock = computed(() => {
+    const map: Record<string, { label: string; dot: string; chip: string }> = {
+        in_stock: {
+            label: 'В наличии',
+            dot: 'bg-emerald-500',
+            chip: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
+        },
+        backorder: {
+            label: 'Под заказ',
+            dot: 'bg-amber-500',
+            chip: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
+        },
+        out_of_stock: {
+            label: 'Нет в наличии',
+            dot: 'bg-rose-500',
+            chip: 'bg-rose-500/10 text-rose-700 dark:text-rose-400',
+        },
     }
+    return map[props.product.stock_status] ?? {
+        label: props.product.stock_status,
+        dot: 'bg-zinc-400',
+        chip: 'bg-zinc-500/10 text-zinc-600 dark:text-zinc-300',
+    }
+})
+
+const outOfStock = computed(() => props.product.stock_status === 'out_of_stock')
+
+// ---------- Корзина ----------
+const added = ref(false)
+let addedTimer: ReturnType<typeof setTimeout> | undefined
+
+function changeQuantity(delta: number) {
+    const next = (Number(quantity.value) || 1) + delta
+    quantity.value = Math.max(1, Math.round(next * 10) / 10)
+}
+
+function addToCart() {
+    if (outOfStock.value) return
+
+    router.post(
+        route('store.cart.store'),
+        { product_id: props.product.id, quantity: Number(quantity.value) || 1 },
+        {
+            preserveState: true,
+            preserveScroll: true,
+            only: ['item_count'],
+            onSuccess: () => {
+                added.value = true
+                clearTimeout(addedTimer)
+                addedTimer = setTimeout(() => { added.value = false }, 1800)
+            },
+        },
+    )
+}
+
+// Переход на другой товар в том же компоненте — сбрасываем локальное состояние
+watch(() => props.product.id, () => {
+    previewIndex.value = 0
+    quantity.value = 1
+    isFavorite.value = props.favorite_product_ids.includes(props.product.id)
+    closePreview()
+})
+
+onBeforeUnmount(() => {
+    clearTimeout(addedTimer)
+    document.body.style.overflow = ''
 })
 </script>
 
 <template>
-    <div class="mx-auto max-w-7xl px-5 py-8 lg:px-10">
-            <!-- Breadcrumb -->
-            <a
-                :href="route('store.catalog.index')"
-                class="mb-6 inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-emerald-700"
-            >
-                <ArrowLeft :size="14" />
-                Назад в каталог
-            </a>
+    <Head :title="product.meta_title">
+        <meta v-if="product.meta_description" name="description" :content="product.meta_description" />
+    </Head>
 
-            <div class="grid gap-8 lg:grid-cols-2">
-                <!-- Image gallery -->
-                <div>
-                    <!-- Main image -->
-                    <div
-                        class="group relative mb-4 aspect-square overflow-hidden rounded-2xl bg-slate-100"
-                        @click="openPreview(0)"
-                    >
-                        <template v-if="product.images.length > 0">
-                            <img
-                                :src="product.images[previewIndex]?.path ?? product.images[0].path"
-                                :alt="product.images[previewIndex]?.alt ?? product.images[0]?.alt ?? product.name"
-                                loading="lazy"
-                                decoding="async"
-                                class="h-full w-full object-cover transition duration-300 group-hover:scale-105"
-                            />
+    <div class="mx-auto max-w-7xl px-4 pb-32 pt-5 sm:px-6 lg:px-10 lg:pb-16 lg:pt-8">
+        <!-- Хлебные крошки -->
+        <nav class="mb-5 flex items-center gap-1.5 overflow-x-auto whitespace-nowrap text-sm text-zinc-500 dark:text-zinc-400 lg:mb-7">
+            <Link :href="route('store.home')" class="transition hover:text-orange-600 dark:hover:text-orange-400">Главная</Link>
+            <PhCaretRight :size="12" weight="bold" class="shrink-0 text-zinc-300 dark:text-zinc-600" />
+            <Link :href="route('store.catalog.index')" class="transition hover:text-orange-600 dark:hover:text-orange-400">Каталог</Link>
+            <template v-if="product.category">
+                <PhCaretRight :size="12" weight="bold" class="shrink-0 text-zinc-300 dark:text-zinc-600" />
+                <span>{{ product.category }}</span>
+            </template>
+        </nav>
 
-                            <!-- Image counter -->
-                            <div
-                                v-if="product.images.length > 1"
-                                class="absolute bottom-3 right-3 rounded-full bg-black/60 px-2.5 py-1 text-xs font-medium text-white backdrop-blur"
-                            >
-                                {{ previewIndex + 1 }} / {{ product.images.length }}
-                            </div>
+        <div class="grid gap-8 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-12">
+            <!-- Галерея -->
+            <div class="min-w-0">
+                <div
+                    class="group relative aspect-square overflow-hidden rounded-3xl border border-zinc-200 bg-zinc-100 dark:border-zinc-800 dark:bg-zinc-900"
+                    :class="product.images.length > 0 ? 'cursor-zoom-in' : ''"
+                    @click="openPreview"
+                >
+                    <template v-if="product.images.length > 0">
+                        <img
+                            :src="currentImage.path"
+                            :alt="currentImage.alt ?? product.name"
+                            decoding="async"
+                            class="h-full w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                        />
 
-                            <!-- Zoom hint -->
-                            <div class="absolute right-3 top-3 rounded-full bg-black/40 p-1.5 opacity-0 transition group-hover:opacity-100">
-                                <Maximize2 :size="16" class="text-white" />
-                            </div>
-
-                            <!-- Navigation arrows -->
-                            <button
-                                v-if="product.images.length > 1"
-                                @click.stop="prevImage"
-                                class="absolute left-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow-lg opacity-0 transition hover:bg-white group-hover:opacity-100"
-                            >
-                                <ChevronLeft :size="18" />
-                            </button>
-                            <button
-                                v-if="product.images.length > 1"
-                                @click.stop="nextImage"
-                                class="absolute right-3 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow-lg opacity-0 transition hover:bg-white group-hover:opacity-100"
-                            >
-                                <ChevronRight :size="18" />
-                            </button>
-                        </template>
-                        <div v-else class="flex h-full items-center justify-center text-slate-300">
-                            <Package :size="64" />
-                        </div>
-                    </div>
-
-                    <!-- Thumbnails -->
-                    <div
-                        v-if="product.images.length > 1"
-                        class="flex gap-2 overflow-x-auto pb-1"
-                    >
-                        <button
-                            v-for="(img, i) in product.images"
-                            :key="img.id"
-                            @click="selectThumbnail(i)"
-                            :class="[
-                                'relative h-20 w-20 shrink-0 overflow-hidden rounded-lg border-2 transition',
-                                i === previewIndex
-                                    ? 'border-emerald-600 ring-2 ring-emerald-600/20'
-                                    : 'border-slate-200 hover:border-slate-300'
-                            ]"
+                        <div
+                            v-if="product.images.length > 1"
+                            class="absolute bottom-4 left-4 rounded-full bg-zinc-950/70 px-3 py-1 text-xs font-semibold text-white backdrop-blur"
                         >
-                            <img
-                                :src="img.path"
-                                :alt="img.alt || product.name"
-                                class="h-full w-full object-cover"
-                            />
+                            {{ previewIndex + 1 }} / {{ product.images.length }}
+                        </div>
+
+                        <div class="absolute right-4 top-4 flex size-10 items-center justify-center rounded-full bg-white/90 text-zinc-700 opacity-0 backdrop-blur transition group-hover:opacity-100 dark:bg-zinc-900/90 dark:text-zinc-200">
+                            <PhArrowsOut :size="18" />
+                        </div>
+
+                        <button
+                            v-if="product.images.length > 1"
+                            type="button"
+                            class="absolute left-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-800 shadow-lg backdrop-blur transition hover:scale-105 disabled:opacity-0 dark:bg-zinc-900/90 dark:text-zinc-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            :disabled="previewIndex === 0"
+                            aria-label="Предыдущее фото"
+                            @click.stop="prevImage"
+                        >
+                            <PhCaretLeft :size="20" weight="bold" />
                         </button>
+                        <button
+                            v-if="product.images.length > 1"
+                            type="button"
+                            class="absolute right-3 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/90 text-zinc-800 shadow-lg backdrop-blur transition hover:scale-105 disabled:opacity-0 dark:bg-zinc-900/90 dark:text-zinc-100 sm:opacity-0 sm:group-hover:opacity-100"
+                            :disabled="previewIndex === product.images.length - 1"
+                            aria-label="Следующее фото"
+                            @click.stop="nextImage"
+                        >
+                            <PhCaretRight :size="20" weight="bold" />
+                        </button>
+                    </template>
+                    <div v-else class="flex h-full items-center justify-center">
+                        <PhPackage :size="80" weight="light" class="text-zinc-300 dark:text-zinc-700" />
                     </div>
                 </div>
 
-                <!-- Product info -->
-                <div>
-                    <h1 class="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">{{ product.name }}</h1>
+                <div v-if="product.images.length > 1" class="mt-3 flex gap-2.5 overflow-x-auto pb-1">
+                    <button
+                        v-for="(img, i) in product.images"
+                        :key="img.id"
+                        type="button"
+                        class="relative size-16 shrink-0 overflow-hidden rounded-2xl border-2 transition sm:size-20"
+                        :class="i === previewIndex
+                            ? 'border-orange-500'
+                            : 'border-transparent opacity-70 hover:opacity-100'"
+                        @click="selectThumbnail(i)"
+                    >
+                        <img :src="img.path" :alt="img.alt || product.name" loading="lazy" class="h-full w-full object-cover" />
+                    </button>
+                </div>
+            </div>
 
-                    <p v-if="product.sku" class="mt-1 text-sm text-slate-500">
-                        Артикул: <span class="font-mono">{{ product.sku }}</span>
-                    </p>
+            <!-- Информация -->
+            <div class="min-w-0 lg:sticky lg:top-28 lg:self-start">
+                <p
+                    v-if="product.category"
+                    class="text-xs font-bold uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400"
+                >
+                    {{ product.category }}
+                </p>
+                <h1 class="mt-2 text-2xl font-black leading-tight tracking-tight sm:text-4xl">{{ product.name }}</h1>
 
-                    <!-- Price & status -->
-                    <div class="mt-6 flex items-end justify-between rounded-xl bg-slate-50 p-4">
+                <div class="mt-4 flex flex-wrap items-center gap-2">
+                    <span
+                        v-if="product.article"
+                        class="rounded-lg bg-zinc-100 px-2.5 py-1 font-mono text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    >
+                        арт. {{ product.article }}
+                    </span>
+                    <span
+                        v-if="product.code"
+                        class="rounded-lg bg-zinc-100 px-2.5 py-1 font-mono text-xs text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    >
+                        код {{ product.code }}
+                    </span>
+                    <span
+                        v-if="product.manufacturer"
+                        class="rounded-lg bg-zinc-100 px-2.5 py-1 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+                    >
+                        {{ product.manufacturer }}
+                    </span>
+                </div>
+
+                <!-- Цена -->
+                <div class="mt-6 rounded-3xl border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900 sm:p-6">
+                    <div class="flex items-start justify-between gap-3">
                         <div>
-                            <div class="text-3xl font-extrabold text-slate-900">
-                                {{ formatPrice(product.price) }} ₽
+                            <div class="text-4xl font-black tracking-tight text-zinc-950 dark:text-white sm:text-5xl">
+                                {{ formatPrice(product.price) }}
+                                <span class="text-2xl font-bold text-zinc-400">₽</span>
                             </div>
-                            <div class="mt-1 text-sm text-slate-500">Розничная цена</div>
+                            <div class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Розничная цена</div>
                         </div>
                         <span
-                            class="rounded-full px-3 py-1.5 text-sm font-bold"
-                            :class="stockStatusClass(product.stock_status)"
+                            class="inline-flex shrink-0 items-center gap-2 rounded-full px-3 py-1.5 text-xs font-bold"
+                            :class="stock.chip"
                         >
-                            {{ stockStatusLabel(product.stock_status) }}
+                            <span class="size-1.5 rounded-full" :class="stock.dot" />
+                            {{ stock.label }}
                         </span>
                     </div>
 
-                    <!-- Meta info -->
-                    <div class="mt-6 space-y-2 text-sm text-slate-600">
-                        <div v-if="product.category">
-                            <span class="font-medium text-slate-700">Категория:</span> {{ product.category }}
-                        </div>
-                        <div v-if="product.manufacturer">
-                            <span class="font-medium text-slate-700">Производитель:</span> {{ product.manufacturer }}
-                        </div>
-                    </div>
-
-                    <!-- Quantity & Add to cart -->
-                    <div class="mt-6 flex items-center gap-3">
-                        <div class="flex items-center rounded-lg border border-slate-200">
+                    <!-- Покупка: панель внизу экрана на мобильных, блок в карточке на десктопе -->
+                    <div
+                        class="fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-30 flex items-center gap-2.5 border-t border-zinc-200 bg-white/90 p-3 backdrop-blur-xl dark:border-zinc-800 dark:bg-zinc-950/90 lg:static lg:z-auto lg:mt-6 lg:gap-3 lg:border-0 lg:bg-transparent lg:p-0 lg:backdrop-blur-none dark:lg:bg-transparent"
+                    >
+                        <div class="flex items-center rounded-full border border-zinc-200 bg-zinc-50 dark:border-zinc-700 dark:bg-zinc-800">
                             <button
-                                @click="quantity = Math.max(1, quantity - 1)"
-                                class="px-3 py-2.5 text-slate-600 hover:text-emerald-700"
+                                type="button"
+                                class="flex size-11 items-center justify-center rounded-full text-zinc-600 transition hover:text-orange-600 active:scale-90 dark:text-zinc-300 dark:hover:text-orange-400"
+                                aria-label="Меньше"
+                                @click="changeQuantity(-1)"
                             >
-                                −
+                                <PhMinus :size="16" weight="bold" />
                             </button>
                             <input
                                 v-model.number="quantity"
                                 type="number"
                                 min="1"
                                 step="0.1"
-                                class="w-16 border-none text-center text-sm focus:ring-0"
+                                inputmode="decimal"
+                                class="w-12 appearance-none border-none bg-transparent p-0 text-center text-sm font-bold text-zinc-900 outline-none focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                aria-label="Количество"
                             />
                             <button
-                                @click="quantity++"
-                                class="px-3 py-2.5 text-slate-600 hover:text-emerald-700"
+                                type="button"
+                                class="flex size-11 items-center justify-center rounded-full text-zinc-600 transition hover:text-orange-600 active:scale-90 dark:text-zinc-300 dark:hover:text-orange-400"
+                                aria-label="Больше"
+                                @click="changeQuantity(1)"
                             >
-                                +
+                                <PhPlus :size="16" weight="bold" />
                             </button>
                         </div>
 
-                        <Button
-                            :disabled="product.stock_status === 'out_of_stock'"
+                        <button
+                            type="button"
+                            :disabled="outOfStock"
+                            class="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-full px-6 text-sm font-bold transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 lg:h-12"
+                            :class="added
+                                ? 'bg-emerald-500 text-white'
+                                : 'bg-orange-500 text-zinc-950 shadow-lg shadow-orange-500/25 hover:bg-orange-400'"
                             @click="addToCart"
-                            class="flex-1 rounded-xl bg-emerald-600 px-6 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 hover:bg-emerald-700"
                         >
-                            <ShoppingCart :size="16" class="mr-2" />
-                            В корзину
-                        </Button>
+                            <PhCheck v-if="added" :size="20" weight="bold" />
+                            <PhShoppingCart v-else :size="20" weight="bold" />
+                            {{ added ? 'Добавлено' : outOfStock ? 'Нет в наличии' : 'В корзину' }}
+                        </button>
                     </div>
 
-                    <!-- Description -->
-                    <div v-if="product.description" class="mt-8">
-                        <h2 class="text-lg font-bold text-slate-900">Описание</h2>
-                        <div class="mt-3 text-sm leading-7 text-slate-600">
-                            {{ product.description }}
-                        </div>
-                    </div>
+                    <button
+                        type="button"
+                        class="mt-4 inline-flex items-center gap-2 text-sm font-semibold text-zinc-500 transition hover:text-rose-500 dark:text-zinc-400"
+                        :class="isFavorite ? 'text-rose-500 dark:text-rose-500' : ''"
+                        @click="toggleFavorite"
+                    >
+                        <PhHeart :size="20" :weight="isFavorite ? 'fill' : 'regular'" />
+                        {{ isFavorite ? 'В избранном' : 'Добавить в избранное' }}
+                    </button>
+                </div>
 
-                    <!-- Characteristics -->
-                    <div v-if="product.characteristics.length > 0" class="mt-8">
-                        <h2 class="text-lg font-bold text-slate-900">Характеристики</h2>
-                        <div class="mt-3 overflow-x-auto rounded-xl border border-slate-200">
-                            <table class="w-full text-sm">
-                                <tbody class="divide-y divide-slate-100">
-                                    <tr
-                                        v-for="char in product.characteristics"
-                                        :key="char.id"
-                                        class="hover:bg-slate-50"
-                                    >
-                                        <td class="whitespace-nowrap py-3 pr-4 font-medium text-slate-600">
-                                            {{ char.name }}
-                                        </td>
-                                        <td class="py-3 pl-4 text-slate-900">
-                                            {{ char.value || '—' }}
-                                            <span v-if="char.unit" class="text-slate-400">({{ char.unit }})</span>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
+                <!-- Преимущества -->
+                <div class="mt-3 grid grid-cols-2 gap-3">
+                    <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                        <PhTruck :size="24" weight="duotone" class="shrink-0 text-orange-500" />
+                        <span class="text-xs font-semibold leading-snug sm:text-sm">Отправка по всей России</span>
+                    </div>
+                    <div class="flex items-center gap-3 rounded-2xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-900">
+                        <PhShieldCheck :size="24" weight="duotone" class="shrink-0 text-orange-500" />
+                        <span class="text-xs font-semibold leading-snug sm:text-sm">Гарантия качества</span>
                     </div>
                 </div>
-            </div>
 
-            <!-- Related products -->
-            <div v-if="related_products.length > 0" class="mt-16">
-                <h2 class="mb-6 text-xl font-extrabold text-slate-950">Похожие товары</h2>
-                <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                    <div
-                        v-for="rp in related_products"
-                        :key="rp.id"
-                        class="rounded-2xl border border-slate-200 bg-white overflow-hidden transition hover:border-emerald-200"
-                    >
-                        <a
-                            :href="route('store.products.show', { product: rp.slug })"
-                            class="aspect-square bg-slate-100 flex items-center justify-center"
-                        >
-                            <div v-if="rp.image_path" class="h-full w-full overflow-hidden">
-                                <img :src="rp.image_path" :alt="rp.name" loading="lazy" decoding="async" class="h-full w-full object-cover" />
-                            </div>
-                            <div v-else class="text-slate-300">
-                                <Package :size="32" />
-                            </div>
-                        </a>
-                        <div class="p-3">
-                            <a
-                                :href="route('store.products.show', { product: rp.slug })"
-                                class="text-sm font-semibold text-slate-900 line-clamp-2 hover:text-emerald-700"
+                <!-- Описание -->
+                <div v-if="product.description" class="mt-8">
+                    <h2 class="text-xl font-extrabold tracking-tight">Описание</h2>
+                    <p class="mt-3 whitespace-pre-line text-sm leading-7 text-zinc-600 dark:text-zinc-400">
+                        {{ product.description }}
+                    </p>
+                </div>
+
+                <!-- Характеристики -->
+                <div v-if="product.characteristics.length > 0" class="mt-8">
+                    <h2 class="text-xl font-extrabold tracking-tight">Характеристики</h2>
+                    <div class="mt-3 overflow-hidden rounded-2xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+                        <dl class="divide-y divide-zinc-100 text-sm dark:divide-zinc-800">
+                            <div
+                                v-for="char in product.characteristics"
+                                :key="char.id"
+                                class="grid grid-cols-[1fr_1.2fr] gap-4 px-4 py-3 transition hover:bg-zinc-50 dark:hover:bg-zinc-800/50 sm:px-5"
                             >
-                                {{ rp.name }}
-                            </a>
-                            <div class="mt-2 text-sm font-extrabold text-slate-900">
-                                {{ formatPrice(rp.price) }} ₽
+                                <dt class="text-zinc-500 dark:text-zinc-400">{{ char.name }}</dt>
+                                <dd class="font-semibold text-zinc-900 dark:text-zinc-100">
+                                    {{ char.value || '—' }}
+                                    <span v-if="char.unit" class="font-normal text-zinc-400">({{ char.unit }})</span>
+                                </dd>
                             </div>
-                        </div>
+                        </dl>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Fullscreen preview -->
+        <!-- Похожие товары -->
+        <section v-if="related_products.length > 0" class="mt-16 lg:mt-24">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Смотрите также</p>
+            <h2 class="mt-2 text-2xl font-black tracking-tight sm:text-3xl">Похожие товары</h2>
+            <div class="mt-6 grid grid-cols-2 gap-3 sm:gap-4 lg:grid-cols-4">
+                <ProductCard v-for="rp in related_products" :key="rp.id" :product="rp" />
+            </div>
+        </section>
+    </div>
+
+    <!-- Полноэкранный просмотр -->
+    <Transition
+        enter-active-class="transition-opacity duration-200"
+        leave-active-class="transition-opacity duration-150"
+        enter-from-class="opacity-0"
+        leave-to-class="opacity-0"
+    >
         <div
             v-if="showPreview"
-            class="fixed inset-0 z-50 flex items-center justify-center bg-black/90"
+            class="fixed inset-0 z-[70] flex items-center justify-center bg-zinc-950/95 backdrop-blur-sm"
             @click.self="closePreview"
-            @keydown.escape="closePreview"
         >
-            <!-- Close button -->
             <button
+                type="button"
+                class="absolute right-4 top-4 z-10 flex size-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
+                aria-label="Закрыть"
                 @click="closePreview"
-                class="absolute right-4 top-4 z-10 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
             >
-                <X :size="24" />
+                <PhX :size="22" weight="bold" />
             </button>
 
-            <!-- Prev -->
             <button
                 v-if="product.images.length > 1"
+                type="button"
+                class="absolute left-3 top-1/2 z-10 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-20 sm:left-6"
+                :disabled="previewIndex === 0"
+                aria-label="Предыдущее фото"
                 @click.stop="prevImage"
-                class="absolute left-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
             >
-                <ChevronLeft :size="24" />
+                <PhCaretLeft :size="24" weight="bold" />
             </button>
 
-            <!-- Image -->
-            <div class="max-h-[85vh] max-w-[90vw]">
-                <img
-                    :src="product.images[previewIndex]?.large ?? product.images[previewIndex]?.path"
-                    :alt="product.images[previewIndex]?.alt ?? product.name"
-                    loading="eager"
-                    decoding="async"
-                    class="max-h-[85vh] max-w-full object-contain"
-                />
-            </div>
+            <img
+                :src="currentImage.large ?? currentImage.path"
+                :alt="currentImage.alt ?? product.name"
+                decoding="async"
+                class="max-h-[78vh] max-w-[92vw] rounded-2xl object-contain"
+                @click.stop
+            />
 
-            <!-- Next -->
             <button
                 v-if="product.images.length > 1"
+                type="button"
+                class="absolute right-3 top-1/2 z-10 flex size-12 -translate-y-1/2 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20 disabled:opacity-20 sm:right-6"
+                :disabled="previewIndex === product.images.length - 1"
+                aria-label="Следующее фото"
                 @click.stop="nextImage"
-                class="absolute right-4 top-1/2 -translate-y-1/2 rounded-full bg-white/10 p-3 text-white hover:bg-white/20"
             >
-                <ChevronRight :size="24" />
+                <PhCaretRight :size="24" weight="bold" />
             </button>
 
-            <!-- Counter -->
-            <div class="absolute bottom-6 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-4 py-2 text-sm font-medium text-white backdrop-blur">
-                {{ previewIndex + 1 }} / {{ product.images.length }}
-            </div>
-
-            <!-- Thumbnails strip -->
             <div
                 v-if="product.images.length > 1"
-                class="absolute bottom-16 left-1/2 flex -translate-x-1/2 gap-2 overflow-x-auto max-w-[80vw] px-4"
+                class="absolute bottom-5 left-1/2 flex max-w-[90vw] -translate-x-1/2 items-center gap-2 overflow-x-auto px-2"
             >
                 <button
                     v-for="(img, i) in product.images"
                     :key="img.id"
+                    type="button"
+                    class="size-14 shrink-0 overflow-hidden rounded-xl border-2 transition"
+                    :class="i === previewIndex ? 'border-orange-500' : 'border-white/20 opacity-60 hover:opacity-100'"
                     @click.stop="selectThumbnail(i)"
-                    :class="[
-                        'h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition',
-                        i === previewIndex
-                            ? 'border-white'
-                            : 'border-white/30 hover:border-white/60'
-                    ]"
                 >
-                    <img :src="img.path" :alt="img.alt || product.name" loading="lazy" decoding="async" class="h-full w-full object-cover" />
+                    <img :src="img.path" :alt="img.alt || product.name" loading="lazy" class="h-full w-full object-cover" />
                 </button>
             </div>
         </div>
+    </Transition>
 </template>

@@ -17,6 +17,39 @@ class HandleInertiaRequests extends Middleware
     protected $rootView = 'app';
 
     /**
+     * Determine if the request should pass through Inertia middleware.
+     */
+    public function shouldProcessRequest(Request $request): bool
+    {
+        // Exclude only true API endpoints (not Inertia page requests)
+        if ($request->is('favorites/api')) {
+            return false;
+        }
+
+        // Exclude product characteristics API endpoint
+        if ($request->is('admin/products/categories/*/characteristics')) {
+            return false;
+        }
+
+        // Exclude locations API endpoint
+        if ($request->is('admin/locations')) {
+            return false;
+        }
+
+        // Exclude rack products API endpoint
+        if ($request->is('admin/racks/*/products')) {
+            return false;
+        }
+
+        // Exclude stock operation API endpoints
+        if ($request->is('stock/operation*', 'stock/inventory/current', 'locations/*/products', 'products/*/locations')) {
+            return false;
+        }
+
+        return parent::shouldProcessRequest($request);
+    }
+
+    /**
      * Determines the current asset version.
      */
     public function version(Request $request): ?string
@@ -59,6 +92,7 @@ class HandleInertiaRequests extends Middleware
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
                 'error' => fn () => $request->session()->get('error'),
+                'toast' => fn () => $request->session()->get('toast'),
             ],
         ];
     }

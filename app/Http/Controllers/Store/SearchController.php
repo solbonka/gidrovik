@@ -28,7 +28,8 @@ class SearchController extends Controller
                         $word = addcslashes($word, '%_\\');
                         $q->where(function ($q) use ($word) {
                             $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"])
-                                ->orWhereRaw('LOWER(sku) LIKE ?', ["%{$word}%"])
+                                ->orWhereRaw('LOWER(code) LIKE ?', ["%{$word}%"])
+                                ->orWhereRaw('LOWER(article) LIKE ?', ["%{$word}%"])
                                 ->orWhereRaw("LOWER(COALESCE(description, '')) LIKE ?", ["%{$word}%"])
                                 ->orWhereHas('category', function ($q) use ($word) {
                                     $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"]);
@@ -52,7 +53,8 @@ class SearchController extends Controller
                 'id' => $product->id,
                 'name' => $product->name,
                 'slug' => $product->slug,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'price' => $product->retail_price ?? '0',
                 'image_path' => $product->images->first()?->getUrlForSize('thumbnail'),
                 'stock_status' => $product->stock_status,

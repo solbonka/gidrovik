@@ -29,7 +29,7 @@ class StockReturnController extends Controller
             ->where('is_active', true)
             ->with(['characteristicValues.characteristic:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name', 'sku', 'unit', 'minimum_stock', 'category_id']);
+            ->get(['id', 'name', 'code', 'article', 'unit', 'minimum_stock', 'category_id']);
 
         $stockQuantities = \DB::table('product_location')
             ->select('product_id', \DB::raw('SUM(quantity) as total_quantity'))
@@ -45,7 +45,8 @@ class StockReturnController extends Controller
             return [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'unit' => $product->unit,
                 'minimum_stock' => $product->minimum_stock,
                 'stock_quantity' => $stockQuantities->get($product->id, 0),

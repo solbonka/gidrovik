@@ -8,7 +8,6 @@ use App\Models\CartItem;
 use App\Models\Product;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Inertia;
 use Inertia\Response as InertiaResponse;
@@ -43,7 +42,8 @@ class CartController extends Controller
                 'product_slug' => $product->slug,
                 'quantity' => (float) $item->quantity,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'price' => $product->retail_price ?? '0',
                 'subtotal' => bcmul((string) $product->retail_price, (string) $item->quantity, 2),
                 'stock_status' => $product->stock_status,
@@ -60,7 +60,7 @@ class CartController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse|RedirectResponse
+    public function store(Request $request): RedirectResponse
     {
         $request->validate([
             'product_id' => 'required|exists:products,id',
@@ -103,19 +103,10 @@ class CartController extends Controller
             }
         }
 
-        $response = [
-            'success' => true,
-            'item_count' => $cart->items->sum('quantity'),
-        ];
-
-        if ($request->ajax() || $request->wantsJson()) {
-            return response()->json($response);
-        }
-
-        return redirect()->route('store.cart.index');
+        return redirect()->back();
     }
 
-    public function update(Request $request, int $itemId): JsonResponse
+    public function update(Request $request, int $itemId): RedirectResponse
     {
         $request->validate([
             'quantity' => 'required|numeric|min:0.001',
@@ -127,26 +118,15 @@ class CartController extends Controller
         $item->quantity = $request->input('quantity');
         $item->save();
 
-        return response()->json([
-            'success' => true,
-            'subtotal' => bcmul(
-                (string) $item->product->retail_price,
-                (string) $item->quantity,
-                2
-            ),
-            'item_count' => $cart->items->sum('quantity'),
-        ]);
+        return redirect()->back();
     }
 
-    public function destroy(int $itemId): JsonResponse
+    public function destroy(Request $request, int $itemId): RedirectResponse
     {
         $cart = $this->getCart();
         $item = $cart->items()->findOrFail($itemId);
         $item->delete();
 
-        return response()->json([
-            'success' => true,
-            'item_count' => $cart->items->sum('quantity'),
-        ]);
+        return redirect()->back();
     }
 }

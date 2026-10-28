@@ -29,7 +29,7 @@ class WelcomeController extends Controller
 
         $recentMovements = StockMovement::query()
             ->with([
-                'product:id,name,sku',
+                'product:id,name,code,article',
                 'fromLocation.rack:id,code',
                 'toLocation.rack:id,code',
             ])
@@ -40,7 +40,8 @@ class WelcomeController extends Controller
             ->map(fn (\App\Models\StockMovement $movement): array => [
                 'id' => $movement->id,
                 'product_name' => $movement->product->name,
-                'sku' => $movement->product->sku,
+                'code' => $movement->product->code,
+                'article' => $movement->product->article,
                 'type' => $movement->type->value,
                 'type_label' => $movement->type->label(),
                 'quantity' => $movement->quantity,
@@ -63,7 +64,8 @@ class WelcomeController extends Controller
             ->map(fn (\App\Models\Product $product): array => [
                 'id' => $product->id,
                 'name' => $product->name,
-                'sku' => $product->sku,
+                'code' => $product->code,
+                'article' => $product->article,
                 'unit' => $product->unit,
                 'quantity' => (string) $product->getTotalQuantity(),
                 'minimum_stock' => $product->minimum_stock,

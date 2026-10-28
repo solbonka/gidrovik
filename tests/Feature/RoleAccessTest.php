@@ -138,7 +138,8 @@ class RoleAccessTest extends TestCase
         $product = Product::query()->create([
             'category_id' => $category->id,
             'name' => 'Муфта',
-            'sku' => 'SKU-'.uniqid(),
+            'code' => 'SKU-'.uniqid(),
+            'article' => null,
         ]);
 
         return StockMovement::query()->create([
