@@ -117,6 +117,54 @@ const mobileMenuOpen = ref(false)
 
 // ---------- Поиск ----------
 const searchQuery = ref('')
+const searchExamples = ref([
+    'DKOL 16 10 90',
+    '2SN d-25',
+    'Муфта, Italy, 4SP, d-20mm',
+    'Фитинг, d-12mm, BSP, Ш, 1/2, 0°',
+    'Хомут червячный 70-90/9 W1',
+    'Трубка возд.10*1 (полиамид) чёрная',
+])
+const currentExampleIndex = ref(0)
+const currentText = ref('')
+const isDeleting = ref(false)
+let typewriterTimer: ReturnType<typeof setTimeout> | null = null
+
+function typeExample() {
+    const fullText = searchExamples.value[currentExampleIndex.value]
+
+    if (!isDeleting.value) {
+        // Typing
+        currentText.value = fullText.substring(0, currentText.value.length + 1)
+        if (currentText.value === fullText) {
+            // Pause before deleting
+            typewriterTimer = setTimeout(() => {
+                isDeleting.value = true
+                typeExample()
+            }, 2000)
+            return
+        }
+        typewriterTimer = setTimeout(typeExample, 80)
+    } else {
+        // Deleting
+        currentText.value = fullText.substring(0, currentText.value.length - 1)
+        if (currentText.value === '') {
+            isDeleting.value = false
+            currentExampleIndex.value = (currentExampleIndex.value + 1) % searchExamples.value.length
+            typewriterTimer = setTimeout(typeExample, 400)
+            return
+        }
+        typewriterTimer = setTimeout(typeExample, 40)
+    }
+}
+
+onMounted(() => {
+    typewriterTimer = setTimeout(typeExample, 1000)
+})
+
+onBeforeUnmount(() => {
+    if (typewriterTimer) clearTimeout(typewriterTimer)
+})
 
 function performSearch() {
     const q = searchQuery.value.trim()
@@ -244,7 +292,7 @@ function isActive(name: string): boolean {
                             <input
                                 v-model="searchQuery"
                                 type="search"
-                                placeholder="Поиск по названию или артикулу"
+                                :placeholder="currentText + (isDeleting ? '' : '▌')"
                                 class="h-11 w-full rounded-full border border-transparent bg-zinc-100 pl-11 pr-14 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/15 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-orange-500 dark:focus:bg-zinc-900"
                             />
                             <button
@@ -341,7 +389,7 @@ function isActive(name: string): boolean {
                         <input
                             v-model="searchQuery"
                             type="search"
-                            placeholder="Название или артикул"
+                            :placeholder="currentText + (isDeleting ? '' : '▌')"
                             class="h-11 w-full rounded-full border border-transparent bg-zinc-100 pl-11 pr-4 text-base text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-orange-400 focus:bg-white focus:ring-4 focus:ring-orange-500/15 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-orange-500"
                         />
                     </div>
