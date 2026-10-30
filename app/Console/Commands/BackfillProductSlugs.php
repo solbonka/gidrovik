@@ -13,6 +13,12 @@ class BackfillProductSlugs extends Command
 
     public function handle(): int
     {
+        $usedSlugs = DB::table('products')
+            ->whereNotNull('slug')
+            ->where('slug', '!=', '')
+            ->pluck('slug')
+            ->toArray();
+
         $updated = DB::table('products')
             ->whereNull('slug')
             ->orWhere('slug', '')
@@ -20,9 +26,20 @@ class BackfillProductSlugs extends Command
 
         $count = 0;
         foreach ($updated as $product) {
+            $slug = Str::slug($product->name);
+            $baseSlug = $slug;
+            $suffix = 1;
+
+            while (in_array($slug, $usedSlugs)) {
+                $slug = $baseSlug . '-' . $suffix;
+                $suffix++;
+            }
+
             DB::table('products')
                 ->where('id', $product->id)
-                ->update(['slug' => Str::slug($product->name)]);
+                ->update(['slug' => $slug]);
+
+            $usedSlugs[] = $slug;
             $count++;
         }
 
