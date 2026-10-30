@@ -14,7 +14,7 @@ defineOptions({
 });
 
 type Props = {
-    product: ProductFormInitial & { id: number };
+    product: ProductFormInitial & { id: number, published: boolean };
 } & ProductFormOptions;
 
 defineProps<Props>();
@@ -93,6 +93,25 @@ defineProps<Props>();
                                 "
                             />
                             {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                        </span>
+
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                            :class="
+                                product.published
+                                    ? 'bg-blue-500/10 text-blue-700 ring-blue-600/20 dark:text-blue-400'
+                                    : 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400'
+                            "
+                        >
+                            <span
+                                class="size-1.5 rounded-full"
+                                :class="
+                                    product.published
+                                        ? 'bg-blue-500'
+                                        : 'bg-amber-500'
+                                "
+                            />
+                            {{ product.published ? 'Опубликован' : 'Не опубликован' }}
                         </span>
                     </div>
                 </div>

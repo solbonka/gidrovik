@@ -58,6 +58,10 @@ class StoreProductRequest extends FormRequest
                 'boolean',
             ],
 
+            'published' => [
+                'boolean',
+            ],
+
             'characteristics' => [
                 'nullable',
                 'array',

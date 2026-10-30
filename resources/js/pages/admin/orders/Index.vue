@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3'
+import { Head, router } from '@inertiajs/vue3'
 import {
     Calendar,
     ChevronDown,
@@ -180,7 +180,7 @@ function formatDate(dateStr: string): string {
                                     {{ order.order_number }}
                                 </a>
                                 <div class="mt-0.5 text-xs text-muted-foreground">
-                                    {{ order.items_count }} {{ order.items_count === 1 ? 'товар' : order.items_count < 5 ? 'товара' : 'товаров' }}
+                                    {{ (order.items_count ?? 0) }} {{ (order.items_count ?? 0) === 1 ? 'товар' : (order.items_count ?? 0) < 5 ? 'товара' : 'товаров' }}
                                 </div>
                             </td>
 

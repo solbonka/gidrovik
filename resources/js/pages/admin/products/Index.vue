@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import {
     ChevronLeft,
@@ -49,6 +49,7 @@ interface Product {
     code: string;
     article: string | null;
     is_active: boolean;
+    published: boolean;
     stock_quantity: number | null;
     category: Category;
     product_type: ProductType | null;
@@ -227,6 +228,25 @@ const pageButtonBase =
 const activeBadge =
     'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
 const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
+const publishedBadge =
+    'bg-blue-500/10 text-blue-700 ring-blue-600/20 dark:text-blue-400';
+const unpublishedBadge = 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400';
+
+/* ---------- Публикация ---------- */
+
+function togglePublished(product: Product) {
+    router.put(
+        `/admin/products/${product.id}/toggle-published`,
+        { published: !product.published },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () => {
+                toast.error('Не удалось изменить статус публикации')
+            },
+        },
+    )
+}
 </script>
 
 <template>
@@ -432,16 +452,31 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                                     </p>
                             </div>
 
-                            <span
-                                class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-                                :class="product.is_active ? activeBadge : inactiveBadge"
-                            >
+                            <div class="flex flex-wrap gap-1.5">
                                 <span
-                                    class="size-1.5 rounded-full"
-                                    :class="product.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
-                                />
-                                {{ product.is_active ? 'Активен' : 'Неактивен' }}
-                            </span>
+                                    class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                    :class="product.is_active ? activeBadge : inactiveBadge"
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="product.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                    />
+                                    {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                    :class="product.published ? publishedBadge : unpublishedBadge"
+                                    @click="togglePublished(product)"
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="product.published ? 'bg-blue-500' : 'bg-amber-500'"
+                                    />
+                                    {{ product.published ? 'Опубликован' : 'Не опубликован' }}
+                                </button>
+                            </div>
                         </div>
 
                         <div class="grid grid-cols-3 gap-2 text-center">
@@ -517,7 +552,7 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Категория</th>
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Тип</th>
                             <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Остаток</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Опубликован</th>
                             <th scope="col" class="px-5 py-3.5">
                                 <span class="sr-only">Действия</span>
                             </th>
@@ -570,16 +605,18 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
                             </td>
 
                             <td class="px-5 py-4 whitespace-nowrap">
-                                    <span
+                                    <button
+                                        type="button"
                                         class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
-                                        :class="product.is_active ? activeBadge : inactiveBadge"
+                                        :class="product.published ? publishedBadge : unpublishedBadge"
+                                        @click="togglePublished(product)"
                                     >
                                         <span
                                             class="size-1.5 rounded-full"
-                                            :class="product.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
+                                            :class="product.published ? 'bg-blue-500' : 'bg-amber-500'"
                                         />
-                                        {{ product.is_active ? 'Активен' : 'Неактивен' }}
-                                    </span>
+                                        {{ product.published ? 'Опубликован' : 'Не опубликован' }}
+                                    </button>
                             </td>
 
                             <td class="px-5 py-4 text-right whitespace-nowrap">

@@ -86,7 +86,7 @@ function formatNumber(value: number | string | null | undefined): string {
 /* ---------- Карточки показателей ---------- */
 
 interface StatisticCard {
-    key: 'products' | 'categories' | 'warehouses' | 'racks' | 'locations';
+    key: 'products' | 'categories' | 'warehouses' | 'racks' | 'locations' | 'total_orders' | 'new_orders' | 'orders_today';
     title: string;
     description: string;
     icon: Component;

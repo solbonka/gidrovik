@@ -86,6 +86,31 @@ class ProductController extends Controller
             ->paginate(20)
             ->withQueryString();
 
+        $products = $products->through(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'code' => $product->code,
+                'article' => $product->article,
+                'is_active' => $product->is_active,
+                'published' => $product->published,
+                'stock_quantity' => $product->stock_quantity,
+                'category' => $product->category ? [
+                    'id' => $product->category->id,
+                    'name' => $product->category->name,
+                ] : null,
+                'product_type' => $product->productType ? [
+                    'id' => $product->productType->id,
+                    'name' => $product->productType->name,
+                    'category_id' => $product->productType->category_id,
+                    'category' => $product->productType->category ? [
+                        'id' => $product->productType->category->id,
+                        'name' => $product->productType->category->name,
+                    ] : null,
+                ] : null,
+            ];
+        });
+
         return Inertia::render('admin/products/Index', [
             'products' => $products,
             'categories' => Category::query()
@@ -358,6 +383,13 @@ class ProductController extends Controller
 
         return to_route('admin.products.show', $product)
             ->with('success', 'Товар успешно обновлён.');
+    }
+
+    public function togglePublished(Product $product): RedirectResponse
+    {
+        $product->update(['published' => !$product->published]);
+
+        return redirect()->back()->with('success', 'Статус публикации изменён');
     }
 
     public function destroy(Product $product): RedirectResponse

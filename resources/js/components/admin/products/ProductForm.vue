@@ -16,7 +16,7 @@ import {
 import StockField from '@/components/admin/stock/StockField.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { store, update } from '@/routes/admin/products';
+import { store } from '@/routes/admin/products';
 
 export interface ProductType {
     id: number;
@@ -100,6 +100,7 @@ export interface ProductFormInitial {
     angle: number | null;
     description: string | null;
     is_active: boolean;
+    published: boolean;
     unit: string;
     manufacturer_id: number | null;
     country_id: number | null;
@@ -163,6 +164,7 @@ const form = useForm({
     angle: (props.initial?.angle ?? null) as number | null,
     description: props.initial?.description ?? '',
     is_active: props.initial?.is_active ?? true,
+    published: props.initial?.published ?? false,
     unit: props.initial?.unit ?? 'шт.',
     manufacturer_id: (props.initial?.manufacturer_id ?? null) as number | null,
     country_id: (props.initial?.country_id ?? null) as number | null,
@@ -335,7 +337,7 @@ const submit = (): void => {
     };
 
     if (props.mode === 'edit' && props.productId !== undefined) {
-        form.put(update(props.productId).url, options);
+        form.put(`/admin/products/${props.productId}`, options);
         return;
     }
 
@@ -608,6 +610,26 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                             Неактивный товар останется в системе, но не будет
                             доступен там, где используются только активные
                             товары.
+                        </span>
+                    </span>
+                </label>
+
+                <label
+                    class="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4 sm:col-span-2"
+                >
+                    <input
+                        v-model="form.published"
+                        type="checkbox"
+                        class="mt-0.5"
+                        :class="checkboxClass"
+                    />
+                    <span>
+                        <span class="block text-sm font-semibold">
+                            Опубликован в магазине
+                        </span>
+                        <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+                            Опубликованный товар будет виден в каталоге и поиске интернет-магазина.
+                            Неопубликованные товары скрыты от покупателей.
                         </span>
                     </span>
                 </label>

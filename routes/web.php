@@ -108,10 +108,10 @@ Route::middleware(['auth', 'verified', 'employee'])
                 'edit',
             ])->name('products.edit');
 
-            Route::put('/products/{product}', [
+            Route::put('/products/{product}/toggle-published', [
                 ProductController::class,
-                'update',
-            ])->name('products.update');
+                'togglePublished',
+            ])->name('products.toggle-published');
 
             Route::delete('/products/{product}', [
                 ProductController::class,

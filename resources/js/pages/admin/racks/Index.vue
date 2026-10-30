@@ -218,8 +218,8 @@ const selectedWarehouseId = ref<string | null>(
     props.selectedWarehouse?.id.toString() ?? null,
 );
 
-const onWarehouseChange = (value: string): void => {
-    selectedWarehouseId.value = value === 'all' ? null : value;
+const onWarehouseChange = (value: unknown): void => {
+    selectedWarehouseId.value = value === 'all' ? null : String(value);
 
     router.get(
         index().url,
@@ -605,7 +605,7 @@ const submitOperation = (): void => {
     }
 
     router.post(
-        route('stock.operation.execute').url,
+        route('stock.operation.execute'),
         data,
         {
             preserveScroll: true,
@@ -715,7 +715,7 @@ const closeProductDetails = (): void => {
                 </Select>
 
                 <Button as-child class="w-full sm:w-auto">
-                    <Link :href="create().url">
+                    <Link :href="create.url()">
                         <Plus :size="18" class="mr-2" />
                         Добавить стеллаж
                     </Link>

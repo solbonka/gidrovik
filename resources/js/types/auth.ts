@@ -3,7 +3,8 @@ export type Permission =
     | 'catalog.manage'
     | 'stock.operate'
     | 'stock.correct'
-    | 'users.manage';
+    | 'users.manage'
+    | 'orders.manage';
 
 export type UserRole = 'admin' | 'manager' | 'warehouse' | 'viewer';
 
