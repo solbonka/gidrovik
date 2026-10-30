@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Link, useForm } from '@inertiajs/vue3';
-import { computed, watch } from 'vue';
+import { Link, router, useForm } from '@inertiajs/vue3';
+import { computed, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import {
     CircleAlert,
@@ -37,6 +37,11 @@ export interface Characteristic {
     };
 }
 
+export interface CharacteristicValue {
+    id: number;
+    value: string;
+}
+
 export interface Category {
     id: number;
     name: string;
@@ -44,6 +49,9 @@ export interface Category {
     product_types: ProductType[];
     characteristics: Characteristic[];
 }
+
+// Хранилище значений для select-характеристик: { characteristicId: [{ id, value }] }
+const characteristicValues = ref<Record<number, CharacteristicValue[]>>({});
 
 export interface Standard {
     id: number;
@@ -259,12 +267,43 @@ const showAngle = computed(() => isFitting.value || form.angle !== null);
 
 watch(
     () => form.category_id,
-    () => {
+    async () => {
         form.product_type_id = null;
         form.characteristics = buildCharacteristics(form.category_id);
         form.connections = [];
+
+        // Загрузить значения для select-характеристик
+        if (form.category_id) {
+            await loadCharacteristicValues(form.category_id);
+        }
     },
 );
+
+const loadCharacteristicValues = async (categoryId: number): Promise<void> => {
+    try {
+        const response = await fetch(`/admin/categories/${categoryId}/characteristics`);
+        const data = await response.json();
+
+        if (data.values) {
+            characteristicValues.value = data.values;
+
+            // Обновить характеристики с типом select
+            for (const [charId, values] of Object.entries(data.values)) {
+                const id = Number(charId);
+                const cat = props.categories.find((c) => c.id === form.category_id);
+                const char = cat?.characteristics.find((c) => c.id === id);
+                if (char && char.type === 'select') {
+                    // Если значение ещё не выбрано, сбросить
+                    if (!form.characteristics[id]) {
+                        form.characteristics[id] = '';
+                    }
+                }
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load characteristic values:', error);
+    }
+};
 
 /* ---------- Характеристики ---------- */
 
@@ -280,6 +319,10 @@ const errors = computed(() => form.errors as Record<string, string | undefined>)
 
 const characteristicError = (id: number): string | undefined =>
     errors.value[`characteristics.${id}`];
+
+const getCharacteristicOptions = (id: number): CharacteristicValue[] => {
+    return characteristicValues.value[id] ?? [];
+};
 
 const connectionError = (index: number, field: string): string | undefined =>
     errors.value[`connections.${index}.${field}`];
@@ -687,6 +730,23 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                         />
                         <span class="text-sm">Да</span>
                     </label>
+
+                    <select
+                        v-else-if="characteristic.type === 'select'"
+                        :id="`characteristic-${characteristic.id}`"
+                        v-model="form.characteristics[characteristic.id]"
+                        :class="fieldClass"
+                        :aria-invalid="!!characteristicError(characteristic.id)"
+                    >
+                        <option value="">Выберите значение</option>
+                        <option
+                            v-for="option in getCharacteristicOptions(characteristic.id)"
+                            :key="option.id"
+                            :value="option.value"
+                        >
+                            {{ option.value }}
+                        </option>
+                    </select>
 
                     <Input
                         v-else

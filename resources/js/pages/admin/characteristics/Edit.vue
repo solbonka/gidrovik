@@ -8,6 +8,7 @@ import {
     FileText,
     Hash,
     List,
+    ListPlus,
     Pencil,
     Ruler,
     Save,
@@ -140,6 +141,15 @@ const submit = (): void => {
                         <p class="mt-2 text-xs text-muted-foreground">
                             ID характеристики: {{ characteristic.id }}
                         </p>
+
+                        <Link
+                            v-if="characteristic.type === 'select'"
+                            :href="`/admin/characteristics/${characteristic.id}/values`"
+                            class="inline-flex mt-2 items-center gap-1.5 text-xs font-medium text-primary hover:text-primary/80 transition-colors"
+                        >
+                            <ListPlus class="size-3" />
+                            Управление вариантами значений
+                        </Link>
                     </div>
                 </div>
 

@@ -51,7 +51,7 @@ class StockOperationApiController extends Controller
             default => throw new \InvalidArgumentException('Unknown operation'),
         };
 
-        $validator->merge($operationRules);
+        $validator->mergeRules($operationRules);
         $validator->validate();
 
         $validated = $validator->validated();

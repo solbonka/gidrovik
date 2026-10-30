@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Models\Category;
+use App\Models\CharacteristicValue;
 use App\Models\Country;
 use App\Models\Diameter;
 use App\Models\Manufacturer;
@@ -60,16 +61,37 @@ class ProductCreateController
             ->where('is_active', true)
             ->findOrFail($category);
 
-        return response()->json(
-            $categoryModel->characteristics()
-                ->where('is_active', true)
-                ->get([
-                    'characteristics.id',
-                    'characteristics.name',
-                    'characteristics.slug',
-                    'characteristics.type',
-                    'characteristics.unit',
-                ])
-        );
+        $characteristics = $categoryModel->characteristics()
+            ->where('is_active', true)
+            ->get([
+                'characteristics.id',
+                'characteristics.name',
+                'characteristics.slug',
+                'characteristics.type',
+                'characteristics.unit',
+            ]);
+
+        // Load values for select-type characteristics
+        $selectIds = $characteristics->where('type', 'select')->pluck('id')->toArray();
+
+        $valuesBySlug = [];
+        if (!empty($selectIds)) {
+            $values = CharacteristicValue::whereIn('characteristic_id', $selectIds)
+                ->orderBy('sort_order')
+                ->orderBy('value')
+                ->get();
+
+            $valuesBySlug = $values->groupBy('characteristic_id')
+                ->map(fn ($items) => $items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'value' => $item->value,
+                ]))
+                ->toArray();
+        }
+
+        return response()->json([
+            'characteristics' => $characteristics,
+            'values' => $valuesBySlug,
+        ]);
     }
 }
