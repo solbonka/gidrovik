@@ -107,6 +107,7 @@ export interface ProductFormInitial {
     minimum_stock: number | null;
     angle: number | null;
     description: string | null;
+    retail_price: number | null;
     is_active: boolean;
     published: boolean;
     unit: string;
@@ -163,7 +164,6 @@ const form = useForm({
     name: props.initial?.name ?? '',
     code: props.initial?.code ?? '',
     article: props.initial?.article ?? '',
-    // Строка, чтобы пустое поле превращалось в null, а не в ''
     minimum_stock:
         props.initial?.minimum_stock !== null &&
         props.initial?.minimum_stock !== undefined
@@ -171,6 +171,7 @@ const form = useForm({
             : '',
     angle: (props.initial?.angle ?? null) as number | null,
     description: props.initial?.description ?? '',
+    retail_price: props.initial?.retail_price ?? '',
     is_active: props.initial?.is_active ?? true,
     published: props.initial?.published ?? false,
     unit: props.initial?.unit ?? 'шт.',
@@ -367,6 +368,8 @@ const submit = (): void => {
         ...data,
         minimum_stock:
             data.minimum_stock === '' ? null : Number(data.minimum_stock),
+        retail_price:
+            data.retail_price === '' ? null : Number(data.retail_price),
         connections:
             props.mode === 'edit'
                 ? padConnections(data.connections)
@@ -508,6 +511,32 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                         />
                     </StockField>
                 </div>
+
+                <StockField
+                    label="Розничная цена"
+                    for-id="retail_price"
+                    :error="form.errors.retail_price"
+                    hint="Цена товара для интернет-магазина. Пустое поле — цена не указана."
+                >
+                    <div class="relative">
+                        <Input
+                            id="retail_price"
+                            v-model="form.retail_price"
+                            type="number"
+                            inputmode="decimal"
+                            min="0"
+                            step="0.01"
+                            placeholder="Не указана"
+                            class="h-11 rounded-xl pr-12"
+                            :aria-invalid="!!form.errors.retail_price"
+                        />
+                        <span
+                            class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground"
+                        >
+                            ₽
+                        </span>
+                    </div>
+                </StockField>
 
                 <StockField
                     label="Минимальный остаток"

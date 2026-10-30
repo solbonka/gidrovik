@@ -62,6 +62,12 @@ class StoreProductRequest extends FormRequest
                 'boolean',
             ],
 
+            'retail_price' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
             'characteristics' => [
                 'nullable',
                 'array',

@@ -26,7 +26,7 @@ class ProductService
                 'unit' => $data['unit'],
                 'manufacturer_id' => $data['manufacturer_id'] ?? null,
                 'country_id' => $data['country_id'] ?? null,
-                'retail_price' => $data['retail_price'] ?? null,
+                'retail_price' => $data['retail_price'] ?? 0,
                 'published' => $data['published'] ?? true,
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
