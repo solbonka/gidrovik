@@ -21,10 +21,10 @@ class StockOperationApiController extends Controller
     {
         $operation = $request->input('operation');
 
-        $validator = Validator::make($request->all(), [
+        $baseRules = [
             'product_id' => ['required', 'integer', 'exists:products,id'],
             'comment' => ['nullable', 'string'],
-        ]);
+        ];
 
         $operationRules = match ($operation) {
             'receipt' => [
@@ -51,7 +51,9 @@ class StockOperationApiController extends Controller
             default => throw new \InvalidArgumentException('Unknown operation'),
         };
 
-        $validator->mergeRules($operationRules);
+        $allRules = array_merge($baseRules, $operationRules);
+
+        $validator = Validator::make($request->all(), $allRules);
         $validator->validate();
 
         $validated = $validator->validated();
