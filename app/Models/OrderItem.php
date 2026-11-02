@@ -18,6 +18,7 @@ class OrderItem extends Model
         'article',
         'price',
         'quantity',
+        'subtotal',
     ];
 
     protected $casts = [

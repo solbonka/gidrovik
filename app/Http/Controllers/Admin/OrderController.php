@@ -27,12 +27,11 @@ class OrderController extends Controller
         $dateFrom = $validated['date_from'] ?? null;
         $dateTo = $validated['date_to'] ?? null;
 
-        $query = Order::query()
-            ->withCount('items')
-            ->with('statusHistory.last');
+        // Общие условия (поиск и даты) — без статуса, чтобы по ним же посчитать счётчики
+        $baseQuery = Order::query();
 
         if ($search !== '') {
-            $query->where(function ($q) use ($search) {
+            $baseQuery->where(function ($q) use ($search) {
                 $q->where('order_number', 'like', "%{$search}%")
                     ->orWhere('customer_name', 'ilike', "%{$search}%")
                     ->orWhere('customer_email', 'ilike', "%{$search}%")
@@ -40,16 +39,28 @@ class OrderController extends Controller
             });
         }
 
-        if ($status !== '') {
-            $query->where('status', $status);
-        }
-
         if ($dateFrom) {
-            $query->whereDate('created_at', '>=', $dateFrom);
+            $baseQuery->whereDate('created_at', '>=', $dateFrom);
         }
 
         if ($dateTo) {
-            $query->whereDate('created_at', '<=', $dateTo);
+            $baseQuery->whereDate('created_at', '<=', $dateTo);
+        }
+
+        // Количество заказов по каждому статусу: ['new' => 5, 'confirmed' => 2, ...]
+        $statusCounts = (clone $baseQuery)
+            ->reorder()
+            ->selectRaw('status, count(*) as total')
+            ->groupBy('status')
+            ->pluck('total', 'status')
+            ->map(fn ($count) => (int) $count);
+
+        $query = (clone $baseQuery)
+            ->withCount('items')
+            ->with('statusHistory');
+
+        if ($status !== '') {
+            $query->where('status', $status);
         }
 
         $orders = $query
@@ -85,6 +96,7 @@ class OrderController extends Controller
                 'date_from' => $dateFrom,
                 'date_to' => $dateTo,
             ],
+            'status_counts' => $statusCounts,
             'statuses' => collect(OrderStatus::cases())
                 ->map(fn (OrderStatus $status): array => [
                     'value' => $status->value,
@@ -118,8 +130,8 @@ class OrderController extends Controller
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'name' => $item->product_name,
-                    'code' => $item->product_code ?? null,
-                    'article' => $item->article ?? null,
+                'code' => $item->product_code ?? null,
+                'article' => $item->article ?? null,
                 'quantity' => (float) $item->quantity,
                 'price' => number_format((float) $item->price, 2, '.', ''),
                 'subtotal' => number_format((float) $item->subtotal, 2, '.', ''),

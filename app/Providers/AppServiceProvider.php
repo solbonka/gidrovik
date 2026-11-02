@@ -2,6 +2,8 @@
 
 namespace App\Providers;
 
+use App\Models\StockMovement;
+use App\Observers\StockMovementObserver;
 use App\Queue\Connectors\AmqpConnector;
 use Carbon\CarbonImmutable;
 use Illuminate\Queue\QueueManager;
@@ -33,6 +35,8 @@ class AppServiceProvider extends ServiceProvider
                 return new AmqpConnector;
             });
         }
+
+        StockMovement::observe(StockMovementObserver::class);
 
         $this->configureDefaults();
     }

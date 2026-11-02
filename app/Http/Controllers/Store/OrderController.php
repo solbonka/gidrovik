@@ -37,6 +37,51 @@ class OrderController extends Controller
         ]);
     }
 
+    public function publicShow(string $orderNumber, Request $request): mixed
+    {
+        $token = $request->query('token');
+
+        if (!$token) {
+            return redirect()->route('store.checkout.create')
+                ->with('error', 'Для просмотра заказа необходим токен доступа.');
+        }
+
+        $order = Order::query()
+            ->with(['items'])
+            ->where('order_number', $orderNumber)
+            ->where('access_token', $token)
+            ->firstOrFail();
+
+        return inertia('store/orders/Show', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'customer_name' => $order->customer_name,
+                'customer_email' => $order->customer_email,
+                'customer_phone' => $order->customer_phone,
+                'customer_organization' => $order->customer_organization,
+                'delivery_method' => $order->delivery_method,
+                'delivery_method_label' => $order->delivery_method === 'delivery' ? 'Доставка' : 'Самовывоз',
+                'delivery_address' => $order->delivery_address,
+                'comment' => $order->comment,
+                'total_amount' => number_format((float) $order->total_amount, 2, '.', ''),
+                'status' => $order->status->value,
+                'status_label' => $order->status->label(),
+                'status_color' => $order->status->color(),
+                'created_at' => $order->created_at->format('d.m.Y H:i'),
+                'items' => $order->items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'name' => $item->product_name,
+                    'code' => $item->product_code ?? null,
+                    'article' => $item->article ?? null,
+                    'quantity' => (float) $item->quantity,
+                    'price' => number_format((float) $item->price, 2, '.', ''),
+                    'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),
+                ]),
+            ],
+        ]);
+    }
+
     public function show(string $orderNumber): InertiaResponse
     {
         $order = Auth::user()
@@ -64,8 +109,8 @@ class OrderController extends Controller
             'items' => $order->items->map(fn ($item) => [
                 'id' => $item->id,
                 'name' => $item->product_name,
-                    'code' => $item->product_code ?? null,
-                    'article' => $item->article ?? null,
+                'code' => $item->product_code ?? null,
+                'article' => $item->article ?? null,
                 'quantity' => (float) $item->quantity,
                 'price' => number_format((float) $item->price, 2, '.', ''),
                 'subtotal' => number_format((float) $item->subtotal, 2, '.', ''),

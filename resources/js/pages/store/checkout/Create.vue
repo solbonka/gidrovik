@@ -25,6 +25,7 @@ const props = defineProps<{
 }>()
 
 const loading = ref(false)
+const submitted = ref(false)
 const deliveryMethod = ref('delivery')
 const form = ref({
     customer_name: '',
@@ -41,18 +42,44 @@ function formatPrice(price: string): string {
 }
 
 function submitForm() {
+    if (loading.value || submitted.value) return
+    submitted.value = true
     loading.value = true
-    router.post(
-        route('store.checkout.store'),
-        {
-            ...form.value,
-            delivery_method: deliveryMethod.value,
+
+    const formData = new FormData()
+    formData.append('customer_name', form.value.customer_name)
+    formData.append('customer_email', form.value.customer_email)
+    formData.append('customer_phone', form.value.customer_phone)
+    formData.append('customer_organization', form.value.customer_organization)
+    formData.append('delivery_method', deliveryMethod.value)
+    formData.append('delivery_address', form.value.delivery_address)
+    formData.append('comment', form.value.comment)
+    formData.append('agree_terms', form.value.agree_terms ? '1' : '0')
+
+    fetch(route('store.checkout.store'), {
+        method: 'POST',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
         },
-        {
-            preserveScroll: true,
-            onFinish: () => { loading.value = false },
-        }
-    )
+        body: formData,
+    })
+        .then(async (response) => {
+            if (response.redirected) {
+                window.location.href = response.url
+                return
+            }
+            const data = await response.json()
+            if (data.errors) {
+                loading.value = false
+                submitted.value = false
+                alert('Проверьте правильность заполнения формы')
+            }
+        })
+        .catch(() => {
+            loading.value = false
+            submitted.value = false
+        })
 }
 </script>
 
@@ -229,7 +256,7 @@ function submitForm() {
                     :disabled="loading || !form.agree_terms"
                     class="w-full h-14 rounded-full bg-orange-500 px-8 text-base font-bold text-zinc-950 shadow-lg shadow-orange-500/25 transition hover:bg-orange-400 disabled:opacity-50"
                 >
-                    {{ loading ? 'Оформление...' : 'Оформить заказ' }}
+                    {{ loading || submitted ? 'Оформление...' : 'Оформить заказ' }}
                 </button>
             </div>
 

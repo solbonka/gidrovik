@@ -1,0 +1,29 @@
+<?php
+
+namespace App\Queue\Jobs;
+
+use App\Mail\NewUserRegistrationMail;
+use App\Models\User;
+use Illuminate\Bus\Queueable;
+use Illuminate\Contracts\Queue\ShouldQueue;
+use Illuminate\Foundation\Bus\Dispatchable;
+use Illuminate\Queue\InteractsWithQueue;
+use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Mail;
+
+class SendNewUserRegistrationEmail implements ShouldQueue
+{
+    use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public function __construct(
+        public User $user
+    ) {}
+
+    public function handle(): void
+    {
+        $adminEmail = config('mail.admin_email', config('mail.from.address'));
+        if ($adminEmail) {
+            Mail::to($adminEmail)->send(new NewUserRegistrationMail($this->user));
+        }
+    }
+}

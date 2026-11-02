@@ -46,12 +46,16 @@ Route::get('/checkout', [CheckoutController::class, 'create'])->name('store.chec
 Route::post('/checkout', [CheckoutController::class, 'store'])
     ->middleware('throttle:3,1') // 3 orders per minute
     ->name('store.checkout.store');
+Route::get('/checkout/success/{order}', [CheckoutController::class, 'success'])->name('store.checkout.success');
 
 // Orders (auth only)
 Route::middleware('auth')->group(function () {
     Route::get('/orders', [OrderController::class, 'index'])->name('store.orders.index');
-    Route::get('/orders/{order:number}', [OrderController::class, 'show'])->name('store.orders.show');
+    Route::get('/orders/{order}', [OrderController::class, 'show'])->name('store.orders.show');
 });
+
+// Public order show (with token) - separate path to avoid route conflict
+Route::get('/order/{order}', [OrderController::class, 'publicShow'])->name('store.orders.public.show');
 
 // Static pages
 Route::get('/delivery', [StaticPageController::class, 'delivery'])->name('store.pages.delivery');

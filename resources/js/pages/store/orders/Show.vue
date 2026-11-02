@@ -35,7 +35,7 @@ const props = defineProps<{
             price: string
             subtotal: string
         }>
-        status_history: Array<{
+        status_history?: Array<{
             id: number
             from_status: string | null
             to_status: string
@@ -193,7 +193,7 @@ function statusClass(status: string): string {
             <h2 class="text-lg font-bold text-zinc-950 dark:text-white">История статусов</h2>
             <div class="mt-4 space-y-4">
                 <div
-                    v-for="(history, i) in order.status_history"
+                    v-for="(history, i) in (order.status_history ?? [])"
                     :key="history.id"
                     class="flex gap-4"
                 >
@@ -201,7 +201,7 @@ function statusClass(status: string): string {
                         <div class="flex size-8 items-center justify-center rounded-full bg-orange-500/10 text-sm font-bold text-orange-600 dark:text-orange-400">
                             {{ i + 1 }}
                         </div>
-                        <div v-if="i < order.status_history.length - 1" class="mt-1 h-8 w-px bg-zinc-200 dark:bg-zinc-800" />
+                        <div v-if="i < (order.status_history ?? []).length - 1" class="mt-1 h-8 w-px bg-zinc-200 dark:bg-zinc-800" />
                     </div>
                     <div class="pb-6">
                         <div class="text-sm font-medium text-zinc-900 dark:text-zinc-100">

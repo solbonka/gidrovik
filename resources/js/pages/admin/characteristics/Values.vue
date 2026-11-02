@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
+import { ref } from 'vue';
 import {
     ArrowLeft,
     Check,
@@ -44,7 +45,7 @@ interface Props {
 const props = defineProps<Props>();
 
 const form = useForm({
-    value: '',
+    newValue: '',
 });
 
 const editingId = ref<number | null>(null);
@@ -61,11 +62,11 @@ const cancelEdit = (): void => {
 };
 
 const submitAdd = (): void => {
-    if (!form.value.value.trim()) return;
+    if (!form.newValue.trim()) return;
 
     form.post(`/admin/characteristics/${props.characteristic.id}/values`, {
         onSuccess: () => {
-            form.value = '';
+            form.newValue = '';
             toast.success('Значение добавлено.');
         },
         onError: () => {
@@ -180,14 +181,14 @@ const destroy = (id: number): void => {
                 <form @submit.prevent="submitAdd">
                     <div class="flex gap-3">
                         <input
-                            v-model="form.value"
+                            v-model="form.newValue"
                             type="text"
                             placeholder="Например: 50 мм"
                             class="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-gray-900 shadow-sm transition outline-none placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:bg-gray-900 dark:text-white dark:border-gray-700"
                         />
                         <button
                             type="submit"
-                            :disabled="form.processing || !form.value.trim()"
+                            :disabled="form.processing || !form.newValue.trim()"
                             class="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition hover:from-indigo-700 hover:to-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                             <span v-if="form.processing" class="size-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />

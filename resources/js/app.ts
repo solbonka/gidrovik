@@ -34,10 +34,7 @@ function resolveRoute(name: string, params: Record<string, unknown> = {}): strin
         }
         if (found && typeof (obj as { url?: unknown }).url === 'function') {
             const urlFn = (obj as { url: (...a: unknown[]) => string }).url;
-            if (urlFn.length >= 2) {
-                return urlFn(params);
-            }
-            return urlFn({ query: params });
+            return urlFn(params);
         }
     }
     return '/' + name.replace(/\./g, '/');

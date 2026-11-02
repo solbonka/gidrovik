@@ -68,7 +68,8 @@ class CheckoutController extends Controller
 
             abort_unless($product->is_active && $product->published, 404, 'Товар больше не доступен');
 
-            $subtotal = bcmul((string) $product->retail_price, (string) $item->quantity, 2);
+            $price = $product->retail_price ?? '0';
+            $subtotal = bcmul((string) $price, (string) $item->quantity, 2);
             $totalAmount = bcadd($totalAmount, $subtotal, 2);
 
             $itemsData[] = [
@@ -76,7 +77,7 @@ class CheckoutController extends Controller
                 'product_name' => $product->name,
                 'product_code' => $product->code,
                 'article' => $product->article,
-                'price' => $product->retail_price,
+                'price' => $price,
                 'quantity' => $item->quantity,
                 'subtotal' => $subtotal,
             ];
@@ -133,11 +134,47 @@ class CheckoutController extends Controller
             // Send confirmation email (async)
             \App\Queue\Jobs\SendOrderConfirmationEmail::dispatch($order);
 
-            return redirect()->route('store.orders.show', $order->order_number);
+            return redirect()->route('store.checkout.success', $order->order_number);
         } catch (\Throwable $e) {
             DB::rollBack();
             throw $e;
         }
+    }
+
+    public function success(string $orderNumber, \Illuminate\Http\Request $request): \Inertia\Response
+    {
+        $token = $request->query('token');
+
+        $order = \App\Models\Order::query()
+            ->with(['items'])
+            ->where('order_number', $orderNumber)
+            ->where('access_token', $token)
+            ->firstOrFail();
+
+        return inertia('store/checkout/Success', [
+            'order' => [
+                'id' => $order->id,
+                'order_number' => $order->order_number,
+                'access_token' => $order->access_token,
+                'customer_name' => $order->customer_name,
+                'customer_email' => $order->customer_email,
+                'customer_phone' => $order->customer_phone,
+                'delivery_method' => $order->delivery_method,
+                'delivery_method_label' => $order->delivery_method === 'delivery' ? 'Доставка' : 'Самовывоз',
+                'delivery_address' => $order->delivery_address,
+                'total_amount' => number_format((float) $order->total_amount, 2, '.', ''),
+                'status' => $order->status->value,
+                'status_label' => $order->status->label(),
+                'status_color' => $order->status->color(),
+                'created_at' => $order->created_at->format('d.m.Y H:i'),
+                'items' => $order->items->map(fn ($item) => [
+                    'name' => $item->product_name,
+                    'quantity' => (float) $item->quantity,
+                    'price' => number_format((float) $item->price, 2, '.', ''),
+                    'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),
+                ]),
+            ],
+        ]);
     }
 
     protected function getCart(): \App\Models\Cart

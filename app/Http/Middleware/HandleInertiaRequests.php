@@ -21,6 +21,11 @@ class HandleInertiaRequests extends Middleware
      */
     public function shouldProcessRequest(Request $request): bool
     {
+        // Exclude auth routes (Inertia can't handle auth redirects)
+        if ($request->is('login', 'logout', 'register', 'verify-email*', 'forgot-password*', 'reset-password*')) {
+            return false;
+        }
+
         // Exclude only true API endpoints (not Inertia page requests)
         if ($request->is('favorites/api')) {
             return false;

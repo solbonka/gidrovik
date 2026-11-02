@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
 class Order extends Model
 {
@@ -14,6 +15,7 @@ class Order extends Model
 
     protected $fillable = [
         'order_number',
+        'access_token',
         'customer_name',
         'customer_email',
         'customer_phone',
@@ -38,6 +40,9 @@ class Order extends Model
         static::creating(function (Order $order) {
             if (empty($order->order_number)) {
                 $order->order_number = self::generateOrderNumber();
+            }
+            if (empty($order->access_token)) {
+                $order->access_token = Str::random(32);
             }
         });
     }
