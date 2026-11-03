@@ -12,7 +12,7 @@ import {
     PhSortDescending,
     PhX,
 } from '@phosphor-icons/vue'
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import ProductCard from '@/components/store/ProductCard.vue'
 
@@ -65,7 +65,6 @@ const props = defineProps<{
 // ---------- Избранное ----------
 const favorites = ref<Set<number>>(new Set(props.favorite_product_ids))
 
-// Update favorites when page changes (filters, pagination)
 watch(() => props.favorite_product_ids, (newIds) => {
     favorites.value = new Set(newIds)
 }, { deep: true })
@@ -109,7 +108,6 @@ watch(() => props.filters, (f) => {
     activeDiameter.value = f.diameter ?? ''
 }, { deep: true })
 
-// Блокируем прокрутку страницы, когда открыта шторка фильтров
 watch(showFilters, (open) => {
     document.body.style.overflow = open ? 'hidden' : ''
 })
@@ -144,7 +142,6 @@ watch(searchQuery, (newQuery) => {
 
 type Params = Record<string, string | number | null | undefined>
 
-/** Переход с сохранением текущих фильтров; overrides перекрывают их. */
 function go(overrides: Params = {}, scrollTop = false) {
     const params: Params = {
         category: props.filters.category,
@@ -235,46 +232,47 @@ function goPage(url: string | null) {
 <template>
     <Head title="Каталог товаров" />
 
-    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-10 lg:py-10">
-        <!-- Заголовок и управление -->
-        <div class="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-                <p class="text-xs font-bold uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400">Магазин</p>
-                <h1 class="mt-1 text-3xl font-black tracking-tight sm:text-5xl">Каталог товаров</h1>
-                <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">
-                    Найдено товаров:
-                    <span class="font-bold text-zinc-900 dark:text-zinc-100">{{ products.total.toLocaleString('ru-RU') }}</span>
-                </p>
+    <div class="mx-auto max-w-7xl px-3 py-5 sm:px-6 sm:py-6 lg:px-10 lg:py-10">
+        <!-- Заголовок -->
+        <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.2em] text-orange-600 dark:text-orange-400 sm:text-xs">Магазин</p>
+            <h1 class="mt-1 text-2xl font-black tracking-tight sm:text-3xl lg:text-5xl">Каталог товаров</h1>
+            <p class="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400">
+                Найдено товаров:
+                <span class="font-bold text-zinc-900 dark:text-zinc-100">{{ products.total.toLocaleString('ru-RU') }}</span>
+            </p>
+        </div>
+
+        <!-- Управление: на мобиле 2 ряда, на sm+ в одну линию -->
+        <div class="mt-4 flex flex-col gap-2 sm:mt-5 sm:flex-row sm:items-center sm:gap-2">
+            <!-- Поиск — на всю ширину на мобиле -->
+            <div class="relative w-full sm:w-72 sm:flex-none lg:w-80">
+                <PhMagnifyingGlass :size="18" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                <input
+                    v-model="searchQuery"
+                    type="search"
+                    placeholder="Название, код или артикул"
+                    class="h-10 w-full rounded-full border border-zinc-200 bg-white py-2 pl-10 pr-9 text-sm font-medium text-zinc-800 outline-none transition placeholder:text-zinc-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-orange-400 sm:h-11 sm:pr-10"
+                />
+                <button
+                    v-if="searchQuery"
+                    type="button"
+                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200 sm:right-3"
+                    @click="searchQuery = ''; if (searchTimeout) clearTimeout(searchTimeout)"
+                >
+                    <PhX :size="18" />
+                </button>
             </div>
 
-            <div class="flex items-center gap-2">
-                <!-- Поиск -->
-                <div class="relative flex-1 sm:w-72">
-                    <PhMagnifyingGlass :size="18" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-                    <input
-                        v-model="searchQuery"
-                        type="search"
-                        placeholder="Поиск по названию, коду или артикулу"
-                        class="h-11 w-full rounded-full border border-zinc-200 bg-white py-2 pl-10 pr-10 text-sm font-medium text-zinc-800 outline-none transition placeholder:text-zinc-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-orange-400"
-                    />
-                    <button
-                        v-if="searchQuery"
-                        type="button"
-                        class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200"
-                        @click="searchQuery = ''; if (searchTimeout) clearTimeout(searchTimeout)"
-                    >
-                        <PhX :size="18" />
-                    </button>
-                </div>
-
-                <!-- Фильтры (мобильные и планшеты) -->
+            <!-- Фильтры + сортировка + направление -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
                 <button
                     type="button"
-                    class="relative inline-flex h-11 items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 text-sm font-semibold text-zinc-800 transition hover:border-orange-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 lg:hidden"
+                    class="relative inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full border border-zinc-200 bg-white px-3 text-sm font-semibold text-zinc-800 transition hover:border-orange-400 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 sm:h-11 sm:gap-2 sm:px-4 lg:hidden"
                     @click="showFilters = true"
                 >
-                    <PhFunnel :size="18" />
-                    Фильтры
+                    <PhFunnel :size="17" />
+                    <span>Фильтры</span>
                     <span
                         v-if="activeCount > 0"
                         class="flex size-5 items-center justify-center rounded-full bg-orange-500 text-[11px] font-bold text-zinc-950"
@@ -283,11 +281,10 @@ function goPage(url: string | null) {
                     </span>
                 </button>
 
-                <!-- Сортировка -->
                 <div class="relative min-w-0 flex-1 sm:flex-none">
                     <select
                         v-model="sort"
-                        class="h-11 w-full appearance-none rounded-full border border-zinc-200 bg-white py-2 pl-4 pr-10 text-sm font-semibold text-zinc-800 outline-none transition hover:border-orange-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 sm:w-auto"
+                        class="h-10 w-full appearance-none rounded-full border border-zinc-200 bg-white py-2 pl-3.5 pr-9 text-sm font-semibold text-zinc-800 outline-none transition hover:border-orange-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 sm:h-11 sm:w-auto sm:pl-4 sm:pr-10"
                         aria-label="Сортировка"
                         @change="go()"
                     >
@@ -295,89 +292,89 @@ function goPage(url: string | null) {
                             {{ opt.label }}
                         </option>
                     </select>
-                    <PhCaretDown :size="16" weight="bold" class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <PhCaretDown :size="15" weight="bold" class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 sm:right-4" />
                 </div>
 
                 <button
                     type="button"
-                    class="flex size-11 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:text-orange-400"
+                    class="flex size-10 shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:text-orange-400 sm:size-11"
                     :aria-label="direction === 'asc' ? 'По возрастанию' : 'По убыванию'"
                     :title="direction === 'asc' ? 'По возрастанию' : 'По убыванию'"
                     @click="toggleDirection"
                 >
-                    <PhSortAscending v-if="direction === 'asc'" :size="20" />
-                    <PhSortDescending v-else :size="20" />
+                    <PhSortAscending v-if="direction === 'asc'" :size="18" class="sm:size-5" />
+                    <PhSortDescending v-else :size="18" class="sm:size-5" />
                 </button>
             </div>
         </div>
 
         <!-- Выбранные фильтры -->
-        <div v-if="activeCount > 0" class="mt-5 flex flex-wrap items-center gap-2">
+        <div v-if="activeCount > 0" class="mt-3 flex flex-wrap items-center gap-1.5 sm:mt-5 sm:gap-2">
             <button
                 v-if="activeCategory"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="go({ category: null })"
             >
                 {{ activeCategory.name }}
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 v-if="activeManufacturer"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="go({ manufacturer: null })"
             >
                 {{ activeManufacturer.name }}
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 v-if="standardName"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="go({ standard: null })"
             >
                 Стандарт: {{ standardName.name }}
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 v-if="diameterName"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="go({ diameter: null })"
             >
                 Диаметр: {{ diameterName.value }}
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 v-if="minPrice"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="minPrice = ''; go()"
             >
                 от {{ Number(minPrice).toLocaleString('ru-RU') }} ₽
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 v-if="maxPrice"
                 type="button"
-                class="inline-flex items-center gap-1.5 rounded-full bg-zinc-950 py-1.5 pl-3.5 pr-2.5 text-sm font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200"
+                class="inline-flex items-center gap-1 rounded-full bg-zinc-950 py-1 pl-2.5 pr-2 text-xs font-semibold text-white transition hover:bg-zinc-800 dark:bg-white dark:text-zinc-950 dark:hover:bg-zinc-200 sm:gap-1.5 sm:py-1.5 sm:pl-3.5 sm:pr-2.5 sm:text-sm"
                 @click="maxPrice = ''; go()"
             >
                 до {{ Number(maxPrice).toLocaleString('ru-RU') }} ₽
-                <PhX :size="14" weight="bold" />
+                <PhX :size="13" weight="bold" />
             </button>
             <button
                 type="button"
-                class="px-2 text-sm font-semibold text-orange-600 underline-offset-4 hover:underline dark:text-orange-400"
+                class="px-1.5 text-xs font-semibold text-orange-600 underline-offset-4 hover:underline dark:text-orange-400 sm:px-2 sm:text-sm"
                 @click="clearFilters"
             >
                 Сбросить всё
             </button>
         </div>
 
-        <div class="mt-6 lg:mt-8 lg:flex lg:gap-8">
-            <!-- Затемнение под шторкой (мобильные) -->
+        <div class="mt-5 lg:mt-8 lg:flex lg:gap-8">
+            <!-- Затемнение под шторкой -->
             <Transition
                 enter-active-class="transition-opacity duration-200"
                 leave-active-class="transition-opacity duration-200"
@@ -391,7 +388,7 @@ function goPage(url: string | null) {
                 />
             </Transition>
 
-            <!-- Фильтры: сайдбар на десктопе, нижняя шторка на мобильных -->
+            <!-- Фильтры: сайдбар / нижняя шторка -->
             <aside
                 class="lg:w-64 lg:shrink-0"
                 :class="showFilters
@@ -410,16 +407,16 @@ function goPage(url: string | null) {
                     </button>
                 </div>
 
-                <div class="flex-1 space-y-7 overflow-y-auto p-5 lg:sticky lg:top-28 lg:overflow-visible lg:p-0">
+                <div class="flex-1 space-y-6 overflow-y-auto p-4 sm:space-y-7 sm:p-5 lg:sticky lg:top-28 lg:overflow-visible lg:p-0">
                     <!-- Категории -->
                     <div>
-                        <h3 class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Категории</h3>
-                        <div class="space-y-1">
+                        <h3 class="mb-2.5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400 sm:mb-3">Категории</h3>
+                        <div class="space-y-0.5 sm:space-y-1">
                             <button
                                 v-for="cat in categories"
                                 :key="cat.id"
                                 type="button"
-                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition sm:py-2.5"
                                 :class="optionClass(filters.category === cat.slug)"
                                 @click="go({ category: filters.category === cat.slug ? null : cat.slug })"
                             >
@@ -431,13 +428,13 @@ function goPage(url: string | null) {
 
                     <!-- Производители -->
                     <div v-if="manufacturers.length > 0">
-                        <h3 class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Производители</h3>
-                        <div class="space-y-1">
+                        <h3 class="mb-2.5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400 sm:mb-3">Производители</h3>
+                        <div class="space-y-0.5 sm:space-y-1">
                             <button
                                 v-for="mfr in manufacturers"
                                 :key="mfr.id"
                                 type="button"
-                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition sm:py-2.5"
                                 :class="optionClass(isManufacturerActive(mfr.id))"
                                 @click="go({ manufacturer: isManufacturerActive(mfr.id) ? null : mfr.id })"
                             >
@@ -449,7 +446,7 @@ function goPage(url: string | null) {
 
                     <!-- Цена -->
                     <div>
-                        <h3 class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Цена, ₽</h3>
+                        <h3 class="mb-2.5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400 sm:mb-3">Цена, ₽</h3>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
                                 <label class="mb-1 block text-[11px] font-medium text-zinc-500">От</label>
@@ -474,15 +471,15 @@ function goPage(url: string | null) {
                         </div>
                     </div>
 
-                    <!-- Стандарт соединения -->
+                    <!-- Стандарт -->
                     <div v-if="standards.length > 0">
-                        <h3 class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Стандарт</h3>
-                        <div class="space-y-1">
+                        <h3 class="mb-2.5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400 sm:mb-3">Стандарт</h3>
+                        <div class="space-y-0.5 sm:space-y-1">
                             <button
                                 v-for="std in standards"
                                 :key="std.id"
                                 type="button"
-                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition sm:py-2.5"
                                 :class="optionClass(String(filters.standard) === String(std.id))"
                                 @click="go({ standard: String(filters.standard) === String(std.id) ? '' : std.id })"
                             >
@@ -494,13 +491,13 @@ function goPage(url: string | null) {
 
                     <!-- Диаметр -->
                     <div v-if="diameters.length > 0">
-                        <h3 class="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400">Диаметр</h3>
-                        <div class="space-y-1">
+                        <h3 class="mb-2.5 text-xs font-bold uppercase tracking-[0.18em] text-zinc-400 sm:mb-3">Диаметр</h3>
+                        <div class="space-y-0.5 sm:space-y-1">
                             <button
                                 v-for="d in diameters"
                                 :key="d.id"
                                 type="button"
-                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left text-sm font-medium transition"
+                                class="flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm font-medium transition sm:py-2.5"
                                 :class="optionClass(String(filters.diameter) === String(d.id))"
                                 @click="go({ diameter: String(filters.diameter) === String(d.id) ? '' : d.id })"
                             >
@@ -533,7 +530,8 @@ function goPage(url: string | null) {
 
             <!-- Товары -->
             <div class="min-w-0 flex-1">
-                <div v-if="products.data.length > 0" class="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5">
+                <!-- 2 колонки на мобиле (не 3 — карточки слишком мелкие) -->
+                <div v-if="products.data.length > 0" class="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5">
                     <ProductCard
                         v-for="product in products.data"
                         :key="product.id"
@@ -547,16 +545,16 @@ function goPage(url: string | null) {
                 <!-- Пусто -->
                 <div
                     v-else
-                    class="rounded-3xl border border-dashed border-zinc-300 bg-white p-10 text-center dark:border-zinc-700 dark:bg-zinc-900 sm:p-16"
+                    class="rounded-2xl border border-dashed border-zinc-300 bg-white p-8 text-center dark:border-zinc-700 dark:bg-zinc-900 sm:rounded-3xl sm:p-16"
                 >
-                    <div class="mx-auto flex size-16 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800">
-                        <PhPackage :size="32" weight="light" />
+                    <div class="mx-auto flex size-14 items-center justify-center rounded-2xl bg-zinc-100 text-zinc-400 dark:bg-zinc-800 sm:size-16">
+                        <PhPackage :size="28" weight="light" class="sm:size-8" />
                     </div>
-                    <h3 class="mt-5 text-xl font-extrabold">Товары не найдены</h3>
-                    <p class="mt-2 text-sm text-zinc-500 dark:text-zinc-400">Попробуйте изменить параметры поиска</p>
+                    <h3 class="mt-4 text-lg font-extrabold sm:mt-5 sm:text-xl">Товары не найдены</h3>
+                    <p class="mt-1.5 text-sm text-zinc-500 dark:text-zinc-400 sm:mt-2">Попробуйте изменить параметры поиска</p>
                     <button
                         type="button"
-                        class="mt-6 inline-flex h-11 items-center rounded-full bg-orange-500 px-6 text-sm font-bold text-zinc-950 transition hover:bg-orange-400"
+                        class="mt-5 inline-flex h-10 items-center rounded-full bg-orange-500 px-5 text-sm font-bold text-zinc-950 transition hover:bg-orange-400 sm:mt-6 sm:h-11 sm:px-6"
                         @click="clearFilters"
                     >
                         Показать все товары
@@ -566,25 +564,23 @@ function goPage(url: string | null) {
                 <!-- Пагинация -->
                 <nav
                     v-if="products.last_page > 1"
-                    class="mt-10 flex items-center justify-center gap-1.5"
+                    class="mt-8 flex items-center justify-center gap-1.5 sm:mt-10"
                     aria-label="Страницы"
                 >
                     <button
                         type="button"
                         :disabled="!prevLink?.url"
-                        class="flex size-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-zinc-200 disabled:hover:text-zinc-700 dark:border-zinc-800 dark:text-zinc-200"
+                        class="flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-zinc-200 disabled:hover:text-zinc-700 dark:border-zinc-800 dark:text-zinc-200 sm:size-10"
                         aria-label="Назад"
                         @click="goPage(prevLink?.url ?? null)"
                     >
-                        <PhArrowLeft :size="18" weight="bold" />
+                        <PhArrowLeft :size="16" weight="bold" class="sm:size-[18px]" />
                     </button>
 
-                    <!-- Мобильные: только текущая страница -->
-                    <span class="px-3 text-sm font-semibold text-zinc-600 dark:text-zinc-300 sm:hidden">
+                    <span class="px-2.5 text-sm font-semibold text-zinc-600 dark:text-zinc-300 sm:hidden">
                         {{ products.current_page }} / {{ products.last_page }}
                     </span>
 
-                    <!-- Десктоп: номера страниц -->
                     <template v-for="(link, i) in numberLinks" :key="i">
                         <button
                             v-if="link.url"
@@ -603,11 +599,11 @@ function goPage(url: string | null) {
                     <button
                         type="button"
                         :disabled="!nextLink?.url"
-                        class="flex size-10 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-zinc-200 disabled:hover:text-zinc-700 dark:border-zinc-800 dark:text-zinc-200"
+                        class="flex size-9 items-center justify-center rounded-full border border-zinc-200 text-zinc-700 transition hover:border-orange-400 hover:text-orange-600 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:border-zinc-200 disabled:hover:text-zinc-700 dark:border-zinc-800 dark:text-zinc-200 sm:size-10"
                         aria-label="Вперёд"
                         @click="goPage(nextLink?.url ?? null)"
                     >
-                        <PhArrowRight :size="18" weight="bold" />
+                        <PhArrowRight :size="16" weight="bold" class="sm:size-[18px]" />
                     </button>
                 </nav>
             </div>
