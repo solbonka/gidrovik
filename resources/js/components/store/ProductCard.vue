@@ -127,7 +127,7 @@ onBeforeUnmount(() => {
 
 <template>
     <article
-        class="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white transition duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-xl hover:shadow-zinc-900/[0.06] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:shadow-black/40"
+        class="group relative flex flex-col overflow-hidden rounded-xl border border-zinc-200 bg-white transition duration-300 hover:-translate-y-0.5 hover:border-zinc-300 hover:shadow-xl hover:shadow-zinc-900/[0.06] dark:border-zinc-800 dark:bg-zinc-900 dark:hover:border-zinc-700 dark:hover:shadow-black/40"
     >
         <!-- Фото -->
         <Link
@@ -169,17 +169,17 @@ onBeforeUnmount(() => {
         </button>
 
         <!-- Описание -->
-        <div class="flex flex-1 flex-col p-3.5 sm:p-4">
+        <div class="flex flex-1 flex-col p-2 sm:p-3">
             <p
                 v-if="product.category"
-                class="text-[11px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400"
+                class="text-[10px] font-bold uppercase tracking-wider text-orange-600 dark:text-orange-400"
             >
                 {{ product.category }}
             </p>
 
             <Link
                 :href="route('store.products.show', { product: product.slug })"
-                class="mt-1 line-clamp-2 text-sm font-semibold leading-snug text-zinc-900 transition hover:text-orange-600 dark:text-zinc-100 dark:hover:text-orange-400 sm:text-[15px]"
+                class="mt-1 line-clamp-2 text-[13px] font-semibold leading-tight text-zinc-900 transition hover:text-orange-600 dark:text-zinc-100 dark:hover:text-orange-400"
             >
                 {{ product.name }}
             </Link>
@@ -199,8 +199,8 @@ onBeforeUnmount(() => {
                 </span>
             </div>
 
-            <div class="mt-auto flex items-end justify-between gap-2 pt-4">
-                <div class="text-lg font-extrabold tracking-tight text-zinc-950 dark:text-white sm:text-xl">
+            <div class="mt-auto flex items-end justify-between gap-1.5 pt-2">
+                <div class="text-base font-extrabold tracking-tight text-zinc-950 dark:text-white">
                     {{ price }}
                     <span class="text-sm font-bold text-zinc-400">₽</span>
                 </div>
@@ -208,15 +208,15 @@ onBeforeUnmount(() => {
                 <button
                     type="button"
                     :disabled="outOfStock"
-                    class="flex size-10 shrink-0 items-center justify-center rounded-full transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
+                    class="flex size-8 shrink-0 items-center justify-center rounded-full transition active:scale-90 disabled:cursor-not-allowed disabled:opacity-30"
                     :class="added
                         ? 'bg-emerald-500 text-white'
                         : 'bg-zinc-950 text-white hover:bg-orange-500 hover:text-zinc-950 dark:bg-white dark:text-zinc-950 dark:hover:bg-orange-500'"
                     :aria-label="added ? 'Добавлено в корзину' : 'В корзину'"
                     @click="openQuantityPicker"
                 >
-                    <PhCheck v-if="added" :size="20" weight="bold" />
-                    <PhShoppingCart v-else :size="19" weight="bold" />
+                    <PhCheck v-if="added" :size="16" weight="bold" />
+                    <PhShoppingCart v-else :size="16" weight="bold" />
                 </button>
             </div>
         </div>

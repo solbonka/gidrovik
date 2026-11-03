@@ -13,6 +13,7 @@ use App\Models\ProductConnection;
 use App\Models\Standard;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,6 +25,25 @@ class CatalogController extends Controller
             ->where('is_active', true)
             ->where('published', true)
             ->with(['category', 'manufacturer']);
+
+        // Search by name, code, article
+        $search = $request->input('search');
+        if ($search) {
+            $words = preg_split('/\s+/u', mb_strtolower(trim($search), 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY);
+            if (!empty($words)) {
+                $query->where(function ($q) use ($words) {
+                    foreach ($words as $word) {
+                        $word = addcslashes($word, '%_\\');
+                        $q->where(function ($q) use ($word) {
+                            $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"])
+                              ->orWhereRaw('LOWER(code) LIKE ?', ["%{$word}%"])
+                              ->orWhereRaw('LOWER(article) LIKE ?', ["%{$word}%"]);
+                        });
+                    }
+                });
+            }
+            Log::info('Catalog search', ['search' => $search, 'count' => (clone $query)->count()]);
+        }
 
         // Filter by category
         $categoryId = $request->input('category');
@@ -208,6 +228,7 @@ class CatalogController extends Controller
                 'characteristics' => $characteristics,
                 'sort' => $sort,
                 'direction' => $direction,
+                'search' => $search ?? '',
             ],
         ])->with([
             'title' => 'Каталог товаров — Гидровик',

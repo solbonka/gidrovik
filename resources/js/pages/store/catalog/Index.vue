@@ -6,6 +6,7 @@ import {
     PhCaretDown,
     PhCheck,
     PhFunnel,
+    PhMagnifyingGlass,
     PhPackage,
     PhSortAscending,
     PhSortDescending,
@@ -57,6 +58,7 @@ const props = defineProps<{
         characteristics: Array<{ id: number }>
         sort: string
         direction: string
+        search?: string
     }
 }>()
 
@@ -121,6 +123,25 @@ const sortOptions = [
     { value: 'price', label: 'Цена' },
 ]
 
+// ---------- Поиск ----------
+const searchQuery = ref(props.filters.search ?? '')
+let searchTimeout: ReturnType<typeof setTimeout> | null = null
+
+watch(() => props.filters.search, (newSearch) => {
+    searchQuery.value = newSearch ?? ''
+})
+
+watch(searchQuery, (newQuery) => {
+    if (searchTimeout) clearTimeout(searchTimeout)
+    if (!newQuery.trim()) {
+        go({ page: 1 })
+        return
+    }
+    searchTimeout = setTimeout(() => {
+        go({ page: 1 })
+    }, 800)
+})
+
 type Params = Record<string, string | number | null | undefined>
 
 /** Переход с сохранением текущих фильтров; overrides перекрывают их. */
@@ -134,6 +155,7 @@ function go(overrides: Params = {}, scrollTop = false) {
         max_price: maxPrice.value || null,
         sort: sort.value,
         direction: direction.value,
+        search: searchQuery.value || null,
         ...overrides,
     }
 
@@ -154,6 +176,8 @@ function go(overrides: Params = {}, scrollTop = false) {
 }
 
 function clearFilters() {
+    searchQuery.value = ''
+    if (searchTimeout) clearTimeout(searchTimeout)
     router.get(route('store.catalog.index'), {}, {
         preserveState: true,
         preserveScroll: true,
@@ -224,6 +248,25 @@ function goPage(url: string | null) {
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- Поиск -->
+                <div class="relative flex-1 sm:w-72">
+                    <PhMagnifyingGlass :size="18" class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
+                    <input
+                        v-model="searchQuery"
+                        type="search"
+                        placeholder="Поиск по названию, коду или артикулу"
+                        class="h-11 w-full rounded-full border border-zinc-200 bg-white py-2 pl-10 pr-10 text-sm font-medium text-zinc-800 outline-none transition placeholder:text-zinc-400 focus:border-orange-500 focus:ring-4 focus:ring-orange-500/15 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-100 dark:placeholder:text-zinc-500 dark:focus:border-orange-400"
+                    />
+                    <button
+                        v-if="searchQuery"
+                        type="button"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200"
+                        @click="searchQuery = ''; if (searchTimeout) clearTimeout(searchTimeout)"
+                    >
+                        <PhX :size="18" />
+                    </button>
+                </div>
+
                 <!-- Фильтры (мобильные и планшеты) -->
                 <button
                     type="button"
@@ -490,7 +533,7 @@ function goPage(url: string | null) {
 
             <!-- Товары -->
             <div class="min-w-0 flex-1">
-                <div v-if="products.data.length > 0" class="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3">
+                <div v-if="products.data.length > 0" class="grid grid-cols-3 gap-2 sm:gap-3 md:grid-cols-4 lg:grid-cols-5">
                     <ProductCard
                         v-for="product in products.data"
                         :key="product.id"
