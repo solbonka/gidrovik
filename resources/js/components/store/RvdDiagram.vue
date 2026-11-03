@@ -1,19 +1,19 @@
 <template>
-    <div class="relative w-full overflow-hidden rounded-2xl border border-white/10 bg-[#1b1f23] p-2 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-4">
+    <div class="relative w-full overflow-hidden rounded-xl border border-white/10 bg-[#1b1f23] p-1.5 shadow-2xl shadow-black/40 sm:rounded-3xl sm:p-4">
         <!-- Фоновая сетка -->
         <div
             class="pointer-events-none absolute inset-0 opacity-[0.12]
              [background-image:linear-gradient(rgba(255,255,255,.35)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.35)_1px,transparent_1px)]
-             [background-size:26px_26px]"
+             [background-size:20px_20px] sm:[background-size:26px_26px]"
         />
 
         <!-- Шапка -->
-        <div class="relative flex items-center justify-between px-1.5 pb-0.5 text-[9px] font-bold uppercase tracking-[.18em] text-zinc-500 sm:px-2 sm:pb-1 sm:text-[10px] sm:tracking-[.22em]">
+        <div class="relative flex items-center justify-between px-1 pb-0.5 text-[8px] font-bold uppercase tracking-[.16em] text-zinc-500 sm:px-2 sm:pb-1 sm:text-[10px] sm:tracking-[.22em]">
             <span>Сборка РВД</span>
             <span class="flex items-center gap-1 text-orange-300 sm:gap-1.5">
-        <span class="size-1.5 rounded-full bg-orange-400" />
-        Рабочая среда
-      </span>
+                <span class="size-1 rounded-full bg-orange-400 sm:size-1.5" />
+                Рабочая среда
+            </span>
         </div>
 
         <svg
@@ -183,8 +183,8 @@
             <!-- Осевая -->
             <line x1="14" y1="190" x2="506" y2="190" stroke="#fff" stroke-opacity=".28" stroke-dasharray="12 4 2.5 4" />
 
-            <!-- Выноски -->
-            <g fill="none" stroke="#fb923c" stroke-opacity=".8" stroke-width="1.2">
+            <!-- Выноски: на узких экранах скрываем часть, чтобы не было каши -->
+            <g class="hv-callouts" fill="none" stroke="#fb923c" stroke-opacity=".8" stroke-width="1.2">
                 <path d="M70 155V58" />
                 <path d="M55 226V268" />
                 <path d="M150 157V112" />
@@ -192,7 +192,7 @@
                 <path d="M237 170V150" />
                 <path d="M260 211V290" />
             </g>
-            <g fill="#fb923c">
+            <g class="hv-callouts" fill="#fb923c">
                 <circle cx="70" cy="155" r="2.4" />
                 <circle cx="55" cy="226" r="2.4" />
                 <circle cx="150" cy="157" r="2.4" />
@@ -201,14 +201,14 @@
                 <circle cx="260" cy="211" r="2.4" />
             </g>
 
-            <!-- Подписи -->
-            <g fill="#e4e4e7" font-size="13" font-weight="600">
-                <text x="24" y="50">Фитинг</text>
-                <text x="24" y="284">Гайка</text>
-                <text x="122" y="104">Обжимная муфта</text>
-                <text x="200" y="126">Резина</text>
-                <text x="248" y="144">Сталь</text>
-                <text x="260" y="306" text-anchor="middle">Внутренняя трубка</text>
+            <!-- Подписи: меньший базовый размер, на мобиле ещё компактнее через CSS -->
+            <g class="hv-labels" fill="#e4e4e7" font-weight="600">
+                <text x="24" y="50" class="hv-label">Фитинг</text>
+                <text x="24" y="284" class="hv-label">Гайка</text>
+                <text x="122" y="104" class="hv-label hv-label-long">Обжимная муфта</text>
+                <text x="200" y="126" class="hv-label">Резина</text>
+                <text x="248" y="144" class="hv-label">Сталь</text>
+                <text x="260" y="306" text-anchor="middle" class="hv-label hv-label-center">Внутренняя трубка</text>
             </g>
 
             <!-- Нижняя линия -->
@@ -216,7 +216,7 @@
                 <path d="M36 332H484" />
                 <path d="M36 327v10M484 327v10" />
             </g>
-            <text x="260" y="352" text-anchor="middle" font-size="12" letter-spacing="2" fill="#71717a">
+            <text x="260" y="352" text-anchor="middle" class="hv-caption" letter-spacing="1.5" fill="#71717a">
                 РУКАВ ВЫСОКОГО ДАВЛЕНИЯ В СБОРЕ
             </text>
         </svg>
@@ -230,6 +230,29 @@
 @keyframes hv-flow {
     to { stroke-dashoffset: -9.7; }
 }
+
+/* Подписи SVG: адаптивный размер через media */
+.hv-label {
+    font-size: 11px;
+}
+.hv-caption {
+    font-size: 10px;
+}
+
+@media (max-width: 639px) {
+    .hv-label {
+        font-size: 15px; /* при маленьком масштабе SVG читаемее чуть крупнее */
+    }
+    .hv-label-long {
+        font-size: 13px;
+    }
+    .hv-caption {
+        font-size: 12px;
+        letter-spacing: 1px;
+    }
+    /* На очень узких можно оставить выноски — они полезны */
+}
+
 @media (prefers-reduced-motion: reduce) {
     .hv-flow {
         animation: none;
