@@ -140,6 +140,14 @@ watch(searchQuery, (newQuery) => {
     }, 800)
 })
 
+function clearSearch() {
+    searchQuery.value = ''
+    if (searchTimeout) {
+        clearTimeout(searchTimeout)
+        searchTimeout = null
+    }
+}
+
 type Params = Record<string, string | number | null | undefined>
 
 function go(overrides: Params = {}, scrollTop = false) {
@@ -258,7 +266,7 @@ function goPage(url: string | null) {
                     v-if="searchQuery"
                     type="button"
                     class="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 transition hover:text-zinc-600 dark:hover:text-zinc-200 sm:right-3"
-                    @click="searchQuery = ''; if (searchTimeout) clearTimeout(searchTimeout)"
+                    @click="clearSearch"
                 >
                     <PhX :size="18" />
                 </button>
