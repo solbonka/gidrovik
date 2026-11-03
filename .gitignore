@@ -44,3 +44,7 @@ yarn-error.log
 /opencode.jsonc
 /docker/postgres
 /docker/conf/nginx/default.conf
+
+# pnpm cache
+.pnpm-store/
+/docker/conf/nginx/default.conf.bak
