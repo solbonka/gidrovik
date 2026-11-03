@@ -13,6 +13,10 @@ import adminRoutes from '@/routes/admin';
 // Все namespace для поиска маршрутов
 const allNamespaces: Record<string, unknown>[] = [routes, storeRoutes, adminRoutes];
 
+function toCamelCase(str: string): string {
+    return str.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+}
+
 function resolveRoute(name: string, params: Record<string, unknown> = {}): string {
     const parts = name.split('.');
     let ns: unknown = routes;
@@ -25,8 +29,16 @@ function resolveRoute(name: string, params: Record<string, unknown> = {}): strin
         let obj: unknown = namespace;
         let found = true;
         for (const part of r) {
-            if (obj && typeof obj === 'object' && part in obj) {
-                obj = (obj as Record<string, unknown>)[part];
+            if (obj && typeof obj === 'object') {
+                const objRecord = obj as Record<string, unknown>;
+                // Сначала ищем прямой ключ, потом camelCase версию (custom-tables → customTables)
+                const key = part in objRecord ? part : toCamelCase(part);
+                if (key in objRecord) {
+                    obj = objRecord[key];
+                } else {
+                    found = false;
+                    break;
+                }
             } else {
                 found = false;
                 break;

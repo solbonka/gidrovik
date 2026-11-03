@@ -5,8 +5,7 @@ import AdminHeader from '@/components/admin/AdminHeader.vue';
 import AdminSidebar from '@/components/admin/AdminSidebar.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { usePage } from '@inertiajs/vue3';
-import { ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
+import { ref } from 'vue';
 
 const sidebarOpen = ref<boolean>(false);
 
@@ -15,29 +14,6 @@ const page = usePage();
 const toggleSidebar = (): void => {
     sidebarOpen.value = !sidebarOpen.value;
 };
-
-watch(
-    () =>
-        page.props.flash as
-            | { success?: string | null; error?: string | null }
-            | undefined,
-    (flash) => {
-        if (!flash) {
-            return;
-        }
-
-        if (flash.error) {
-            toast.error(flash.error);
-
-            return;
-        }
-
-        if (flash.success) {
-            toast.success(flash.success);
-        }
-    },
-    { immediate: true },
-);
 </script>
 
 <template>

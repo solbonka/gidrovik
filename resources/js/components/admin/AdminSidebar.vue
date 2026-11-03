@@ -23,6 +23,7 @@ import {
     Building2,
     Globe,
     Settings,
+    Table,
     User,
     Shield,
     Palette,
@@ -141,6 +142,12 @@ const navigationGroups: NavigationGroup[] = [
         title: 'Управление доступом',
         items: [
             { name: 'Пользователи', href: '/admin/users', icon: Users, permission: 'users.manage' },
+        ],
+    },
+    {
+        title: 'Справочники',
+        items: [
+            { name: 'Пользовательские таблицы', href: '/admin/custom-tables', icon: Table, permission: 'catalog.manage' },
         ],
     },
 ];

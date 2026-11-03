@@ -4,6 +4,8 @@ use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CharacteristicController;
 use App\Http\Controllers\Admin\CharacteristicValueController;
 use App\Http\Controllers\Admin\CountryController;
+use App\Http\Controllers\Admin\CustomTableEntriesController;
+use App\Http\Controllers\Admin\CustomTablesController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DiameterController;
 use App\Http\Controllers\Admin\LocationController;
@@ -107,6 +109,55 @@ Route::middleware(['auth', 'verified', 'employee'])
 
             Route::resource('warehouses', WarehouseController::class)
                 ->except(['show']);
+
+            // Custom tables (конструктор таблиц + строки)
+            Route::resource('custom-tables', CustomTablesController::class)
+                ->except(['show']);
+
+            Route::get('/custom-tables/{custom_table}', [
+                CustomTablesController::class,
+                'show',
+            ])->name('custom-tables.show');
+
+            Route::get('/custom-tables/{custom_table}/export/csv', [
+                CustomTablesController::class,
+                'exportCsv',
+            ])->name('custom-tables.export.csv');
+
+            Route::get('/custom-tables/{custom_table}/export/html', [
+                CustomTablesController::class,
+                'exportHtml',
+            ])->name('custom-tables.export.html');
+
+            Route::get('/custom-tables/{custom_table}/entries/create', [
+                CustomTableEntriesController::class,
+                'create',
+            ])->name('custom-tables.entries.create');
+
+            Route::post('/custom-tables/{custom_table}/entries', [
+                CustomTableEntriesController::class,
+                'store',
+            ])->name('custom-tables.entries.store');
+
+            Route::get('/custom-tables/{custom_table}/entries/{entry}/edit', [
+                CustomTableEntriesController::class,
+                'edit',
+            ])->name('custom-tables.entries.edit');
+
+            Route::put('/custom-tables/{custom_table}/entries/{entry}', [
+                CustomTableEntriesController::class,
+                'update',
+            ])->name('custom-tables.entries.update');
+
+            Route::delete('/custom-tables/{custom_table}/entries/{entry}', [
+                CustomTableEntriesController::class,
+                'destroy',
+            ])->name('custom-tables.entries.destroy');
+
+            Route::get('/custom-tables/{custom_table}/entries/search', [
+                CustomTableEntriesController::class,
+                'search',
+            ])->name('custom-tables.entries.search');
 
             Route::resource('racks', RackController::class)
                 ->except(['index', 'show']);

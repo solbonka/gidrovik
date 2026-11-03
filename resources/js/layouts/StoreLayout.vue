@@ -24,7 +24,6 @@ import {
     PhX,
 } from '@phosphor-icons/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { toast } from 'vue-sonner'
 import { Toaster } from '@/components/ui/sonner'
 
 import { login, logout } from '@/routes'
@@ -41,39 +40,6 @@ const user = computed(() => page.props.auth.user)
 
 // Сотрудник (есть флаг is_employee)
 const isEmployee = computed(() => page.props.auth.user?.is_employee === true)
-
-// ---------- Toast notifications ----------
-watch(
-    () => page.props.flash as {
-        success?: string | null
-        error?: string | null
-        toast?: { type?: string; message?: string } | null
-    } | undefined,
-    (flash) => {
-        if (!flash) return
-
-        if (flash.toast) {
-            const type = flash.toast.type || 'success'
-            const message = flash.toast.message || ''
-            if (type === 'error') {
-                toast.error(message)
-            } else {
-                toast.success(message)
-            }
-            return
-        }
-
-        if (flash.error) {
-            toast.error(flash.error)
-            return
-        }
-
-        if (flash.success) {
-            toast.success(flash.success)
-        }
-    },
-    { immediate: true },
-)
 
 // ---------- Тема ----------
 type Appearance = 'light' | 'dark' | 'system'
