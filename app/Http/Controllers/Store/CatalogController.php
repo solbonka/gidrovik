@@ -5,15 +5,13 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Category;
 use App\Models\Characteristic;
-use App\Models\Diameter;
 use App\Models\Favorite;
-use App\Models\Manufacturer;
 use App\Models\Product;
-use App\Models\ProductConnection;
-use App\Models\Standard;
+use App\Models\ProductCharacteristicValue;
+use App\Models\ProductType;
 use App\Services\ImageService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -27,7 +25,7 @@ class CatalogController extends Controller
             ->with(['category', 'manufacturer']);
 
         // Search by name, code, article
-        $search = $request->input('search');
+        $search = trim((string) $request->input('search', ''));
         if ($search) {
             $words = preg_split('/\s+/u', mb_strtolower(trim($search), 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY);
             if (!empty($words)) {
@@ -36,13 +34,12 @@ class CatalogController extends Controller
                         $word = addcslashes($word, '%_\\');
                         $q->where(function ($q) use ($word) {
                             $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"])
-                              ->orWhereRaw('LOWER(code) LIKE ?', ["%{$word}%"])
-                              ->orWhereRaw('LOWER(article) LIKE ?', ["%{$word}%"]);
+                                ->orWhereRaw('LOWER(code) LIKE ?', ["%{$word}%"])
+                                ->orWhereRaw('LOWER(article) LIKE ?', ["%{$word}%"]);
                         });
                     }
                 });
             }
-            Log::info('Catalog search', ['search' => $search, 'count' => (clone $query)->count()]);
         }
 
         // Filter by category
@@ -50,16 +47,16 @@ class CatalogController extends Controller
         $categoryModel = null;
         if ($categoryId) {
             // Could be slug or ID
-            $categoryModel = Category::where('slug', $categoryId)->first();
+            $categoryQuery = Category::query()->where('slug', $categoryId);
+
+            if (is_numeric($categoryId)) {
+                $categoryQuery->orWhere('id', (int) $categoryId);
+            }
+
+            $categoryModel = $categoryQuery->first();
             if ($categoryModel) {
                 $query->where('category_id', $categoryModel->id);
             }
-        }
-
-        // Filter by manufacturer
-        $manufacturerId = $request->input('manufacturer');
-        if ($manufacturerId) {
-            $query->where('manufacturer_id', $manufacturerId);
         }
 
         // Filter by price range
@@ -88,29 +85,67 @@ class CatalogController extends Controller
             });
         }
 
+        // Filter by product type
+        $productTypeId = $request->input('product_type');
+        if ($productTypeId) {
+            $query->where('product_type_id', $productTypeId);
+        }
+
+        // Filter by stock status
+        $stockStatus = $request->input('stock_status');
+        $stockStatus = in_array($stockStatus, ['in_stock', 'out_of_stock'], true) ? $stockStatus : null;
+        if ($stockStatus) {
+            match ($stockStatus) {
+                'in_stock' => $query->whereHas('locations', fn ($q) => $q->where('quantity', '>', 0)),
+                'out_of_stock' => $query->whereDoesntHave('locations', fn ($q) => $q->where('quantity', '>', 0)),
+                default => null,
+            };
+        }
+
         // Filter by characteristics
-        $characteristics = $request->input('characteristics', []);
-        if (is_array($characteristics)) {
-            foreach ($characteristics as $charId => $value) {
-                if ($value !== '' && $value !== null) {
-                    $query->whereHas('characteristicValues', function ($q) use ($charId, $value) {
-                        $q->where('characteristic_id', $charId)
-                            ->where('value', (string) $value);
-                    });
-                }
+        $selectedCharacteristics = $request->input('characteristics', []);
+        $selectedCharacteristics = is_array($selectedCharacteristics) ? $selectedCharacteristics : [];
+        $selectedCharacteristics = collect($selectedCharacteristics)
+            ->filter(fn ($value, $key) => is_numeric($key) && is_scalar($value) && $value !== '')
+            ->all();
+
+        if ($selectedCharacteristics !== []) {
+            $booleanCharacteristicIds = Characteristic::query()
+                ->whereIn('id', array_keys($selectedCharacteristics))
+                ->where('type', 'boolean')
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->all();
+
+            foreach ($selectedCharacteristics as $charId => $value) {
+                $query->whereHas('characteristicValues', function ($q) use ($charId, $value, $booleanCharacteristicIds) {
+                    $q->where('characteristic_id', $charId);
+
+                    if (in_array((string) $charId, $booleanCharacteristicIds, true)) {
+                        // В каталоге переключатель означает наличие признака (true).
+                        $q->whereRaw("LOWER(TRIM(value)) IN ('1', 'true', 'yes', 'да', 'on')");
+                    } else {
+                        $q->where('value', (string) $value);
+                    }
+                });
             }
         }
 
         // Sort
-        $sort = $request->input('sort', 'created_at');
-        $direction = $request->input('direction', 'desc');
+        $sort = (string) $request->input('sort', 'created_at');
+        $sort = in_array($sort, ['created_at', 'name', 'price'], true) ? $sort : 'created_at';
 
-        match ($sort) {
-            'name' => $query->orderBy('name', $direction),
-            'price' => $query->orderBy('retail_price', $direction),
-            'created_at' => $query->orderBy('created_at', $direction),
-            default => $query->orderBy('created_at', 'desc'),
-        };
+        $direction = strtolower((string) $request->input('direction', 'desc'));
+        $direction = in_array($direction, ['asc', 'desc'], true) ? $direction : 'desc';
+
+        $query->orderBy(
+            match ($sort) {
+                'name' => 'name',
+                'price' => 'retail_price',
+                default => 'created_at',
+            },
+            $direction,
+        );
 
         $imageService = app(ImageService::class);
 
@@ -134,29 +169,22 @@ class CatalogController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
 
-        $manufacturers = Manufacturer::where('is_active', true)
-            ->whereHas('products', fn ($q) => $q->where('is_active', true)->where('published', true))
-            ->orderBy('name')
-            ->get(['id', 'name']);
 
         // Get characteristics for current category
         $characteristics = collect();
-        if ($categoryId) {
-            $categoryModel = Category::where('slug', $categoryId)->first();
-            if ($categoryModel) {
-                $characteristics = $categoryModel->characteristics()
-                    ->orderBy('category_characteristic.sort_order')
-                    ->orderBy('characteristics.name')
-                    ->get(['id', 'name', 'slug', 'type', 'unit']);
-            }
+        if ($categoryModel) {
+            $characteristics = $categoryModel->characteristics()
+                ->orderBy('category_characteristic.sort_order')
+                ->orderBy('characteristics.name')
+                ->get(['id', 'name', 'slug', 'type', 'unit']);
         }
 
         // Get distinct values for selected characteristics
         $charValues = [];
         if ($characteristics->isNotEmpty()) {
             $charIds = $characteristics->pluck('id')->toArray();
-            $categoryModel = $categoryId ? Category::where('slug', $categoryId)->first() : null;
-            $values = \App\Models\ProductCharacteristicValue::query()
+            // $categoryModel уже найден выше по slug или числовому ID.
+            $values = ProductCharacteristicValue::query()
                 ->whereIn('characteristic_id', $charIds)
                 ->join('products', 'product_characteristic_values.product_id', '=', 'products.id')
                 ->where('products.is_active', true)
@@ -182,22 +210,22 @@ class CatalogController extends Controller
         // Get available standards for current category
         $standards = collect();
         if ($categoryModel) {
-            $standards = \DB::table('standards')
+            $standards = DB::table('standards')
                 ->join('product_connections', 'standards.id', '=', 'product_connections.standard_id')
                 ->join('products', 'product_connections.product_id', '=', 'products.id')
                 ->where('products.category_id', $categoryModel->id)
                 ->where('products.is_active', true)
                 ->where('products.published', true)
                 ->distinct()
-                ->orderBy('standards.name')
-                ->select('standards.id', 'standards.name')
+                ->orderBy('standards.code')
+                ->select('standards.id', 'standards.code')
                 ->get();
         }
 
         // Get available diameters for current category
         $diameters = collect();
         if ($categoryModel) {
-            $diameters = \DB::table('diameters')
+            $diameters = DB::table('diameters')
                 ->join('product_connections', 'diameters.id', '=', 'product_connections.diameter_id')
                 ->join('products', 'product_connections.product_id', '=', 'products.id')
                 ->where('products.category_id', $categoryModel->id)
@@ -209,26 +237,38 @@ class CatalogController extends Controller
                 ->get();
         }
 
+        // Get available product types for current category
+        $productTypes = collect();
+        if ($categoryModel) {
+            $productTypes = ProductType::where('is_active', true)
+                ->where('category_id', $categoryModel->id)
+                ->whereHas('products', fn ($q) => $q->where('is_active', true)->where('published', true))
+                ->orderBy('name')
+                ->get(['id', 'name']);
+        }
+
+
         return Inertia::render('store/catalog/Index', [
             'products' => $products,
             'categories' => $categories,
-            'manufacturers' => $manufacturers,
             'characteristics' => $characteristics,
             'characteristic_values' => $charValues,
             'favorite_product_ids' => $favoriteProductIds,
             'standards' => $standards,
             'diameters' => $diameters,
+            'product_types' => $productTypes,
             'filters' => [
                 'category' => $categoryId,
-                'manufacturer' => $manufacturerId,
                 'standard' => $standardId,
                 'diameter' => $diameterId,
+                'product_type' => $productTypeId,
+                'stock_status' => $stockStatus,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,
-                'characteristics' => $characteristics,
+                'characteristics' => $selectedCharacteristics,
                 'sort' => $sort,
                 'direction' => $direction,
-                'search' => $search ?? '',
+                'search' => $search,
             ],
         ])->with([
             'title' => 'Каталог товаров — Гидровик',
