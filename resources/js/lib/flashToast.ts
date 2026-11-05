@@ -13,20 +13,7 @@ export function initializeFlashToast(): void {
 
     initialized = true;
 
-    // Обработка уведомлений Inertia::flash('toast', ...)
-    router.on('flash', (event) => {
-        const detail = (event as CustomEvent).detail;
-
-        const flash = detail?.flash as Record<string, unknown> | undefined;
-
-        const data = flash?.toast as FlashToast | undefined;
-
-        if (data) {
-            toast[data.type](data.message);
-        }
-    });
-
-    // Обработка Laravel redirect()->with('success', ...) / with('error', ...)
+    // Единый обработчик для всех типов flash-уведомлений
     router.on('navigate', (event) => {
         const detail = (event as CustomEvent).detail;
         const page = detail?.page;
@@ -35,16 +22,18 @@ export function initializeFlashToast(): void {
             | {
                   success?: string | null;
                   error?: string | null;
+                  toast?: FlashToast;
               }
             | undefined;
 
         console.log('[FlashToast] navigate:', flash);
 
-        if (flash?.success) {
+        // Приоритет: toast > success > error
+        if (flash?.toast) {
+            toast[flash.toast.type](flash.toast.message);
+        } else if (flash?.success) {
             toast.success(flash.success);
-        }
-
-        if (flash?.error) {
+        } else if (flash?.error) {
             toast.error(flash.error);
         }
     });

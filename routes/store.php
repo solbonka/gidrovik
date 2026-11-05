@@ -3,6 +3,7 @@
 use App\Http\Controllers\Store\CartController;
 use App\Http\Controllers\Store\CatalogController;
 use App\Http\Controllers\Store\CheckoutController;
+use App\Http\Controllers\Store\ErrorController;
 use App\Http\Controllers\Store\FavoriteController;
 use App\Http\Controllers\Store\OrderController;
 use App\Http\Controllers\Store\ProductController as StoreProductController;
@@ -10,6 +11,7 @@ use App\Http\Controllers\Store\SearchController;
 use App\Http\Controllers\Store\StaticPageController;
 use App\Http\Controllers\Store\StoreHomeController;
 use Illuminate\Support\Facades\Route;
+use Inertia\Inertia;
 
 /* |--------------------------------------------------------------------------
 | Store (Public) Routes
@@ -62,3 +64,11 @@ Route::get('/delivery', [StaticPageController::class, 'delivery'])->name('store.
 Route::get('/payment', [StaticPageController::class, 'payment'])->name('store.pages.payment');
 Route::get('/returns', [StaticPageController::class, 'returns'])->name('store.pages.returns');
 Route::get('/privacy', [StaticPageController::class, 'privacy'])->name('store.pages.privacy');
+
+// 404
+Route::get('/404', [ErrorController::class, 'notFound'])->name('store.error.404');
+
+// Fallback for 404 - render custom page directly
+Route::fallback(function () {
+    return Inertia::render('errors/NotFound');
+});
