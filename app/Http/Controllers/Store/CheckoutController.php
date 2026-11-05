@@ -134,6 +134,12 @@ class CheckoutController extends Controller
             // Send confirmation email (async)
             \App\Queue\Jobs\SendOrderConfirmationEmail::dispatch($order);
 
+            // Store access token in session for non-auth users (expires after 30 min)
+            if (!Auth::check()) {
+                session(['order_access_token_' . $order->order_number => $order->access_token]);
+                session(['order_access_time_' . $order->order_number => now()]);
+            }
+
             return redirect()->route('store.checkout.success', $order->order_number);
         } catch (\Throwable $e) {
             DB::rollBack();
@@ -143,19 +149,33 @@ class CheckoutController extends Controller
 
     public function success(string $orderNumber, \Illuminate\Http\Request $request): \Inertia\Response
     {
-        $token = $request->query('token');
+        // For authenticated users, check if order belongs to them
+        if (Auth::check()) {
+            $order = \App\Models\Order::query()
+                ->with(['items'])
+                ->where('order_number', $orderNumber)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+        } else {
+            // For guest users, check session token with 30 min expiry
+            $sessionToken = session('order_access_token_' . $orderNumber);
+            $sessionTime = session('order_access_time_' . $orderNumber);
 
-        $order = \App\Models\Order::query()
-            ->with(['items'])
-            ->where('order_number', $orderNumber)
-            ->where('access_token', $token)
-            ->firstOrFail();
+            if (!$sessionToken || !$sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
+                abort(403, 'Срок доступа к заказу истёк. Войдите в аккаунт или свяжитесь с менеджером.');
+            }
+
+            $order = \App\Models\Order::query()
+                ->with(['items'])
+                ->where('order_number', $orderNumber)
+                ->where('access_token', $sessionToken)
+                ->firstOrFail();
+        }
 
         return inertia('store/checkout/Success', [
             'order' => [
                 'id' => $order->id,
                 'order_number' => $order->order_number,
-                'access_token' => $order->access_token,
                 'customer_name' => $order->customer_name,
                 'customer_email' => $order->customer_email,
                 'customer_phone' => $order->customer_phone,

@@ -39,18 +39,29 @@ class OrderController extends Controller
 
     public function publicShow(string $orderNumber, Request $request): mixed
     {
-        $token = $request->query('token');
+        // For authenticated users, check if order belongs to them
+        if (Auth::check()) {
+            $order = Order::query()
+                ->with(['items'])
+                ->where('order_number', $orderNumber)
+                ->where('user_id', Auth::id())
+                ->firstOrFail();
+        } else {
+            // For guest users, check session token with 30 min expiry
+            $sessionToken = session('order_access_token_' . $orderNumber);
+            $sessionTime = session('order_access_time_' . $orderNumber);
 
-        if (!$token) {
-            return redirect()->route('store.checkout.create')
-                ->with('error', 'Для просмотра заказа необходим токен доступа.');
+            if (!$sessionToken || !$sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
+                return redirect()->route('store.checkout.create')
+                    ->with('error', 'Срок доступа к заказу истёк. Войдите в аккаунт или свяжитесь с менеджером.');
+            }
+
+            $order = Order::query()
+                ->with(['items'])
+                ->where('order_number', $orderNumber)
+                ->where('access_token', $sessionToken)
+                ->firstOrFail();
         }
-
-        $order = Order::query()
-            ->with(['items'])
-            ->where('order_number', $orderNumber)
-            ->where('access_token', $token)
-            ->firstOrFail();
 
         return inertia('store/orders/Show', [
             'order' => [

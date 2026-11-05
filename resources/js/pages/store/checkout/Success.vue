@@ -4,21 +4,17 @@ import {
     PhArrowRight,
     PhCheck,
     PhCheckCircle,
-    PhCopy,
     PhEnvelope,
-    PhKey,
     PhMapPin,
     PhPhone,
     PhReceipt,
     PhShoppingCart,
 } from '@phosphor-icons/vue'
-import { onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps<{
     order: {
         id: number
         order_number: string
-        access_token: string
         customer_name: string
         customer_email: string
         customer_phone: string
@@ -40,28 +36,6 @@ const props = defineProps<{
 }>()
 
 const cardClass = 'rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900'
-
-const copied = ref(false)
-let copiedTimeout: ReturnType<typeof setTimeout> | null = null
-
-onBeforeUnmount(() => {
-    if (copiedTimeout) clearTimeout(copiedTimeout)
-})
-
-async function copyToken() {
-    try {
-        await navigator.clipboard.writeText(props.order.access_token)
-        copied.value = true
-
-        if (copiedTimeout) clearTimeout(copiedTimeout)
-
-        copiedTimeout = setTimeout(() => {
-            copied.value = false
-        }, 2000)
-    } catch {
-        // Буфер обмена недоступен — пользователь может выделить токен вручную
-    }
-}
 
 function formatPrice(price: string): string {
     return new Intl.NumberFormat('ru-RU').format(parseFloat(price))
@@ -118,38 +92,6 @@ function formatPrice(price: string): string {
                     <p class="text-sm text-zinc-500 dark:text-zinc-400">
                         Дата оформления:
                         <span class="font-semibold text-zinc-900 dark:text-white">{{ order.created_at }}</span>
-                    </p>
-                </div>
-
-                <!-- Токен -->
-                <div class="mt-4 rounded-2xl border border-orange-200 bg-orange-50 p-4 dark:border-orange-500/30 dark:bg-orange-500/10">
-                    <p class="flex items-center gap-2 text-sm font-bold text-orange-800 dark:text-orange-300">
-                        <PhKey :size="18" weight="duotone" />
-                        Сохраните токен для просмотра заказа
-                    </p>
-
-                    <div class="mt-3 flex items-center gap-2">
-                        <code class="min-w-0 flex-1 select-all break-all rounded-xl bg-white px-3 py-2.5 font-mono text-sm text-zinc-900 shadow-sm dark:bg-zinc-900 dark:text-zinc-100">
-                            {{ order.access_token }}
-                        </code>
-
-                        <button
-                            type="button"
-                            class="flex size-11 shrink-0 items-center justify-center rounded-xl text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-500/30"
-                            :class="copied
-                                ? 'bg-emerald-500 text-white'
-                                : 'bg-orange-500 text-zinc-950 hover:bg-orange-400'"
-                            :aria-label="copied ? 'Скопировано' : 'Скопировать токен'"
-                            :title="copied ? 'Скопировано' : 'Скопировать токен'"
-                            @click="copyToken"
-                        >
-                            <PhCheck v-if="copied" :size="18" weight="bold" />
-                            <PhCopy v-else :size="18" weight="bold" />
-                        </button>
-                    </div>
-
-                    <p class="mt-3 text-xs text-orange-700 dark:text-orange-400">
-                        Этот токен нужен для повторного просмотра заказа. Без него заказ будет недоступен.
                     </p>
                 </div>
             </section>
@@ -259,7 +201,7 @@ function formatPrice(price: string): string {
 
                 <div class="grid gap-3 sm:grid-cols-2">
                     <a
-                        :href="`/orders/${order.order_number}?token=${order.access_token}`"
+                        :href="`/order/${order.order_number}`"
                         class="inline-flex items-center justify-center gap-2 rounded-full border border-zinc-200 bg-white px-6 py-3 text-sm font-bold text-zinc-700 shadow-sm transition hover:border-orange-400 hover:text-orange-600 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-orange-500 dark:hover:text-orange-400"
                     >
                         <PhReceipt :size="18" weight="duotone" />
