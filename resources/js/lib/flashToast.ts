@@ -3,6 +3,7 @@ import { toast } from 'vue-sonner';
 import type { FlashToast } from '@/types/ui';
 
 let initialized = false;
+let lastToastShown = '';
 
 export function initializeFlashToast(): void {
     console.log('[FlashToast] Инициализация');
@@ -31,6 +32,11 @@ export function initializeFlashToast(): void {
 
 function showFlash(flash: { success?: string | null; error?: string | null; toast?: FlashToast } | undefined) {
     if (!flash) return;
+
+    const message = flash.toast?.message || flash.success || flash.error;
+    if (!message || message === lastToastShown) return;
+
+    lastToastShown = message;
 
     // Приоритет: toast > success > error
     if (flash.toast) {

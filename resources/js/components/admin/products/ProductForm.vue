@@ -282,11 +282,22 @@ watch(
 
 const loadCharacteristicValues = async (categoryId: number): Promise<void> => {
     try {
-        const response = await fetch(`/admin/categories/${categoryId}/characteristics`);
-        const data = await response.json();
+        console.log('Loading characteristic values for category:', categoryId);
+        const response = await fetch(`/admin/categories/${categoryId}/characteristics/json`);
+        const text = await response.text();
+        let data;
+        try {
+            data = JSON.parse(text);
+        } catch {
+            console.error('Response is not JSON:', text.substring(0, 200));
+            return;
+        }
+
+        console.log('Characteristic data:', data);
 
         if (data.values) {
             characteristicValues.value = data.values;
+            console.log('Characteristic values loaded:', characteristicValues.value);
 
             // Обновить характеристики с типом select
             for (const [charId, values] of Object.entries(data.values)) {
@@ -300,6 +311,8 @@ const loadCharacteristicValues = async (categoryId: number): Promise<void> => {
                     }
                 }
             }
+        } else {
+            console.warn('No values in response');
         }
     } catch (error) {
         console.error('Failed to load characteristic values:', error);

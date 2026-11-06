@@ -61,6 +61,18 @@ Route::middleware(['auth', 'verified', 'employee'])
                 'characteristics',
             ])->name('categories.characteristics');
 
+            // JSON API for product form
+            Route::get('/categories/{category}/characteristics/json', [
+                CategoryController::class,
+                'characteristicsJson',
+            ]);
+
+            // JSON API for product form
+            Route::get('/categories/{category}/characteristics/json', [
+                CategoryController::class,
+                'characteristicsJson',
+            ]);
+
             Route::put('/categories/{category}/characteristics', [
                 CategoryController::class,
                 'updateCharacteristics',

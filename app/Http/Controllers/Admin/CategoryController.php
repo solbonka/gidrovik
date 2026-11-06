@@ -81,6 +81,32 @@ class CategoryController extends Controller
             ->with('success', 'Категория удалена.');
     }
 
+    public function characteristicsJson(Category $category): \Illuminate\Http\JsonResponse
+    {
+        $characteristics = Characteristic::query()
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->get(['id', 'name', 'slug', 'type', 'unit']);
+
+        $selectCharacteristics = $characteristics->where('type', 'select')->pluck('id')->toArray();
+        $values = [];
+        if (!empty($selectCharacteristics)) {
+            $values = \App\Models\CharacteristicValue::whereIn('characteristic_id', $selectCharacteristics)
+                ->orderBy('sort_order')
+                ->get(['id', 'characteristic_id', 'value'])
+                ->groupBy('characteristic_id')
+                ->map(fn ($items) => $items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'value' => $item->value,
+                ])->values());
+        }
+
+        return response()->json([
+            'characteristics' => $characteristics->toArray(),
+            'values' => $values,
+        ]);
+    }
+
     public function characteristics(Category $category): Response
     {
         $characteristics = Characteristic::query()
@@ -92,6 +118,19 @@ class CategoryController extends Controller
             ->characteristics()
             ->get()
             ->keyBy('id');
+
+        $selectCharacteristics = $characteristics->where('type', 'select')->pluck('id')->toArray();
+        $values = [];
+        if (!empty($selectCharacteristics)) {
+            $values = \App\Models\CharacteristicValue::whereIn('characteristic_id', $selectCharacteristics)
+                ->orderBy('sort_order')
+                ->get(['id', 'characteristic_id', 'value'])
+                ->groupBy('characteristic_id')
+                ->map(fn ($items) => $items->map(fn ($item) => [
+                    'id' => $item->id,
+                    'value' => $item->value,
+                ])->values());
+        }
 
         return Inertia::render('admin/categories/Characteristics', [
             'category' => $category->only([
@@ -119,6 +158,7 @@ class CategoryController extends Controller
                     ];
                 }
             )->values(),
+            'values' => $values,
         ]);
     }
 
