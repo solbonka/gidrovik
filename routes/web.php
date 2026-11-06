@@ -56,32 +56,6 @@ Route::middleware(['auth', 'verified', 'employee'])
             Route::resource('characteristics', CharacteristicController::class)
                 ->except(['show']);
 
-            // Characteristic values management
-            Route::get('/characteristics/{characteristic}/values', [
-                CharacteristicValueController::class,
-                'index',
-            ])->name('characteristics.values');
-
-            Route::post('/characteristics/{characteristic}/values', [
-                CharacteristicValueController::class,
-                'store',
-            ])->name('characteristics.values.store');
-
-            Route::patch('/characteristics/{characteristic}/values/{value}', [
-                CharacteristicValueController::class,
-                'update',
-            ])->name('characteristics.values.update');
-
-            Route::delete('/characteristics/{characteristic}/values/{value}', [
-                CharacteristicValueController::class,
-                'destroy',
-            ])->name('characteristics.values.destroy');
-
-            Route::post('/characteristics/{characteristic}/values/reorder', [
-                CharacteristicValueController::class,
-                'reorder',
-            ])->name('characteristics.values.reorder');
-
             Route::get('/categories/{category}/characteristics', [
                 CategoryController::class,
                 'characteristics',

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Building2,
     Pencil,
@@ -99,7 +98,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (warehouse: Warehouse): void => {
     if (warehouse.racks_count > 0) {
-        toast.error('Нельзя удалить склад, в котором есть стеллажи.');
         return;
     }
 
@@ -121,12 +119,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy.url(deleteDialog.value.id), {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Склад удалён.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить склад.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

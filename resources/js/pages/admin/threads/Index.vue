@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Hash,
     Layers3,
@@ -128,7 +127,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (thread: Thread): void => {
     if (thread.connections_count > 0) {
-        toast.error('Нельзя удалить резьбу, которая используется в характеристиках.');
         return;
     }
 
@@ -149,12 +147,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Резьба удалена.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить резьбу.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

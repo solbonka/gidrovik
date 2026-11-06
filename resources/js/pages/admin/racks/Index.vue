@@ -2,7 +2,6 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import type { Component } from 'vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { create, destroy, edit, index } from '@/routes/admin/racks';
 import {
@@ -363,7 +362,6 @@ const addLocation = (rack: Rack): void => {
     const value = Number(newLocationNumber.value[rack.id]);
 
     if (!Number.isInteger(value) || value < 1) {
-        toast.error('Укажите корректный номер ячейки.');
         return;
     }
 
@@ -372,16 +370,6 @@ const addLocation = (rack: Rack): void => {
         { number: value },
         {
             preserveScroll: true,
-            onSuccess: () => {
-                addingLocationRackId.value = null;
-                toast.success('Ячейка добавлена.');
-            },
-            onError: (errors) => {
-                toast.error(
-                    Object.values(errors).flat().join(', ') ||
-                    'Не удалось добавить ячейку.',
-                );
-            },
         },
     );
 };
@@ -414,22 +402,6 @@ const confirmDelete = (): void => {
 
     const options = {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success(
-                confirmation.type === 'rack'
-                    ? 'Стеллаж успешно удалён.'
-                    : 'Ячейка успешно удалена.',
-            );
-
-            deleteConfirmation.value.open = false;
-        },
-        onError: () => {
-            toast.error(
-                confirmation.type === 'rack'
-                    ? 'Не удалось удалить стеллаж. Проверьте остатки и историю движений.'
-                    : 'Не удалось удалить ячейку. Возможно, в ней есть остатки или история движений.',
-            );
-        },
         onFinish: () => {
             deleteConfirmation.value.loading = false;
         },
@@ -553,17 +525,14 @@ const submitOperation = (): void => {
     const quantity = Number(operationForm.value.quantity);
 
     if (!operationForm.value.product_id) {
-        toast.error('Выберите товар.');
         return;
     }
 
     if (!Number.isFinite(quantity) || quantity < 0) {
-        toast.error('Укажите корректное количество.');
         return;
     }
 
     if (operation !== 'inventory' && quantity <= 0) {
-        toast.error('Количество должно быть больше нуля.');
         return;
     }
 
@@ -572,7 +541,6 @@ const submitOperation = (): void => {
         (!operationForm.value.to_location_id ||
             Number(operationForm.value.to_location_id) === locationId)
     ) {
-        toast.error('Выберите другую ячейку назначения.');
         return;
     }
 
@@ -609,14 +577,8 @@ const submitOperation = (): void => {
         data,
         {
             preserveScroll: true,
-            onSuccess: () => {
-                locationModal.value.operation = null;
-                operationForm.value = emptyOperationForm();
-                toast.success('Операция успешно выполнена.');
-            },
             onError: (errors) => {
                 const message = Object.values(errors).flat().join(', ') || 'Ошибка при выполнении операции.';
-                toast.error(message);
             },
             onFinish: () => {
                 locationModal.value.operationLoading = false;

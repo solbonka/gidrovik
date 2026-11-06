@@ -15,7 +15,6 @@ import {
     Save,
     ToggleRight,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { index, update } from '@/routes/admin/product-types';
 
@@ -71,12 +70,6 @@ const resetForm = (): void => {
 const submit = (): void => {
     form.put(update(props.productType.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Тип товара успешно обновлён.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
     });
 };
 </script>

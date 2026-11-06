@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { Check, LoaderCircle, RotateCcw } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
@@ -94,13 +93,6 @@ watch(
 const submit = (): void => {
     form.post('/admin/stock/return', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Возврат товара успешно оформлен.');
-            form.reset();
-        },
-        onError: () => {
-            toast.error('Не удалось оформить возврат. Проверьте поля формы.');
-        },
     });
 };
 </script>

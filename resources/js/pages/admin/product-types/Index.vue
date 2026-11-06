@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Archive,
     Layers3,
@@ -130,7 +129,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (productType: ProductType): void => {
     if (productType.products_count > 0) {
-        toast.error('Нельзя удалить тип товара, к которому привязаны товары.');
         return;
     }
 
@@ -152,12 +150,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Тип товара удалён.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить тип товара.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

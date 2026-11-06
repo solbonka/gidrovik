@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Folder,
     FolderOpen,
@@ -120,7 +119,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (category: Category): void => {
     if (category.products_count > 0) {
-        toast.error('Нельзя удалить категорию, в которой есть товары.');
         return;
     }
 
@@ -142,12 +140,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy.url(deleteDialog.value.id), {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Категория удалена.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить категорию.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

@@ -2,7 +2,6 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import type { Component } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     ArrowDownToLine,
     ArrowLeftRight,
@@ -279,11 +278,6 @@ const confirmDelete = (): void => {
 
     router.delete(`/admin/stock/movements/${deletingItemId.value}`, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Запись удалена из журнала.');
-            deleteDialogOpen.value = false;
-            deletingItemId.value = null;
-        },
         onFinish: () => {
             deleting.value = false;
         },

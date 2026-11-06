@@ -2,7 +2,6 @@
 import { computed, ref, watch } from 'vue';
 import { Head, Link, useForm, router } from '@inertiajs/vue3';
 import { Check, ClipboardCheck, Info, LoaderCircle } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
 import LocationSelect from '@/components/admin/LocationSelect.vue';
@@ -204,14 +203,6 @@ const submit = (): void => {
         actual_quantity: Number(data.actual_quantity),
     })).post('/admin/stock/inventory', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Инвентаризация успешно завершена.');
-            form.reset();
-            currentQuantity.value = null;
-        },
-        onError: () => {
-            toast.error('Не удалось завершить инвентаризацию. Проверьте поля формы.');
-        },
     });
 };
 </script>

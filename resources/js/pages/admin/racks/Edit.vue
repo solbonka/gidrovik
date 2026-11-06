@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     ArrowLeft,
     Check,
@@ -53,14 +52,7 @@ const form = useForm({
 });
 
 const submit = (): void => {
-    form.put(update(props.rack.id).url, {
-        onSuccess: () => {
-            toast.success('Стеллаж успешно обновлён.');
-        },
-        onError: () => {
-            toast.error('Не удалось сохранить изменения. Проверьте поля формы.');
-        },
-    });
+    form.put(update(props.rack.id).url, {});
 };
 
 function pluralize(count: number, one: string, few: string, many: string) {

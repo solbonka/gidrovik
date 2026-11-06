@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     CalendarDays,
     KeyRound,
@@ -171,11 +170,6 @@ function changeRole(user: UserRow, value: unknown): void {
         {
             preserveScroll: true,
 
-            onError: () => {
-                draftRoles[user.id] = user.role;
-                toast.error('Не удалось изменить роль пользователя.');
-            },
-
             onFinish: () => {
                 saving.value = null;
             },
@@ -197,9 +191,6 @@ function toggleEmployee(user: UserRow): void {
             preserveScroll: true,
             onSuccess: () => {
                 user.is_employee = !user.is_employee;
-            },
-            onError: () => {
-                toast.error('Не удалось изменить статус сотрудника.');
             },
             onFinish: () => {
                 saving.value = null;

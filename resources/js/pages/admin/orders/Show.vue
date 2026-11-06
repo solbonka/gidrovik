@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3'
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { toast } from 'vue-sonner'
 import {
     ArrowLeft,
     ArrowRight,
@@ -122,12 +121,7 @@ function statusLabel(value: string | null): string {
 }
 
 async function copy(text: string, what: string) {
-    try {
-        await navigator.clipboard.writeText(text)
-        toast.success(`${what} скопирован`)
-    } catch {
-        toast.error('Не удалось скопировать')
-    }
+    await navigator.clipboard.writeText(text)
 }
 
 function updateStatus(newStatus: string) {
@@ -142,7 +136,6 @@ function updateStatus(newStatus: string) {
             onStart: () => (processing.value = true),
             onFinish: () => (processing.value = false),
             onSuccess: () => {
-                toast.success('Статус заказа обновлён')
                 statusNote.value = ''
             },
         },
@@ -159,7 +152,6 @@ function completeOrder() {
             onStart: () => (processing.value = true),
             onFinish: () => (processing.value = false),
             onSuccess: () => {
-                toast.success('Заказ завершён')
                 showCompleteDialog.value = false
             },
         },
@@ -176,7 +168,6 @@ function cancelOrder() {
             onStart: () => (processing.value = true),
             onFinish: () => (processing.value = false),
             onSuccess: () => {
-                toast.success('Заказ отменён')
                 showCancelDialog.value = false
                 cancelReason.value = ''
             },

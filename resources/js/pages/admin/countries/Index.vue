@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Globe,
     Layers3,
@@ -117,7 +116,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (country: Country): void => {
     if (country.products_count > 0) {
-        toast.error('Нельзя удалить страну, к которой привязаны товары.');
         return;
     }
 
@@ -138,12 +136,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Страна удалена.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить страну.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

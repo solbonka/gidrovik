@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     FolderPen,
     Info,
@@ -41,14 +40,7 @@ const form = useForm({
 const slugChanged = computed(() => form.slug !== props.category.slug);
 
 const submit = (): void => {
-    form.put(update.url(props.category.id), {
-        onSuccess: () => {
-            toast.success('Категория успешно обновлена.');
-        },
-        onError: () => {
-            toast.error('Не удалось обновить категорию. Проверьте поля формы.');
-        },
-    });
+    form.put(update.url(props.category.id), {});
 };
 
 const resetForm = (): void => {

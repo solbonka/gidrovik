@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Building2,
     Info,
@@ -43,14 +42,7 @@ const form = useForm({
 const nameChanged = computed(() => form.name !== props.warehouse.name);
 
 const submit = (): void => {
-    form.put(update.url(props.warehouse.id), {
-        onSuccess: () => {
-            toast.success('Склад успешно обновлён.');
-        },
-        onError: () => {
-            toast.error('Не удалось обновить склад. Проверьте поля формы.');
-        },
-    });
+    form.put(update.url(props.warehouse.id), {});
 };
 
 const resetForm = (): void => {

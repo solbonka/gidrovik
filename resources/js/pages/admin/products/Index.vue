@@ -12,7 +12,6 @@ import {
     Trash2,
     X,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -201,9 +200,6 @@ const confirmDelete = (): void => {
 
         onError: (errors) => {
             console.error('Ошибка удаления:', errors);
-            toast.error(
-                'Не удалось удалить товар. Проверьте данные и попробуйте ещё раз.',
-            );
         },
 
         onFinish: () => {
@@ -242,7 +238,6 @@ function togglePublished(product: Product) {
             preserveScroll: true,
             preserveState: true,
             onError: () => {
-                toast.error('Не удалось изменить статус публикации')
             },
         },
     )

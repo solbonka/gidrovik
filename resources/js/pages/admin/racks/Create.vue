@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { toast } from 'vue-sonner';
 import {
     ArrowLeft,
     Check,
@@ -35,14 +34,7 @@ const form = useForm({
 });
 
 const submit = (): void => {
-    form.post(store().url, {
-        onSuccess: () => {
-            toast.success('Стеллаж успешно создан.');
-        },
-        onError: () => {
-            toast.error('Не удалось создать стеллаж. Проверьте поля формы.');
-        },
-    });
+    form.post(store().url, {});
 };
 </script>
 

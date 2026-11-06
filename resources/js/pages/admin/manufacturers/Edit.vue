@@ -13,7 +13,6 @@ import {
     ShieldCheck,
     ToggleRight,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { index, update } from '@/routes/admin/manufacturers';
 
@@ -51,12 +50,6 @@ const resetForm = (): void => {
 const submit = (): void => {
     form.put(update(props.manufacturer.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Производитель успешно обновлён.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
     });
 };
 </script>

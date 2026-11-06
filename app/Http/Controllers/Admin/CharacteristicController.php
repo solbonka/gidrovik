@@ -8,6 +8,7 @@ use App\Http\Requests\Admin\UpdateCharacteristicRequest;
 use App\Models\Characteristic;
 use App\Models\ProductCharacteristicValue;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\Log;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -34,7 +35,20 @@ class CharacteristicController extends Controller
     public function store(
         StoreCharacteristicRequest $request,
     ): RedirectResponse {
-        Characteristic::query()->create($request->validated());
+        $data = $request->validated();
+        $characteristic = Characteristic::query()->create($data);
+
+        if ($data['type'] === 'select' && $request->has('values')) {
+            $values = $request->input('values', []);
+            foreach ($values as $i => $value) {
+                if (trim($value)) {
+                    $characteristic->values()->create([
+                        'value' => trim($value),
+                        'sort_order' => $i + 1,
+                    ]);
+                }
+            }
+        }
 
         return to_route('admin.characteristics.index')
             ->with('success', 'Характеристика успешно создана.');
@@ -43,7 +57,7 @@ class CharacteristicController extends Controller
     public function edit(Characteristic $characteristic): Response
     {
         return Inertia::render('admin/characteristics/Edit', [
-            'characteristic' => $characteristic,
+            'characteristic' => $characteristic->load('values'),
         ]);
     }
 
@@ -51,7 +65,24 @@ class CharacteristicController extends Controller
         UpdateCharacteristicRequest $request,
         Characteristic $characteristic,
     ): RedirectResponse {
-        $characteristic->update($request->validated());
+        $data = $request->validated();
+        $characteristic->update($data);
+
+        if ($data['type'] === 'select') {
+            $characteristic->values()->delete();
+            $values = $request->input('values', []);
+            Log::info('Saving characteristic values', ['id' => $characteristic->id, 'values' => $values]);
+            foreach ($values as $i => $value) {
+                if (trim($value)) {
+                    $characteristic->values()->create([
+                        'value' => trim($value),
+                        'sort_order' => $i + 1,
+                    ]);
+                }
+            }
+        } else {
+            $characteristic->values()->delete();
+        }
 
         return to_route('admin.characteristics.index')
             ->with('success', 'Характеристика успешно обновлена.');

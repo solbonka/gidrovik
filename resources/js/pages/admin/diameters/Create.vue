@@ -11,7 +11,6 @@ import {
     ShieldCheck,
     ToggleRight,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { index, store } from '@/routes/admin/diameters';
 
@@ -26,14 +25,7 @@ const form = useForm({
 });
 
 const submit = (): void => {
-    form.post(store().url, {
-        onSuccess: () => {
-            toast.success('Диаметр успешно создан.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
-    });
+    form.post(store().url, {});
 };
 </script>
 

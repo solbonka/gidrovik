@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Layers3,
     Maximize2,
@@ -124,7 +123,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (diameter: Diameter): void => {
     if (diameter.connections_count > 0) {
-        toast.error('Нельзя удалить диаметр, который используется в характеристиках.');
         return;
     }
 
@@ -146,12 +144,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Диаметр удалён.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить диаметр.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

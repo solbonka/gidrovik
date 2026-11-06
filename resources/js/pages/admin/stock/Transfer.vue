@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { ArrowLeftRight, ArrowRight, Info, LoaderCircle } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
@@ -97,13 +96,6 @@ const submit = (): void => {
 
     form.post('/admin/stock/transfer', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Товар успешно перемещён.');
-            form.reset();
-        },
-        onError: () => {
-            toast.error('Не удалось переместить товар. Проверьте поля формы.');
-        },
     });
 };
 </script>

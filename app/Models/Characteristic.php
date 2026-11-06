@@ -50,4 +50,20 @@ class Characteristic extends Model
             ->orderBy('sort_order')
             ->orderBy('value');
     }
+
+    public function addValue(string $value): void
+    {
+        $this->values()->firstOrCreate(['value' => $value]);
+    }
+
+    public function syncValues(array $values): void
+    {
+        $this->values()->delete();
+        foreach ($values as $i => $value) {
+            $this->values()->create([
+                'value' => $value,
+                'sort_order' => $i + 1,
+            ]);
+        }
+    }
 }

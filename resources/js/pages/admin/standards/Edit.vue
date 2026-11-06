@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
-import { toast } from 'vue-sonner';
 import { Hash, Info, LoaderCircle, Save } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import StockPageHeader from '@/components/admin/stock/StockPageHeader.vue';
@@ -46,12 +45,6 @@ const resetForm = (): void => {
 const submit = (): void => {
     form.put(update(props.standard.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Стандарт успешно обновлён.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
     });
 };
 </script>

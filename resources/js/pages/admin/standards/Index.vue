@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Layers3,
     Pencil,
@@ -123,7 +122,6 @@ const deleteDialog = ref({
 
 const openDeleteDialog = (standard: Standard): void => {
     if (standard.connections_count > 0) {
-        toast.error('Нельзя удалить стандарт, который используется в характеристиках.');
         return;
     }
 
@@ -145,12 +143,6 @@ const confirmDelete = (): void => {
 
     router.delete(destroy(deleteDialog.value.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Стандарт удалён.');
-        },
-        onError: () => {
-            toast.error('Не удалось удалить стандарт.');
-        },
         onFinish: () => {
             deleteDialog.value.loading = false;
             deleteDialog.value.open = false;

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { FolderPlus, Info, LoaderCircle, Save } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import StockPageHeader from '@/components/admin/stock/StockPageHeader.vue';
@@ -56,14 +55,7 @@ const onSlugInput = (): void => {
 };
 
 const submit = (): void => {
-    form.post(store.url(), {
-        onSuccess: () => {
-            toast.success('Категория успешно создана.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
-    });
+    form.post(store.url(), {});
 };
 </script>
 

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     CheckCircle2,
     Hash,
@@ -109,14 +108,6 @@ const save = (): void => {
             })),
     })).put(`/admin/categories/${props.category.id}/characteristics`, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Характеристики категории сохранены.');
-            // Текущие значения становятся исходными, кнопка снова неактивна
-            form.defaults();
-        },
-        onError: () => {
-            toast.error('Не удалось сохранить характеристики.');
-        },
     });
 };
 </script>

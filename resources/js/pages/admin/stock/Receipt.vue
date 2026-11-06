@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import { toast } from 'vue-sonner';
 import {
     Check,
     LoaderCircle,
@@ -117,7 +116,6 @@ const errorFor = (index: number, field: string): string | undefined =>
 
 const submit = (): void => {
     if (items.value.length === 0) {
-        toast.error('Добавьте хотя бы один товар.');
         return;
     }
 
@@ -125,13 +123,6 @@ const submit = (): void => {
         items: items.value.map(({ uid: _uid, ...rest }) => rest),
     })).post('/admin/stock/receipt/batch', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Поступление товара успешно оформлено.');
-            items.value = [newItem()];
-        },
-        onError: () => {
-            toast.error('Не удалось оформить поступление. Проверьте поля формы.');
-        },
     });
 };
 </script>

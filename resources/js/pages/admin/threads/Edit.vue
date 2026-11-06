@@ -13,7 +13,6 @@ import {
     ShieldCheck,
     ToggleRight,
 } from '@lucide/vue';
-import { toast } from 'vue-sonner';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { index, update } from '@/routes/admin/threads';
 
@@ -57,12 +56,6 @@ const resetForm = (): void => {
 const submit = (): void => {
     form.put(update(props.thread.id).url, {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Резьба успешно обновлена.');
-        },
-        onError: () => {
-            toast.error('Проверьте правильность заполнения формы.');
-        },
     });
 };
 </script>

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, watch } from 'vue';
-import { toast } from 'vue-sonner';
 import { LoaderCircle, PackageMinus } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import ProductSelect from '@/components/admin/ProductSelect.vue';
@@ -104,13 +103,6 @@ watch(
 const submit = (): void => {
     form.post('/admin/stock/write-off', {
         preserveScroll: true,
-        onSuccess: () => {
-            toast.success('Списание товара успешно оформлено.');
-            form.reset();
-        },
-        onError: () => {
-            toast.error('Не удалось оформить списание. Проверьте поля формы.');
-        },
     });
 };
 </script>
