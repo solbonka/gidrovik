@@ -172,6 +172,11 @@ Route::middleware(['auth', 'verified', 'employee'])
                 'edit',
             ])->name('products.edit');
 
+            Route::put('/products/{product}', [
+                ProductController::class,
+                'update',
+            ])->name('products.update');
+
             Route::put('/products/{product}/toggle-published', [
                 ProductController::class,
                 'togglePublished',
