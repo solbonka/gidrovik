@@ -48,6 +48,7 @@ interface LocationProduct {
     code: string | null;
     article: string | null;
     quantity: number;
+    unit?: string;
 }
 
 interface Location {
@@ -258,7 +259,7 @@ const locationProductsForSelect = computed(() =>
         name: product.name,
         code: product.code,
         article: product.article,
-        unit: 'шт.',
+        unit: product.unit || 'шт.',
     })),
 );
 
@@ -1145,7 +1146,7 @@ const closeProductDetails = (): void => {
                                     <span class="block text-sm font-bold tabular-nums">
                                         {{ formatQuantity(product.quantity) }}
                                     </span>
-                                    <span class="text-[11px] text-muted-foreground">шт.</span>
+                                    <span class="text-[11px] text-muted-foreground">{{ product.unit || 'шт.' }}</span>
                                 </span>
                                 <ChevronRight
                                     :size="16"

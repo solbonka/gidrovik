@@ -14,12 +14,15 @@ class ProductImage extends Model
     protected $fillable = [
         'product_id',
         'image_path',
+        'source_path',
         'alt',
         'display_order',
+        'crop',
     ];
 
     protected $casts = [
         'display_order' => 'integer',
+        'crop' => 'array',
     ];
 
     protected static function boot(): void
@@ -28,23 +31,24 @@ class ProductImage extends Model
 
         // Regenerate missing thumbnails on first load
         static::retrieved(function (ProductImage $image) {
-            if (!$image->image_path) {
+            if (! $image->image_path) {
                 return;
             }
 
             $base = str_replace('.webp', '', $image->image_path);
+            $disk = Storage::disk('public');
             $sizes = ['thumbnail', 'medium', 'large'];
             $anyMissing = false;
 
             foreach ($sizes as $size) {
-                $thumbPath = $base . "_{$size}.webp";
-                if (!Storage::exists($thumbPath)) {
+                $thumbPath = $base."_{$size}.webp";
+                if (! $disk->exists($thumbPath)) {
                     $anyMissing = true;
                     break;
                 }
             }
 
-            if (!$anyMissing) {
+            if (! $anyMissing) {
                 return;
             }
 

@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     libfreetype6-dev \
     libjpeg62-turbo-dev \
     libpng-dev \
+    libwebp-dev \
     libicu-dev \
     libpq-dev \
     libxpm-dev \
@@ -20,7 +21,7 @@ RUN apt-get update && apt-get install -y \
     && rm -rf /var/lib/apt/lists/*
 
 # Компиляция PHP-расширений (PostgreSQL, bcmath, zip, gd и т.д.)
-RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-xpm \
+RUN docker-php-ext-configure gd --with-freetype --with-jpeg --with-xpm --with-webp \
     && docker-php-ext-install -j$(nproc) \
         pdo_pgsql \
         pgsql \

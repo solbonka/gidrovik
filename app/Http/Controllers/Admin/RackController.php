@@ -242,6 +242,7 @@ class RackController extends Controller
                 'products.name',
                 'products.code',
                 'products.article',
+                'products.unit',
                 'product_location.quantity',
             ])
             ->get()
@@ -251,6 +252,7 @@ class RackController extends Controller
                     'name' => $item->name,
                     'code' => $item->code ?? null,
                     'article' => $item->article ?? null,
+                    'unit' => $item->unit ?? 'шт.',
                     'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
                 ];
             });
