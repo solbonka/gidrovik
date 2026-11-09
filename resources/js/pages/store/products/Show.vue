@@ -41,6 +41,7 @@ const props = defineProps<{
             unit: string | null
         }>
         locations?: Array<{ rack_code: string; location_code: string; quantity: string }>
+        unit?: string
     }
     related_products: Array<{
         id: number
@@ -81,19 +82,6 @@ function toggleFavorite() {
             onSuccess: () => { isFavorite.value = true },
         })
     }
-}
-
-// ---------- Галерея ----------
-const quantity = ref<number>(1)
-const showPreview = ref(false)
-const previewIndex = ref(0)
-
-const currentImage = computed(() => props.product.images[previewIndex.value] ?? props.product.images[0])
-
-function openPreview() {
-    if (props.product.images.length === 0) return
-    showPreview.value = true
-    document.body.style.overflow = 'hidden'
 }
 
 function closePreview() {
@@ -162,20 +150,35 @@ const stock = computed(() => {
 const outOfStock = computed(() => props.product.stock_status === 'out_of_stock')
 
 // ---------- Корзина ----------
+const quantity = ref<number>(1)
 const added = ref(false)
 let addedTimer: ReturnType<typeof setTimeout> | undefined
 
+const unit = computed(() => props.product.unit ?? 'шт.')
+const isPiece = computed(() => unit.value === 'шт.')
+const step = computed(() => (isPiece.value ? 1 : 0.01))
+const min = computed(() => (isPiece.value ? 1 : 0.01))
+const quantityPrecision = computed(() => (isPiece.value ? 0 : 2))
+
+function normalizeQuantity() {
+    const q = Number(quantity.value) || min.value
+    const rounded = Math.round(q / step.value) * step.value
+    quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
+}
+
 function changeQuantity(delta: number) {
-    const next = (Number(quantity.value) || 1) + delta
-    quantity.value = Math.max(1, Math.round(next * 10) / 10)
+    const next = (Number(quantity.value) || min.value) + delta * step.value
+    const rounded = Math.round(next / step.value) * step.value
+    quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
 }
 
 function addToCart() {
     if (outOfStock.value) return
+    normalizeQuantity()
 
     router.post(
         route('store.cart.store'),
-        { product_id: props.product.id, quantity: Number(quantity.value) || 1 },
+        { product_id: props.product.id, quantity: quantity.value },
         {
             preserveState: true,
             preserveScroll: true,
@@ -192,7 +195,7 @@ function addToCart() {
 // Переход на другой товар в том же компоненте — сбрасываем локальное состояние
 watch(() => props.product.id, () => {
     previewIndex.value = 0
-    quantity.value = 1
+    quantity.value = min.value
     isFavorite.value = props.favorite_product_ids.includes(props.product.id)
     closePreview()
 })
@@ -355,12 +358,14 @@ onBeforeUnmount(() => {
                             <input
                                 v-model.number="quantity"
                                 type="number"
-                                min="1"
-                                step="0.1"
+                                :min="min"
+                                :step="step"
                                 inputmode="decimal"
                                 class="w-12 appearance-none border-none bg-transparent p-0 text-center text-sm font-bold text-zinc-900 outline-none focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 aria-label="Количество"
+                                @blur="normalizeQuantity"
                             />
+                            <span class="text-sm text-zinc-500 shrink-0" aria-hidden="true">{{ unit }}</span>
                             <button
                                 type="button"
                                 class="flex size-11 items-center justify-center rounded-full text-zinc-600 transition hover:text-orange-600 active:scale-90 dark:text-zinc-300 dark:hover:text-orange-400"

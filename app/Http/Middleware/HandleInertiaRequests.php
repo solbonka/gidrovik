@@ -4,49 +4,36 @@ namespace App\Http\Middleware;
 
 use App\Enums\Permission;
 use App\Enums\UserRole;
+use App\Models\Cart;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
 class HandleInertiaRequests extends Middleware
 {
-    /**
-     * The root template that's loaded on the first page visit.
-     *
-     * @var string
-     */
     protected $rootView = 'app';
 
-    /**
-     * Determine if the request should pass through Inertia middleware.
-     */
     public function shouldProcessRequest(Request $request): bool
     {
-        // Exclude auth routes (Inertia can't handle auth redirects)
         if ($request->is('login', 'logout', 'register', 'verify-email*', 'forgot-password*', 'reset-password*')) {
             return false;
         }
 
-        // Exclude only true API endpoints (not Inertia page requests)
         if ($request->is('favorites/api')) {
             return false;
         }
 
-        // Exclude product characteristics API endpoint
         if ($request->is('admin/products/categories/*/characteristics')) {
             return false;
         }
 
-        // Exclude locations API endpoint
         if ($request->is('admin/locations')) {
             return false;
         }
 
-        // Exclude rack products API endpoint
         if ($request->is('admin/racks/*/products')) {
             return false;
         }
 
-        // Exclude stock operation API endpoints
         if ($request->is('stock/operation*', 'stock/inventory/current', 'locations/*/products', 'products/*/locations')) {
             return false;
         }
@@ -54,22 +41,26 @@ class HandleInertiaRequests extends Middleware
         return parent::shouldProcessRequest($request);
     }
 
-    /**
-     * Determines the current asset version.
-     */
     public function version(Request $request): ?string
     {
         return parent::version($request);
     }
 
-    /**
-     * Define the props that are shared by default.
-     *
-     * @return array<string, mixed>
-     */
     public function share(Request $request): array
     {
         $user = $request->user();
+
+        $cartCount = 0;
+        if ($user) {
+            $cart = Cart::where('user_id', $user->id)->first();
+            $cartCount = $cart?->items()->count() ?? 0;
+        } else {
+            $sessionId = $request->session()->get('cart_session_id');
+            if ($sessionId) {
+                $cart = Cart::where('session_id', $sessionId)->first();
+                $cartCount = $cart?->items()->count() ?? 0;
+            }
+        }
 
         return [
             ...parent::share($request),
@@ -99,6 +90,8 @@ class HandleInertiaRequests extends Middleware
                 'error' => fn () => $request->session()->get('error'),
                 'toast' => fn () => $request->session()->get('toast'),
             ],
+
+            'cartCount' => $cartCount,
         ];
     }
 }

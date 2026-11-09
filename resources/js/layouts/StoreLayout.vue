@@ -31,11 +31,10 @@ import { dashboard } from '@/routes/admin'
 
 const props = defineProps<{
     title?: string
-    cartCount?: number
 }>()
 
 const page = usePage()
-const cartCount = computed(() => props.cartCount ?? 0)
+const cartCount = computed(() => page.props.cartCount ?? 0)
 const user = computed(() => page.props.auth.user)
 
 // Сотрудник (есть флаг is_employee)

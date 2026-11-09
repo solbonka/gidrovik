@@ -47,6 +47,7 @@ class CartController extends Controller
                 'price' => $product->retail_price ?? '0',
                 'subtotal' => bcmul((string) $product->retail_price, (string) $item->quantity, 2),
                 'stock_status' => $product->stock_status,
+                'unit' => $product->unit ?? 'шт.',
                 'image_path' => $product->images->first()?->getUrlForSize('thumbnail'),
             ];
         });
@@ -56,7 +57,7 @@ class CartController extends Controller
         return Inertia::render('store/cart/Index', [
             'items' => $cartItems,
             'total' => number_format($total, 2, '.', ''),
-            'item_count' => $items->items->sum('quantity'),
+            'item_count' => $items->items->count(),
         ]);
     }
 

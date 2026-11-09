@@ -39,6 +39,7 @@ class ProductController extends Controller
                 'large' => $imageService->url($image->image_path, 'large'),
                 'alt' => $image->alt,
             ]),
+            'unit' => $product->unit ?? 'шт.',
             'characteristics' => $product->characteristicValues->map(fn ($cv) => [
                 'id' => $cv->characteristic->id,
                 'name' => $cv->characteristic->name,
@@ -60,6 +61,7 @@ class ProductController extends Controller
                 'name' => $p->name,
                 'slug' => $p->slug,
                 'price' => $p->retail_price ?? '0',
+                'unit' => $p->unit ?? 'шт.',
                 'image_path' => $p->images->first() ? $imageService->url($p->images->first()->image_path, 'thumbnail') : null,
                 'stock_status' => $p->stock_status,
             ]);

@@ -157,6 +157,7 @@ class CatalogController extends Controller
                 'code' => $product->code,
                 'article' => $product->article,
                 'price' => $product->retail_price ?? '0',
+                'unit' => $product->unit ?? 'шт.',
                 'image_path' => $product->images->first() ? $imageService->url($product->images->first()->image_path, 'thumbnail') : null,
                 'stock_status' => $product->stock_status,
                 'category' => $product->category?->name,

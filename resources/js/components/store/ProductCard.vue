@@ -23,6 +23,7 @@ type Product = {
     image_path?: string | null
     stock_status: string
     category?: string | null
+    unit?: string
 }
 
 const props = withDefaults(defineProps<{
@@ -57,14 +58,27 @@ const processing = ref(false)
 const added = ref(false)
 let timer: ReturnType<typeof setTimeout> | undefined
 
+const unit = computed(() => props.product.unit ?? 'шт.')
+const isPiece = computed(() => unit.value === 'шт.')
+
+const step = computed(() => (isPiece.value ? 1 : 0.01))
+const min = computed(() => (isPiece.value ? 1 : 0.01))
+const quantityPrecision = computed(() => (isPiece.value ? 0 : 2))
+
 const total = computed(() => {
     const q = Number(quantity.value) || 0
     return new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 }).format(parseFloat(props.product.price) * q)
 })
 
+function normalizeQuantity() {
+    const q = Number(quantity.value) || min.value
+    const rounded = Math.round(q / step.value) * step.value
+    quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
+}
+
 function openQuantityPicker() {
     if (outOfStock.value) return
-    quantity.value = 1
+    quantity.value = min.value
     showQuantityPicker.value = true
 }
 
@@ -74,13 +88,9 @@ function closePicker() {
 }
 
 function changeQuantity(delta: number) {
-    const next = (Number(quantity.value) || 1) + delta
-    quantity.value = Math.max(1, Math.round(next * 10) / 10)
-}
-
-function normalizeQuantity() {
-    const q = Number(quantity.value)
-    quantity.value = Number.isFinite(q) && q >= 1 ? Math.round(q * 10) / 10 : 1
+    const next = (Number(quantity.value) || min.value) + delta * step.value
+    const rounded = Math.round(next / step.value) * step.value
+    quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
 }
 
 function selectOnFocus(e: FocusEvent) {
@@ -292,8 +302,8 @@ onBeforeUnmount(() => {
                                 <input
                                     v-model.number="quantity"
                                     type="number"
-                                    min="1"
-                                    step="0.1"
+                                    :min="min"
+                                    :step="step"
                                     inputmode="decimal"
                                     class="w-20 appearance-none border-none bg-transparent p-0 text-center text-xl font-black tracking-tight text-zinc-950 outline-none focus:ring-0 dark:text-white sm:w-24 sm:text-2xl [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                     aria-label="Количество"
