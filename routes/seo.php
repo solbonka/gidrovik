@@ -55,7 +55,7 @@ Route::get('/sitemap.xml', function () {
     // Categories
     foreach ($categories as $category) {
         $xml .= '<url>';
-        $xml .= '<loc>'.e(url('/catalog?category='.$category->slug)).'</loc>';
+        $xml .= '<loc>'.e(url('/catalog/'.$category->slug)).'</loc>';
         $xml .= '<lastmod>'.$category->updated_at->format('Y-m-d').'</lastmod>';
         $xml .= '<changefreq>daily</changefreq>';
         $xml .= '<priority>0.8</priority>';

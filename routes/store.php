@@ -11,7 +11,6 @@ use App\Http\Controllers\Store\SearchController;
 use App\Http\Controllers\Store\StaticPageController;
 use App\Http\Controllers\Store\StoreHomeController;
 use Illuminate\Support\Facades\Route;
-use Inertia\Inertia;
 
 /* |--------------------------------------------------------------------------
 | Store (Public) Routes
@@ -21,6 +20,9 @@ Route::get('/', StoreHomeController::class)->name('store.home');
 
 // Catalog
 Route::get('/catalog', [CatalogController::class, 'index'])->name('store.catalog.index');
+Route::get('/catalog/{category}', [CatalogController::class, 'index'])
+    ->where('category', '[A-Za-z0-9\-_]+')
+    ->name('store.catalog.category');
 
 // Product
 Route::get('/products/{product:slug}', StoreProductController::class)->name('store.products.show');
@@ -68,7 +70,7 @@ Route::get('/privacy', [StaticPageController::class, 'privacy'])->name('store.pa
 // 404
 Route::get('/404', [ErrorController::class, 'notFound'])->name('store.error.404');
 
-// Fallback for 404 - render custom page directly
+// Fallback for 404 - real 404 status, rendered by exception handler
 Route::fallback(function () {
-    return Inertia::render('errors/NotFound');
+    abort(404);
 });

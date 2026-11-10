@@ -212,7 +212,14 @@ function go(overrides: Params = {}, scrollTop = false) {
         }
     }
 
-    router.get(route('store.catalog.index'), params, {
+    const categorySlug = typeof params.category === 'string' ? params.category : null
+    delete params.category
+
+    const url = categorySlug
+        ? `/catalog/${encodeURIComponent(categorySlug)}`
+        : route('store.catalog.index')
+
+    router.get(url, params, {
         preserveState: true,
         preserveScroll: true,
         onStart: () => {

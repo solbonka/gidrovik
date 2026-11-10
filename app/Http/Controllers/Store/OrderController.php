@@ -93,6 +93,9 @@ class OrderController extends Controller
                     'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),
                 ]),
             ],
+        ])->with([
+            'title' => 'Заказ '.$order->order_number.' — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 

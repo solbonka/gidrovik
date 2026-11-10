@@ -10,6 +10,7 @@ use App\Models\Product;
 use App\Models\ProductCharacteristicValue;
 use App\Models\ProductType;
 use App\Services\ImageService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -17,8 +18,31 @@ use Inertia\Response;
 
 class CatalogController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request): Response|RedirectResponse
     {
+        $routeCategory = $request->route('category');
+
+        // Redirect legacy /catalog?category=slug links to pretty URLs
+        if (! $routeCategory && $request->filled('category')) {
+            $legacyCategory = Category::query()
+                ->where('slug', (string) $request->input('category'))
+                ->when(
+                    is_numeric($request->input('category')),
+                    fn ($q) => $q->orWhere('id', (int) $request->input('category')),
+                )
+                ->first();
+
+            if ($legacyCategory) {
+                $query = $request->query();
+                unset($query['category']);
+
+                return redirect()->route(
+                    'store.catalog.category',
+                    ['category' => $legacyCategory->slug] + $query,
+                );
+            }
+        }
+
         $query = Product::query()
             ->where('is_active', true)
             ->where('published', true)
@@ -43,7 +67,7 @@ class CatalogController extends Controller
         }
 
         // Filter by category
-        $categoryId = $request->input('category');
+        $categoryId = $routeCategory ?? $request->input('category');
         $categoryModel = null;
         if ($categoryId) {
             // Could be slug or ID
@@ -53,7 +77,16 @@ class CatalogController extends Controller
                 $categoryQuery->orWhere('id', (int) $categoryId);
             }
 
+            if ($routeCategory) {
+                $categoryQuery->where('is_active', true);
+            }
+
             $categoryModel = $categoryQuery->first();
+
+            if ($routeCategory && ! $categoryModel) {
+                abort(404);
+            }
+
             if ($categoryModel) {
                 $query->where('category_id', $categoryModel->id);
             }
@@ -247,6 +280,33 @@ class CatalogController extends Controller
                 ->get(['id', 'name']);
         }
 
+        $meta = [
+            'title' => 'Каталог товаров — Гидровик',
+            'description' => 'Промышленное гидравлическое оборудование, фитинги, трубы и комплектующие. Поиск по категориям, производителям и техническим характеристикам.',
+            'image' => url('/og-product.png'),
+            'type' => 'website',
+            'url' => url()->current(),
+            'canonical' => url()->current(),
+        ];
+
+        if ($categoryModel) {
+            $categoryUrl = url('/catalog/'.$categoryModel->slug);
+            $total = $products->total();
+
+            $meta['title'] = $categoryModel->name.' — купить в Гидровик';
+            $meta['description'] = "Купить {$categoryModel->name} в интернет-магазине Гидровик. "
+                ."Промышленное гидравлическое оборудование, {$total} товаров в категории. Доставка по всей России.";
+            $meta['url'] = $categoryUrl;
+            $meta['canonical'] = $categoryUrl;
+        }
+
+        // Self-referencing canonical for paginated pages
+        $page = (int) $request->input('page', 1);
+        if ($page > 1) {
+            $meta['canonical'] .= '?page='.$page;
+            $meta['url'] .= '?page='.$page;
+        }
+
         return Inertia::render('store/catalog/Index', [
             'products' => $products,
             'categories' => $categories,
@@ -269,13 +329,6 @@ class CatalogController extends Controller
                 'direction' => $direction,
                 'search' => $search,
             ],
-        ])->with([
-            'title' => 'Каталог товаров — Гидровик',
-            'description' => 'Промышленное гидравлическое оборудование, фитинги, трубы и комплектующие. Поиск по категориям, производителям и техническим характеристикам.',
-            'image' => url('/og-product.png'),
-            'type' => 'website',
-            'url' => url()->current(),
-            'canonical' => url()->current(),
-        ]);
+        ])->with($meta);
     }
 }
