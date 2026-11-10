@@ -159,6 +159,9 @@
         @if(config('services.yandex_metrika.id'))
             <!-- Yandex.Metrika counter -->
             <script>
+                window.__YANDEX_METRIKA_ID__ = {{ (int) config('services.yandex_metrika.id') }};
+            </script>
+            <script>
                 (function(m,e,t,r,i,k,a){m[i]=m[i]||function(){(m[i].a=m[i].a||[]).push(arguments)};
                 m[i].l=1*new Date();
                 for (var j = 0; j < document.scripts.length; j++) {if (document.scripts[j].src === r) { return; }}
@@ -166,6 +169,9 @@
                 (window, document, "script", "https://mc.yandex.ru/metrika/tag.js", "ym");
 
                 ym({{ (int) config('services.yandex_metrika.id') }}, "init", {
+                    defer: true,
+                    ssr: true,
+                    ecommerce: "dataLayer",
                     clickmap: true,
                     trackLinks: true,
                     accurateTrackBounce: true,

@@ -6,6 +6,7 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import StoreLayout from '@/layouts/StoreLayout.vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
+import { initMetrika } from '@/lib/metrika';
 import * as routes from '@/routes';
 import storeRoutes from '@/routes/store';
 import adminRoutes from '@/routes/admin';
@@ -99,3 +100,6 @@ initializeTheme();
 
 // This will listen for flash toast data from the server...
 initializeFlashToast();
+
+// Yandex.Metrika (SPA): ручные hit при навигации Inertia
+initMetrika();
