@@ -5,9 +5,14 @@ import AdminHeader from '@/components/admin/AdminHeader.vue';
 import AdminSidebar from '@/components/admin/AdminSidebar.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { usePage } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { onMounted, ref } from 'vue';
 
 const sidebarOpen = ref<boolean>(false);
+const isClient = ref(false);
+
+onMounted(() => {
+    isClient.value = true;
+});
 
 const page = usePage();
 
@@ -36,6 +41,7 @@ const toggleSidebar = (): void => {
         </div>
 
         <Toaster
+            v-if="isClient"
             rich-colors
             close-button
             position="top-right"

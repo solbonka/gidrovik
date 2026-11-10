@@ -11,7 +11,7 @@ import {
     PhX,
 } from '@phosphor-icons/vue'
 import { onKeyStroke } from '@vueuse/core'
-import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 type Product = {
     id: number
@@ -53,6 +53,11 @@ const stock = computed(() => {
 
 // ---------- Выбор количества и добавление в корзину ----------
 const showQuantityPicker = ref(false)
+const isClient = ref(false)
+
+onMounted(() => {
+    isClient.value = true
+})
 const quantity = ref<number>(1)
 const processing = ref(false)
 const added = ref(false)
@@ -234,7 +239,7 @@ onBeforeUnmount(() => {
         <!-- Модалка выбора количества.
              Вынесена в body: у карточки есть transform и overflow-hidden,
              из-за них position: fixed внутри неё обрезался и съезжал. -->
-        <Teleport to="body">
+        <Teleport v-if="isClient" to="body">
             <Transition
                 enter-active-class="transition-opacity duration-200"
                 leave-active-class="transition-opacity duration-150"

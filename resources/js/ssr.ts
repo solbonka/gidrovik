@@ -55,6 +55,10 @@ function resolveRoute(name: string, params: Record<string, unknown> = {}): strin
     return '/' + name.replace(/\./g, '/');
 }
 
+// Make route() available globally for script sections during SSR
+// (client uses window.route, см. app.ts)
+(globalThis as Record<string, unknown>).route = resolveRoute;
+
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 
 createServer((page) =>

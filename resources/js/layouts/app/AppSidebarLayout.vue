@@ -5,6 +5,13 @@ import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import { Toaster } from '@/components/ui/sonner';
 import type { BreadcrumbItem } from '@/types';
+import { onMounted, ref } from 'vue';
+
+const isClient = ref(false);
+
+onMounted(() => {
+    isClient.value = true;
+});
 
 type Props = {
     breadcrumbs?: BreadcrumbItem[];
@@ -24,6 +31,6 @@ withDefaults(defineProps<Props>(), {
                 <slot />
             </main>
         </AppContent>
-        <Toaster rich-colors close-button position="top-right" />
+        <Toaster v-if="isClient" rich-colors close-button position="top-right" />
     </AppShell>
 </template>

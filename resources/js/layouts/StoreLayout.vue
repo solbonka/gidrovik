@@ -79,6 +79,11 @@ watch(systemDark, applyTheme)
 
 // ---------- Мобильное меню ----------
 const mobileMenuOpen = ref(false)
+const isClient = ref(false)
+
+onMounted(() => {
+    isClient.value = true
+})
 
 // ---------- Поиск ----------
 const searchQuery = ref('')
@@ -363,7 +368,7 @@ function isActive(name: string): boolean {
         </header>
 
         <!-- Мобильное меню (выезжающая панель) -->
-        <Teleport to="body">
+        <Teleport v-if="isClient" to="body">
             <Transition
                 enter-active-class="transition-opacity duration-200"
                 leave-active-class="transition-opacity duration-200"
@@ -637,6 +642,6 @@ function isActive(name: string): boolean {
             </div>
         </nav>
 
-        <Toaster rich-colors close-button position="top-right" />
+        <Toaster v-if="isClient" rich-colors close-button position="top-right" />
     </div>
 </template>

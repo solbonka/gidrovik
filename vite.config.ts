@@ -7,6 +7,9 @@ import { bunny } from 'laravel-vite-plugin/fonts';
 import { defineConfig, lazyPlugins } from 'vite-plus';
 
 export default defineConfig({
+    define: {
+        __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: 'true',
+    },
     plugins: lazyPlugins(() => [
         laravel({
             input: ['resources/css/app.css', 'resources/js/app.ts'],
@@ -36,6 +39,7 @@ export default defineConfig({
         host: '0.0.0.0',
         port: 5173,
         origin: 'http://localhost:5173',
+        cors: true,
         watch: {
             ignored: [
                 '**/.agents/**',
