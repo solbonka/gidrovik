@@ -21,12 +21,23 @@ services:
             - /var/www/certs:/var/www/certs
         env_file:
             - .env
+        environment:
+            - INERTIA_SSR_URL=http://ssr:13714
         ports:
             - '${VITE_PORT:-5173}:5173'
             - '${RABBITMQ_PORT:-5672}:5672'
         depends_on:
             - db
             - rabbitmq
+
+    ssr:
+        build: docker
+        restart: always
+        volumes:
+            - .:/var/www/html
+        command: node bootstrap/ssr/ssr.js
+        depends_on:
+            - php-fpm
 
     queue-worker:
         build: docker

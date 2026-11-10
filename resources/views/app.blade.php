@@ -170,7 +170,6 @@
 
                 ym({{ (int) config('services.yandex_metrika.id') }}, "init", {
                     defer: true,
-                    ssr: true,
                     ecommerce: "dataLayer",
                     clickmap: true,
                     trackLinks: true,
