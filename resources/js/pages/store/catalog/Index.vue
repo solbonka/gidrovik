@@ -114,6 +114,10 @@ function toggleFavorite(productId: number) {
 // ---------- Состояние ----------
 const showFilters = ref(false)
 const loading = ref(false)
+const activeCategory = computed(() =>
+    props.categories.find(c => c.slug === props.filters.category || String(c.id) === String(props.filters.category)),
+)
+
 const sort = ref(props.filters.sort || 'created_at')
 const direction = ref(props.filters.direction || 'desc')
 const minPrice = ref(props.filters.min_price ?? '')
@@ -451,7 +455,7 @@ function goPage(url: string | null) {
                     </p>
 
                     <h1 class="mt-3 text-3xl font-black tracking-tight sm:text-4xl lg:text-5xl">
-                        Каталог товаров
+                        {{ activeCategory?.name ?? 'Каталог товаров' }}
                     </h1>
                 </div>
 
