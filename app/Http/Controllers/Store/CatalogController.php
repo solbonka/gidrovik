@@ -28,7 +28,7 @@ class CatalogController extends Controller
         $search = trim((string) $request->input('search', ''));
         if ($search) {
             $words = preg_split('/\s+/u', mb_strtolower(trim($search), 'UTF-8'), -1, PREG_SPLIT_NO_EMPTY);
-            if (!empty($words)) {
+            if (! empty($words)) {
                 $query->where(function ($q) use ($words) {
                     foreach ($words as $word) {
                         $word = addcslashes($word, '%_\\');
@@ -170,7 +170,6 @@ class CatalogController extends Controller
             ->orderBy('name')
             ->get(['id', 'name', 'slug']);
 
-
         // Get characteristics for current category
         $characteristics = collect();
         if ($categoryModel) {
@@ -248,7 +247,6 @@ class CatalogController extends Controller
                 ->get(['id', 'name']);
         }
 
-
         return Inertia::render('store/catalog/Index', [
             'products' => $products,
             'categories' => $categories,
@@ -274,6 +272,7 @@ class CatalogController extends Controller
         ])->with([
             'title' => 'Каталог товаров — Гидровик',
             'description' => 'Промышленное гидравлическое оборудование, фитинги, трубы и комплектующие. Поиск по категориям, производителям и техническим характеристикам.',
+            'image' => url('/og-product.png'),
             'type' => 'website',
             'url' => url()->current(),
             'canonical' => url()->current(),

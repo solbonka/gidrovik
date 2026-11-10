@@ -38,13 +38,20 @@
 
         @vite(['resources/css/app.css', 'resources/js/app.ts', "resources/js/pages/{$page['component']}.vue"])
 
-        {{-- Extract OG meta from Inertia shared data --}}
+        {{-- Extract OG meta from Inertia page props --}}
         @php
-            $inertiaMeta = $page['shared']['meta'] ?? [];
+            $inertiaMeta = array_intersect_key(
+                $page['props'] ?? [],
+                array_flip(['title', 'description', 'image', 'type', 'url', 'canonical', 'robots']),
+            );
         @endphp
 
         <x-inertia::head>
-            <title>{{ config('app.name', 'Laravel') }}</title>
+            <title>{{ $inertiaMeta['title'] ?? config('app.name', 'Laravel') }}</title>
+
+            @if(isset($inertiaMeta['robots']))
+                <meta name="robots" content="{{ $inertiaMeta['robots'] }}" />
+            @endif
 
             {{-- Canonical URL --}}
             @if(isset($inertiaMeta['canonical']))
@@ -69,6 +76,85 @@
                 <meta property="og:url" content="{{ $inertiaMeta['url'] }}" />
             @endif
         </x-inertia::head>
+
+        {{-- Schema.org JSON-LD --}}
+        @php
+            $siteUrl = url('/');
+            $schemaGraph = [
+                [
+                    '@type' => 'Organization',
+                    '@id' => $siteUrl . '#organization',
+                    'name' => config('app.name'),
+                    'url' => $siteUrl,
+                    'logo' => $siteUrl . '/og-home.png',
+                ],
+                [
+                    '@type' => 'WebSite',
+                    '@id' => $siteUrl . '#website',
+                    'url' => $siteUrl,
+                    'name' => config('app.name'),
+                    'publisher' => ['@id' => $siteUrl . '#organization'],
+                    'potentialAction' => [
+                        '@type' => 'SearchAction',
+                        'target' => [
+                            '@type' => 'EntryPoint',
+                            'urlTemplate' => url('/catalog') . '?search={search_term_string}',
+                        ],
+                        'query-input' => 'required name=search_term_string',
+                    ],
+                ],
+            ];
+
+            if (($page['component'] ?? '') === 'store/products/Show' && isset($page['props']['product'])) {
+                $p = $page['props']['product'];
+                $productUrl = $inertiaMeta['canonical'] ?? $siteUrl . '/products/' . ($p['slug'] ?? '');
+                $availability = ($p['stock_status'] ?? '') === 'in_stock'
+                    ? 'https://schema.org/InStock'
+                    : 'https://schema.org/LimitedAvailability';
+
+                $productSchema = [
+                    '@type' => 'Product',
+                    '@id' => $productUrl . '#product',
+                    'name' => $p['name'] ?? '',
+                    'url' => $productUrl,
+                    'description' => $inertiaMeta['description'] ?? null,
+                    'sku' => $p['code'] ?? null,
+                    'mpn' => $p['article'] ?? null,
+                    'image' => isset($p['images'][0]['large'])
+                        ? [$p['images'][0]['large']]
+                        : [$siteUrl . '/og-product.png'],
+                    'brand' => [
+                        '@type' => 'Brand',
+                        'name' => $p['manufacturer'] ?? config('app.name'),
+                    ],
+                    'offers' => [
+                        '@type' => 'Offer',
+                        'url' => $productUrl,
+                        'priceCurrency' => 'RUB',
+                        'price' => $p['price'] ?? '0',
+                        'availability' => $availability,
+                        'itemCondition' => 'https://schema.org/NewCondition',
+                        'seller' => ['@id' => $siteUrl . '#organization'],
+                    ],
+                ];
+
+                $schemaGraph[] = array_filter($productSchema, fn ($v) => $v !== null);
+                $schemaGraph[] = [
+                    '@type' => 'BreadcrumbList',
+                    'itemListElement' => [
+                        ['@type' => 'ListItem', 'position' => 1, 'name' => 'Главная', 'item' => $siteUrl],
+                        ['@type' => 'ListItem', 'position' => 2, 'name' => 'Каталог', 'item' => url('/catalog')],
+                        ['@type' => 'ListItem', 'position' => 3, 'name' => $p['name'] ?? '', 'item' => $productUrl],
+                    ],
+                ];
+            }
+
+            $schemaJson = json_encode(
+                ['@context' => 'https://schema.org', '@graph' => $schemaGraph],
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT,
+            );
+        @endphp
+        <script type="application/ld+json">{!! $schemaJson !!}</script>
     </head>
     <body class="font-sans antialiased">
         <x-inertia::app :inertia-page="$page" />

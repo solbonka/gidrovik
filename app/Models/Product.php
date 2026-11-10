@@ -29,6 +29,8 @@ class Product extends Model
         'country_id',
         'retail_price',
         'published',
+        'is_featured',
+        'featured_position',
         'meta_title',
         'meta_description',
     ];
@@ -40,6 +42,8 @@ class Product extends Model
         'unit' => 'string',
         'retail_price' => 'decimal:2',
         'published' => 'boolean',
+        'is_featured' => 'boolean',
+        'featured_position' => 'integer',
     ];
 
     public function category(): BelongsTo

@@ -39,9 +39,9 @@ class SearchController extends Controller
                                 })
                                 ->orWhereHas('characteristicValues', function ($q) use ($word) {
                                     $q->whereRaw('LOWER(value) LIKE ?', ["%{$word}%"])
-                                      ->orWhereHas('characteristic', function ($q) use ($word) {
-                                          $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"]);
-                                      });
+                                        ->orWhereHas('characteristic', function ($q) use ($word) {
+                                            $q->whereRaw('LOWER(name) LIKE ?', ["%{$word}%"]);
+                                        });
                                 });
                         });
                     }
@@ -68,6 +68,11 @@ class SearchController extends Controller
             'query' => $query,
             'products' => $products,
             'total' => $total,
+        ])->with([
+            'title' => $query !== '' ? "Поиск: {$query} — Гидровик" : 'Поиск — Гидровик',
+            'description' => 'Поиск товаров в каталоге интернет-магазина Гидровик.',
+            'robots' => 'noindex, follow',
+            'canonical' => url('/search'),
         ]);
     }
 }

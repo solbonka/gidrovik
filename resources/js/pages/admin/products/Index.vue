@@ -49,6 +49,7 @@ interface Product {
     article: string | null;
     is_active: boolean;
     published: boolean;
+    is_featured: boolean;
     stock_quantity: number | null;
     category: Category;
     product_type: ProductType | null;
@@ -74,6 +75,8 @@ interface Filters {
     search: string;
     category_id: number | null;
     product_type_id: number | null;
+    sort: string;
+    direction: 'asc' | 'desc';
 }
 
 interface Props {
@@ -102,6 +105,26 @@ const hasStock = (product: Product): boolean =>
 const search = ref(props.filters.search ?? '');
 const categoryId = ref(props.filters.category_id?.toString() ?? 'all');
 const productTypeId = ref(props.filters.product_type_id?.toString() ?? 'all');
+const sort = ref(
+    props.filters.sort && props.filters.direction
+        ? `${props.filters.sort}:${props.filters.direction}`
+        : 'name:asc',
+);
+
+const sortOptions = [
+    { value: 'name:asc', label: 'Название: А–Я' },
+    { value: 'name:desc', label: 'Название: Я–А' },
+    { value: 'code:asc', label: 'Код: по возрастанию' },
+    { value: 'code:desc', label: 'Код: по убыванию' },
+    { value: 'article:asc', label: 'Артикул: А–Я' },
+    { value: 'article:desc', label: 'Артикул: Я–А' },
+    { value: 'stock:desc', label: 'Остаток: больше' },
+    { value: 'stock:asc', label: 'Остаток: меньше' },
+    { value: 'featured:desc', label: 'Популярные первыми' },
+    { value: 'published:desc', label: 'Опубликованные первыми' },
+    { value: 'created_at:desc', label: 'Сначала новые' },
+    { value: 'created_at:asc', label: 'Сначала старые' },
+];
 
 // Типы показываем только для выбранной категории
 const availableTypes = computed(() =>
@@ -134,6 +157,12 @@ const submitFilters = (): void => {
                 categoryId.value !== 'all' ? categoryId.value : undefined,
             product_type_id:
                 productTypeId.value !== 'all' ? productTypeId.value : undefined,
+            ...(sort.value !== 'name:asc'
+                ? {
+                      sort: sort.value.split(':')[0],
+                      direction: sort.value.split(':')[1],
+                  }
+                : {}),
         },
         {
             preserveState: true,
@@ -156,7 +185,7 @@ watch(categoryId, () => {
 });
 
 // Применяем фильтры автоматически, с небольшой задержкой
-watch([search, categoryId, productTypeId], () => {
+watch([search, categoryId, productTypeId, sort], () => {
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(submitFilters, 350);
 });
@@ -227,6 +256,9 @@ const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
 const publishedBadge =
     'bg-blue-500/10 text-blue-700 ring-blue-600/20 dark:text-blue-400';
 const unpublishedBadge = 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400';
+const featuredBadge =
+    'bg-orange-500/10 text-orange-700 ring-orange-600/20 dark:text-orange-400';
+const notFeaturedBadge = 'bg-muted text-muted-foreground ring-border';
 
 /* ---------- Публикация ---------- */
 
@@ -234,6 +266,21 @@ function togglePublished(product: Product) {
     router.put(
         `/admin/products/${product.id}/toggle-published`,
         { published: !product.published },
+        {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () => {
+            },
+        },
+    )
+}
+
+/* ---------- Популярные ---------- */
+
+function toggleFeatured(product: Product) {
+    router.put(
+        `/admin/products/${product.id}/toggle-featured`,
+        { is_featured: !product.is_featured },
         {
             preserveScroll: true,
             preserveState: true,
@@ -281,7 +328,7 @@ function togglePublished(product: Product) {
             class="rounded-2xl border bg-card p-4 shadow-sm sm:p-5"
             @submit.prevent="submitFilters"
         >
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr]">
+            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
                 <div class="space-y-1.5 md:col-span-2 lg:col-span-1">
                     <Label for="search">Поиск</Label>
 
@@ -352,6 +399,26 @@ function togglePublished(product: Product) {
                                 :value="productType.id.toString()"
                             >
                                 {{ productType.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="sort">Сортировка</Label>
+
+                    <Select v-model="sort">
+                        <SelectTrigger id="sort" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Сортировка" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem
+                                v-for="option in sortOptions"
+                                :key="option.value"
+                                :value="option.value"
+                            >
+                                {{ option.label }}
                             </SelectItem>
                         </SelectContent>
                     </Select>
@@ -471,6 +538,19 @@ function togglePublished(product: Product) {
                                     />
                                     {{ product.published ? 'Опубликован' : 'Не опубликован' }}
                                 </button>
+
+                                <button
+                                    type="button"
+                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                    :class="product.is_featured ? featuredBadge : notFeaturedBadge"
+                                    @click="toggleFeatured(product)"
+                                >
+                                    <span
+                                        class="size-1.5 rounded-full"
+                                        :class="product.is_featured ? 'bg-orange-500' : 'bg-muted-foreground/50'"
+                                    />
+                                    {{ product.is_featured ? 'Популярный' : 'Не популярный' }}
+                                </button>
                             </div>
                         </div>
 
@@ -548,6 +628,7 @@ function togglePublished(product: Product) {
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Тип</th>
                             <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Остаток</th>
                             <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Опубликован</th>
+                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Популярный</th>
                             <th scope="col" class="px-5 py-3.5">
                                 <span class="sr-only">Действия</span>
                             </th>
@@ -611,6 +692,21 @@ function togglePublished(product: Product) {
                                             :class="product.published ? 'bg-blue-500' : 'bg-amber-500'"
                                         />
                                         {{ product.published ? 'Опубликован' : 'Не опубликован' }}
+                                    </button>
+                            </td>
+
+                            <td class="px-5 py-4 whitespace-nowrap">
+                                    <button
+                                        type="button"
+                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
+                                        :class="product.is_featured ? featuredBadge : notFeaturedBadge"
+                                        @click="toggleFeatured(product)"
+                                    >
+                                        <span
+                                            class="size-1.5 rounded-full"
+                                            :class="product.is_featured ? 'bg-orange-500' : 'bg-muted-foreground/50'"
+                                        />
+                                        {{ product.is_featured ? 'Популярный' : 'Не популярный' }}
                                     </button>
                             </td>
 

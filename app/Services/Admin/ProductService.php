@@ -28,6 +28,10 @@ class ProductService
                 'country_id' => $data['country_id'] ?? null,
                 'retail_price' => $data['retail_price'] ?? 0,
                 'published' => $data['published'] ?? true,
+                'is_featured' => $data['is_featured'] ?? false,
+                'featured_position' => ($data['is_featured'] ?? false)
+                    ? ($data['featured_position'] ?? null)
+                    : null,
                 'meta_title' => $data['meta_title'] ?? null,
                 'meta_description' => $data['meta_description'] ?? null,
             ]);
@@ -60,6 +64,10 @@ class ProductService
                 'description' => $data['description'] ?? null,
                 'retail_price' => $data['retail_price'] ?? 0,
                 'published' => $data['published'] ?? false,
+                'is_featured' => $data['is_featured'] ?? false,
+                'featured_position' => ($data['is_featured'] ?? false)
+                    ? ($data['featured_position'] ?? null)
+                    : null,
                 'is_active' => $data['is_active'] ?? true,
                 'unit' => $data['unit'] ?? 'шт.',
                 'manufacturer_id' => $data['manufacturer_id'] ?? null,

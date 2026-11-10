@@ -62,6 +62,16 @@ class StoreProductRequest extends FormRequest
                 'boolean',
             ],
 
+            'is_featured' => [
+                'boolean',
+            ],
+
+            'featured_position' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+
             'retail_price' => [
                 'nullable',
                 'numeric',

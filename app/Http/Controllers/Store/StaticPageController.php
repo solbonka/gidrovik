@@ -21,7 +21,11 @@ class StaticPageController extends Controller
                 <h3>Сроки обработки</h3>
                 <p>Заказы обрабатываются в течение 1-2 рабочих дней после подтверждения менеджером.</p>
             ',
-        ]);
+        ])->with($this->meta(
+            'Доставка — Гидровик',
+            'Способы доставки и самовывоза заказов из интернет-магазина Гидровик. Сроки обработки заказов.',
+            'delivery',
+        ));
     }
 
     public function payment(): Response
@@ -37,7 +41,11 @@ class StaticPageController extends Controller
                 </ul>
                 <p>Конкретные способы оплаты, сроки и условия будут опубликованы на сайте дополнительно.</p>
             ',
-        ]);
+        ])->with($this->meta(
+            'Оплата — Гидровик',
+            'Способы оплаты заказов в интернет-магазине Гидровик: счёт для организаций, оплата при получении.',
+            'payment',
+        ));
     }
 
     public function returns(): Response
@@ -48,7 +56,11 @@ class StaticPageController extends Controller
                 <p>Информация о возврате и обмене товаров будет опубликована дополнительно.</p>
                 <p>По всем вопросам возврата обращайтесь к менеджеру.</p>
             ',
-        ]);
+        ])->with($this->meta(
+            'Возврат и обмен — Гидровик',
+            'Условия возврата и обмена товаров, приобретённых в интернет-магазине Гидровик.',
+            'returns',
+        ));
     }
 
     public function privacy(): Response
@@ -60,6 +72,25 @@ class StaticPageController extends Controller
                 <p>Мы собираем только те данные, которые необходимы для обработки вашего заказа: имя, контактный телефон, электронная почта и адрес доставки.</p>
                 <p>Ваши данные не будут переданы третьим лицам, за исключением случаев, предусмотренных законодательством.</p>
             ',
-        ]);
+        ])->with($this->meta(
+            'Политика конфиденциальности — Гидровик',
+            'Политика обработки персональных данных интернет-магазина Гидровик.',
+            'privacy',
+        ));
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function meta(string $title, string $description, string $path): array
+    {
+        return [
+            'title' => $title,
+            'description' => $description,
+            'image' => url('/og-home.png'),
+            'type' => 'website',
+            'url' => url("/{$path}"),
+            'canonical' => url("/{$path}"),
+        ];
     }
 }

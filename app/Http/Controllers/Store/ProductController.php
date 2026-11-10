@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Store;
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
 use App\Models\Product;
+use App\Services\ImageService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -18,7 +20,7 @@ class ProductController extends Controller
 
         $product->load(['characteristicValues.characteristic', 'images']);
 
-        $imageService = app(\App\Services\ImageService::class);
+        $imageService = app(ImageService::class);
 
         $productData = [
             'id' => $product->id,
@@ -79,8 +81,12 @@ class ProductController extends Controller
             'related_products' => $relatedProducts,
             'favorite_product_ids' => $favoriteProductIds,
         ])->with([
-            'title' => $product->meta_title,
-            'description' => $product->meta_description,
+            'title' => $product->meta_title
+                ? $product->meta_title
+                : $product->name.' — '.config('app.name'),
+            'description' => $product->meta_description
+                ?: (Str::limit(trim(preg_replace('/\s+/u', ' ', strip_tags((string) $product->description))), 160)
+                    ?: 'Купить '.$product->name.' в интернет-магазине Гидровик. Промышленное гидравлическое оборудование.'),
             'image' => $product->images->first() ? $imageService->url($product->images->first()->image_path, 'large') : url('/og-product.png'),
             'type' => 'product',
             'url' => url()->current(),

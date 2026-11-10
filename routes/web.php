@@ -2,7 +2,6 @@
 
 use App\Http\Controllers\Admin\CategoryController;
 use App\Http\Controllers\Admin\CharacteristicController;
-use App\Http\Controllers\Admin\CharacteristicValueController;
 use App\Http\Controllers\Admin\CountryController;
 use App\Http\Controllers\Admin\CustomTableEntriesController;
 use App\Http\Controllers\Admin\CustomTablesController;
@@ -28,10 +27,7 @@ use App\Http\Controllers\Admin\StockWriteOffController;
 use App\Http\Controllers\Admin\ThreadController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\WarehouseController;
-use App\Http\Controllers\Store\StoreHomeController;
 use Illuminate\Support\Facades\Route;
-
-Route::get('/', StoreHomeController::class)->name('store.home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('dashboard', fn () => redirect('/admin'))
@@ -60,12 +56,6 @@ Route::middleware(['auth', 'verified', 'employee'])
                 CategoryController::class,
                 'characteristics',
             ])->name('categories.characteristics');
-
-            // JSON API for product form
-            Route::get('/categories/{category}/characteristics/json', [
-                CategoryController::class,
-                'characteristicsJson',
-            ]);
 
             // JSON API for product form
             Route::get('/categories/{category}/characteristics/json', [
@@ -181,6 +171,11 @@ Route::middleware(['auth', 'verified', 'employee'])
                 ProductController::class,
                 'togglePublished',
             ])->name('products.toggle-published');
+
+            Route::put('/products/{product}/toggle-featured', [
+                ProductController::class,
+                'toggleFeatured',
+            ])->name('products.toggle-featured');
 
             Route::delete('/products/{product}', [
                 ProductController::class,

@@ -2,14 +2,17 @@
 
 namespace App\Http\Controllers\Store;
 
+use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Cart;
-use App\Models\Product;
+use App\Models\Order;
+use App\Queue\Jobs\SendOrderConfirmationEmail;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
+use Inertia\Response;
 use Inertia\Response as InertiaResponse;
 
 class CheckoutController extends Controller
@@ -40,6 +43,9 @@ class CheckoutController extends Controller
             'items' => $cartItems,
             'total' => number_format($total, 2, '.', ''),
             'empty' => $cartItems->isEmpty(),
+        ])->with([
+            'title' => 'Оформление заказа — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 
@@ -89,7 +95,7 @@ class CheckoutController extends Controller
 
         try {
             // Create order
-            $order = \App\Models\Order::create([
+            $order = Order::create([
                 'customer_name' => $validated['customer_name'],
                 'customer_email' => $validated['customer_email'],
                 'customer_phone' => $validated['customer_phone'],
@@ -98,7 +104,7 @@ class CheckoutController extends Controller
                 'delivery_address' => $validated['delivery_method'] === 'delivery' ? ($validated['delivery_address'] ?? null) : null,
                 'comment' => $validated['comment'] ?? null,
                 'total_amount' => $totalAmount,
-                'status' => \App\Enums\OrderStatus::New,
+                'status' => OrderStatus::New,
                 'user_id' => Auth::id(),
             ]);
 
@@ -110,7 +116,7 @@ class CheckoutController extends Controller
             // Record status history
             $order->statusHistory()->create([
                 'from_status' => null,
-                'to_status' => \App\Enums\OrderStatus::New,
+                'to_status' => OrderStatus::New,
                 'note' => 'Заказ оформлен',
                 'changed_by' => Auth::id(),
             ]);
@@ -132,12 +138,12 @@ class CheckoutController extends Controller
             DB::commit();
 
             // Send confirmation email (async)
-            \App\Queue\Jobs\SendOrderConfirmationEmail::dispatch($order);
+            SendOrderConfirmationEmail::dispatch($order);
 
             // Store access token in session for non-auth users (expires after 30 min)
-            if (!Auth::check()) {
-                session(['order_access_token_' . $order->order_number => $order->access_token]);
-                session(['order_access_time_' . $order->order_number => now()]);
+            if (! Auth::check()) {
+                session(['order_access_token_'.$order->order_number => $order->access_token]);
+                session(['order_access_time_'.$order->order_number => now()]);
             }
 
             return redirect()->route('store.checkout.success', $order->order_number);
@@ -147,25 +153,25 @@ class CheckoutController extends Controller
         }
     }
 
-    public function success(string $orderNumber, \Illuminate\Http\Request $request): \Inertia\Response
+    public function success(string $orderNumber, Request $request): Response
     {
         // For authenticated users, check if order belongs to them
         if (Auth::check()) {
-            $order = \App\Models\Order::query()
+            $order = Order::query()
                 ->with(['items'])
                 ->where('order_number', $orderNumber)
                 ->where('user_id', Auth::id())
                 ->firstOrFail();
         } else {
             // For guest users, check session token with 30 min expiry
-            $sessionToken = session('order_access_token_' . $orderNumber);
-            $sessionTime = session('order_access_time_' . $orderNumber);
+            $sessionToken = session('order_access_token_'.$orderNumber);
+            $sessionTime = session('order_access_time_'.$orderNumber);
 
-            if (!$sessionToken || !$sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
+            if (! $sessionToken || ! $sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
                 abort(403, 'Срок доступа к заказу истёк. Войдите в аккаунт или свяжитесь с менеджером.');
             }
 
-            $order = \App\Models\Order::query()
+            $order = Order::query()
                 ->with(['items'])
                 ->where('order_number', $orderNumber)
                 ->where('access_token', $sessionToken)
@@ -194,10 +200,13 @@ class CheckoutController extends Controller
                     'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),
                 ]),
             ],
+        ])->with([
+            'title' => 'Заказ оформлен — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 
-    protected function getCart(): \App\Models\Cart
+    protected function getCart(): Cart
     {
         $user = Auth::user();
 
@@ -205,7 +214,7 @@ class CheckoutController extends Controller
             // Check if there's a guest cart to merge
             if (session('guest_cart_id')) {
                 $guestCart = Cart::find(session('guest_cart_id'));
-                if ($guestCart && !$guestCart->items->isEmpty()) {
+                if ($guestCart && ! $guestCart->items->isEmpty()) {
                     $userCart = Cart::firstOrCreate(['user_id' => $user->id], ['session_id' => null]);
                     $guestCart->mergeInto($userCart);
                     $guestCart->delete();
@@ -219,14 +228,14 @@ class CheckoutController extends Controller
         }
 
         $sessionId = session('cart_session_id') ?? str()->random(40);
-        if (!session('cart_session_id')) {
+        if (! session('cart_session_id')) {
             session(['cart_session_id' => $sessionId]);
         }
 
         $cart = Cart::firstOrCreate(['session_id' => $sessionId], []);
 
         // If cart has items and user logs in later, store cart ID for merge
-        if (!$cart->items->isEmpty() && Auth::check()) {
+        if (! $cart->items->isEmpty() && Auth::check()) {
             session(['guest_cart_id' => $cart->id]);
         }
 

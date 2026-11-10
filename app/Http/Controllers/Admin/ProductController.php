@@ -82,7 +82,11 @@ class ProductController extends Controller
                         'products.id',
                     ),
             ])
-            ->orderBy('name')
+            ->orderBy(
+                $this->resolveSortColumn($request->string('sort')->toString()),
+                $request->string('direction')->toString() === 'desc' ? 'desc' : 'asc',
+            )
+            ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
 
@@ -94,6 +98,7 @@ class ProductController extends Controller
                 'article' => $product->article,
                 'is_active' => $product->is_active,
                 'published' => $product->published,
+                'is_featured' => $product->is_featured,
                 'stock_quantity' => $product->stock_quantity,
                 'category' => $product->category ? [
                     'id' => $product->category->id,
@@ -125,8 +130,23 @@ class ProductController extends Controller
                 'search' => $request->string('search')->toString(),
                 'category_id' => $request->integer('category_id') ?: null,
                 'product_type_id' => $request->integer('product_type_id') ?: null,
+                'sort' => $request->string('sort')->toString(),
+                'direction' => $request->string('direction')->toString() === 'desc' ? 'desc' : 'asc',
             ],
         ]);
+    }
+
+    private function resolveSortColumn(string $sort): string
+    {
+        return match ($sort) {
+            'code' => 'code',
+            'article' => 'article',
+            'stock' => 'stock_quantity',
+            'published' => 'published',
+            'featured' => 'is_featured',
+            'created_at' => 'created_at',
+            default => 'name',
+        };
     }
 
     public function show(Product $product): Response
@@ -168,6 +188,8 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'retail_price' => $product->retail_price,
                 'published' => $product->published,
+                'is_featured' => $product->is_featured,
+                'featured_position' => $product->featured_position,
                 'slug' => $product->slug,
                 'meta_title' => $product->meta_title,
                 'meta_description' => $product->meta_description,
@@ -314,6 +336,8 @@ class ProductController extends Controller
                 'description' => $product->description,
                 'retail_price' => $product->retail_price,
                 'published' => $product->published,
+                'is_featured' => $product->is_featured,
+                'featured_position' => $product->featured_position,
                 'slug' => $product->slug,
                 'meta_title' => $product->meta_title,
                 'meta_description' => $product->meta_description,
@@ -387,9 +411,23 @@ class ProductController extends Controller
 
     public function togglePublished(Product $product): RedirectResponse
     {
-        $product->update(['published' => !$product->published]);
+        $product->update(['published' => ! $product->published]);
 
         return redirect()->back()->with('success', 'Статус публикации изменён');
+    }
+
+    public function toggleFeatured(Product $product): RedirectResponse
+    {
+        $isFeatured = ! $product->is_featured;
+
+        $product->update([
+            'is_featured' => $isFeatured,
+            'featured_position' => $isFeatured
+                ? $product->featured_position
+                : null,
+        ]);
+
+        return redirect()->back()->with('success', 'Статус популярного товара изменён');
     }
 
     public function destroy(Product $product): RedirectResponse

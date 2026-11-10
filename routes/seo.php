@@ -3,7 +3,6 @@
 use App\Models\Category;
 use App\Models\Product;
 use Illuminate\Http\Request;
-use Illuminate\Http\Response;
 use Illuminate\Support\Facades\Route;
 
 /* |--------------------------------------------------------------------------
@@ -13,7 +12,7 @@ use Illuminate\Support\Facades\Route;
 // robots.txt
 Route::get('/robots.txt', function (Request $request) {
     return response(
-        "User-agent: *\nAllow: /\n\nSitemap: " . url('/sitemap.xml'),
+        "User-agent: *\nAllow: /\nDisallow: /admin\n\nSitemap: ".url('/sitemap.xml'),
         200,
         ['Content-Type' => 'text/plain']
     );
@@ -46,18 +45,18 @@ Route::get('/sitemap.xml', function () {
 
     foreach ($staticPages as $page) {
         $xml .= '<url>';
-        $xml .= '<loc>' . e($page['loc']) . '</loc>';
-        $xml .= '<lastmod>' . now()->format('Y-m-d') . '</lastmod>';
-        $xml .= '<changefreq>' . $page['freq'] . '</changefreq>';
-        $xml .= '<priority>' . $page['priority'] . '</priority>';
+        $xml .= '<loc>'.e($page['loc']).'</loc>';
+        $xml .= '<lastmod>'.now()->format('Y-m-d').'</lastmod>';
+        $xml .= '<changefreq>'.$page['freq'].'</changefreq>';
+        $xml .= '<priority>'.$page['priority'].'</priority>';
         $xml .= '</url>';
     }
 
     // Categories
     foreach ($categories as $category) {
         $xml .= '<url>';
-        $xml .= '<loc>' . e(url('/catalog?category=' . $category->slug)) . '</loc>';
-        $xml .= '<lastmod>' . $category->updated_at->format('Y-m-d') . '</lastmod>';
+        $xml .= '<loc>'.e(url('/catalog?category='.$category->slug)).'</loc>';
+        $xml .= '<lastmod>'.$category->updated_at->format('Y-m-d').'</lastmod>';
         $xml .= '<changefreq>daily</changefreq>';
         $xml .= '<priority>0.8</priority>';
         $xml .= '</url>';
@@ -66,8 +65,8 @@ Route::get('/sitemap.xml', function () {
     // Products
     foreach ($products as $product) {
         $xml .= '<url>';
-        $xml .= '<loc>' . e(url('/products/' . $product->slug)) . '</loc>';
-        $xml .= '<lastmod>' . $product->updated_at->format('Y-m-d') . '</lastmod>';
+        $xml .= '<loc>'.e(url('/products/'.$product->slug)).'</loc>';
+        $xml .= '<lastmod>'.$product->updated_at->format('Y-m-d').'</lastmod>';
         $xml .= '<changefreq>weekly</changefreq>';
         $xml .= '<priority>0.7</priority>';
         $xml .= '</url>';

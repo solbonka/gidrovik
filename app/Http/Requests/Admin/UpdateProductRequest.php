@@ -70,6 +70,16 @@ class UpdateProductRequest extends FormRequest
                 'boolean',
             ],
 
+            'is_featured' => [
+                'boolean',
+            ],
+
+            'featured_position' => [
+                'nullable',
+                'integer',
+                'min:1',
+            ],
+
             'characteristics' => [
                 'nullable',
                 'array',

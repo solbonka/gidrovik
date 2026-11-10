@@ -34,6 +34,9 @@ class OrderController extends Controller
 
         return Inertia::render('store/orders/Index', [
             'orders' => $orders,
+        ])->with([
+            'title' => 'Мои заказы — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 
@@ -48,10 +51,10 @@ class OrderController extends Controller
                 ->firstOrFail();
         } else {
             // For guest users, check session token with 30 min expiry
-            $sessionToken = session('order_access_token_' . $orderNumber);
-            $sessionTime = session('order_access_time_' . $orderNumber);
+            $sessionToken = session('order_access_token_'.$orderNumber);
+            $sessionTime = session('order_access_time_'.$orderNumber);
 
-            if (!$sessionToken || !$sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
+            if (! $sessionToken || ! $sessionTime || $sessionTime->diffInMinutes(now()) > 30) {
                 return redirect()->route('store.checkout.create')
                     ->with('error', 'Срок доступа к заказу истёк. Войдите в аккаунт или свяжитесь с менеджером.');
             }
@@ -138,6 +141,9 @@ class OrderController extends Controller
 
         return Inertia::render('store/orders/Show', [
             'order' => $orderData,
+        ])->with([
+            'title' => 'Заказ '.$order->order_number.' — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 }

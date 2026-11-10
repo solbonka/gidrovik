@@ -58,6 +58,9 @@ class CartController extends Controller
             'items' => $cartItems,
             'total' => number_format($total, 2, '.', ''),
             'item_count' => $items->items->count(),
+        ])->with([
+            'title' => 'Корзина — Гидровик',
+            'robots' => 'noindex, nofollow',
         ]);
     }
 

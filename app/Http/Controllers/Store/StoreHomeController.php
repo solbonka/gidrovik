@@ -30,16 +30,34 @@ class StoreHomeController extends Controller
 
         $imageService = app(ImageService::class);
 
-        $featuredProducts = Product::query()
+        $featuredQuery = Product::query()
             ->where('is_active', true)
-            ->addSelect([
-                'min_stock' => DB::table('product_location')
-                    ->selectRaw('COALESCE(SUM(quantity), 0)')
-                    ->whereColumn('product_location.product_id', 'products.id'),
-            ])
-            ->orderByDesc('min_stock')
-            ->limit(8)
-            ->get()
+            ->where('published', true)
+            ->where('is_featured', true)
+            ->with('images')
+            ->orderByRaw('featured_position IS NULL')
+            ->orderBy('featured_position')
+            ->orderBy('name')
+            ->limit(8);
+
+        $featuredProducts = $featuredQuery->get();
+
+        if ($featuredProducts->isEmpty()) {
+            $featuredProducts = Product::query()
+                ->where('is_active', true)
+                ->where('published', true)
+                ->with('images')
+                ->addSelect([
+                    'min_stock' => DB::table('product_location')
+                        ->selectRaw('COALESCE(SUM(quantity), 0)')
+                        ->whereColumn('product_location.product_id', 'products.id'),
+                ])
+                ->orderByDesc('min_stock')
+                ->limit(8)
+                ->get();
+        }
+
+        $featuredProducts = $featuredProducts
             ->map(fn (Product $product) => [
                 'id' => $product->id,
                 'name' => $product->name,

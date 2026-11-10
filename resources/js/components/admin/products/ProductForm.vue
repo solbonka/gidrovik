@@ -110,6 +110,8 @@ export interface ProductFormInitial {
     retail_price: number | null;
     is_active: boolean;
     published: boolean;
+    is_featured: boolean;
+    featured_position: number | null;
     unit: string;
     manufacturer_id: number | null;
     country_id: number | null;
@@ -174,6 +176,12 @@ const form = useForm({
     retail_price: props.initial?.retail_price ?? '',
     is_active: props.initial?.is_active ?? true,
     published: props.initial?.published ?? false,
+    is_featured: props.initial?.is_featured ?? false,
+    featured_position:
+        props.initial?.featured_position !== null &&
+        props.initial?.featured_position !== undefined
+            ? String(props.initial.featured_position)
+            : '',
     unit: props.initial?.unit ?? 'шт.',
     manufacturer_id: (props.initial?.manufacturer_id ?? null) as number | null,
     country_id: (props.initial?.country_id ?? null) as number | null,
@@ -383,6 +391,10 @@ const submit = (): void => {
             data.minimum_stock === '' ? null : Number(data.minimum_stock),
         retail_price:
             data.retail_price === '' ? null : Number(data.retail_price),
+        featured_position:
+            data.featured_position === '' || data.featured_position === null
+                ? null
+                : Number(data.featured_position),
         connections:
             props.mode === 'edit'
                 ? padConnections(data.connections)
@@ -715,6 +727,49 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                         <span class="mt-1 block text-xs leading-5 text-muted-foreground">
                             Опубликованный товар будет виден в каталоге и поиске интернет-магазина.
                             Неопубликованные товары скрыты от покупателей.
+                        </span>
+                    </span>
+                </label>
+
+                <label
+                    class="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4 sm:col-span-2"
+                >
+                    <input
+                        v-model="form.is_featured"
+                        type="checkbox"
+                        class="mt-0.5"
+                        :class="checkboxClass"
+                    />
+                    <span class="flex-1">
+                        <span class="block text-sm font-semibold">
+                            Популярный товар
+                        </span>
+                        <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+                            Популярные товары показываются в блоке «Популярные товары» на главной странице магазина.
+                        </span>
+
+                        <span
+                            v-if="form.is_featured"
+                            class="mt-3 flex items-center gap-2"
+                        >
+                            <label
+                                for="featured_position"
+                                class="text-xs font-medium text-muted-foreground"
+                            >
+                                Позиция на главной
+                            </label>
+                            <input
+                                id="featured_position"
+                                v-model="form.featured_position"
+                                type="number"
+                                min="1"
+                                step="1"
+                                placeholder="Авто"
+                                class="w-24 rounded-lg border border-input bg-background px-2.5 py-1.5 text-sm shadow-xs outline-none transition placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/30"
+                            />
+                            <span class="text-xs text-muted-foreground">
+                                Меньше — выше. Пусто — в конце списка.
+                            </span>
                         </span>
                     </span>
                 </label>
