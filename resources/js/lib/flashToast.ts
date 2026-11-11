@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/vue3';
+import { usePage } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
 import type { FlashToast } from '@/types/ui';
 
@@ -14,7 +15,15 @@ export function initializeFlashToast(): void {
 
     initialized = true;
 
-    // Слушаем событие success для Inertia запросов
+    // Сбрасываем дедупликацию при навигации
+    router.on('start', () => {
+        lastToastShown = '';
+    });
+
+    // Проверяем flash-данные на начальной загрузке страницы
+    checkInitialFlash();
+
+    // Слушаем событие success для Inertia запросов (клиентская навигация)
     router.on('success', (event) => {
         const page = (event as CustomEvent).detail?.page;
         const flash = page?.props?.flash as
@@ -28,6 +37,20 @@ export function initializeFlashToast(): void {
         console.log('[FlashToast] success:', flash);
         showFlash(flash);
     });
+}
+
+function checkInitialFlash(): void {
+    const page = usePage();
+    const flash = page.props.flash as
+        | {
+              success?: string | null;
+              error?: string | null;
+              toast?: FlashToast;
+          }
+        | undefined;
+
+    console.log('[FlashToast] initial flash:', flash);
+    showFlash(flash);
 }
 
 function showFlash(flash: { success?: string | null; error?: string | null; toast?: FlashToast } | undefined) {
@@ -46,4 +69,16 @@ function showFlash(flash: { success?: string | null; error?: string | null; toas
     } else if (flash.error) {
         toast.error(flash.error);
     }
+}
+
+export function showErrorToast(message: string): void {
+    if (!message || message === lastToastShown) return;
+    lastToastShown = message;
+    toast.error(message);
+}
+
+export function showSuccessToast(message: string): void {
+    if (!message || message === lastToastShown) return;
+    lastToastShown = message;
+    toast.success(message);
 }

@@ -37,6 +37,7 @@ import {
     X,
     Building2,
 } from '@lucide/vue';
+import { showErrorToast, showSuccessToast } from '@/lib/flashToast';
 
 defineOptions({
     layout: AdminLayout,
@@ -580,6 +581,7 @@ const submitOperation = (): void => {
             preserveScroll: true,
             onError: (errors) => {
                 const message = Object.values(errors).flat().join(', ') || 'Ошибка при выполнении операции.';
+                showErrorToast(message);
             },
             onFinish: () => {
                 locationModal.value.operationLoading = false;
