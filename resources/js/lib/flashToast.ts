@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import { usePage } from '@inertiajs/vue3';
 import { toast } from 'vue-sonner';
+import { nextTick } from 'vue';
 import type { FlashToast } from '@/types/ui';
 
 let initialized = false;
@@ -20,8 +21,10 @@ export function initializeFlashToast(): void {
         lastToastShown = '';
     });
 
-    // Проверяем flash-данные на начальной загрузке страницы
-    checkInitialFlash();
+    // Проверяем flash-данные на начальной загрузке страницы (deferred)
+    nextTick(() => {
+        checkInitialFlash();
+    });
 
     // Слушаем событие success для Inertia запросов (клиентская навигация)
     router.on('success', (event) => {
@@ -40,17 +43,25 @@ export function initializeFlashToast(): void {
 }
 
 function checkInitialFlash(): void {
-    const page = usePage();
-    const flash = page.props.flash as
-        | {
-              success?: string | null;
-              error?: string | null;
-              toast?: FlashToast;
-          }
-        | undefined;
+    try {
+        const page = usePage();
+        if (!page || !page.props) {
+            console.log('[FlashToast] initial flash: page not ready');
+            return;
+        }
+        const flash = page.props.flash as
+            | {
+                  success?: string | null;
+                  error?: string | null;
+                  toast?: FlashToast;
+              }
+            | undefined;
 
-    console.log('[FlashToast] initial flash:', flash);
-    showFlash(flash);
+        console.log('[FlashToast] initial flash:', flash);
+        showFlash(flash);
+    } catch (e) {
+        console.warn('[FlashToast] initial flash check failed:', e);
+    }
 }
 
 function showFlash(flash: { success?: string | null; error?: string | null; toast?: FlashToast } | undefined) {
