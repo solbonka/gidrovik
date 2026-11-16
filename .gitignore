@@ -48,3 +48,6 @@ yarn-error.log
 # pnpm cache
 .pnpm-store/
 /docker/conf/nginx/default.conf.bak
+
+# Импортные файлы номенклатуры
+Номенклатура и цены.xls

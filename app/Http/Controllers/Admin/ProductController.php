@@ -74,6 +74,60 @@ class ProductController extends Controller
                     $request->integer('product_type_id'),
                 ),
             )
+            ->when(
+                $request->filled('manufacturer_id'),
+                fn ($query) => $query->where(
+                    'manufacturer_id',
+                    $request->integer('manufacturer_id'),
+                ),
+            )
+            ->when(
+                $request->filled('country_id'),
+                fn ($query) => $query->where(
+                    'country_id',
+                    $request->integer('country_id'),
+                ),
+            )
+            ->when(
+                $request->filled('is_active') && $request->string('is_active')->toString() !== 'all',
+                fn ($query) => $query->where(
+                    'is_active',
+                    $request->boolean('is_active'),
+                ),
+            )
+            ->when(
+                $request->filled('published') && $request->string('published')->toString() !== 'all',
+                fn ($query) => $query->where(
+                    'published',
+                    $request->boolean('published'),
+                ),
+            )
+            ->when(
+                $request->string('price')->toString() === 'with',
+                fn ($query) => $query->where('retail_price', '>', 0),
+            )
+            ->when(
+                $request->string('price')->toString() === 'without',
+                fn ($query) => $query->where('retail_price', '<=', 0),
+            )
+            ->when(
+                $request->string('stock')->toString() === 'yes',
+                fn ($query) => $query->whereExists(
+                    DB::table('product_location')
+                        ->selectRaw('1')
+                        ->whereColumn('product_location.product_id', 'products.id')
+                        ->where('quantity', '>', 0),
+                ),
+            )
+            ->when(
+                $request->string('stock')->toString() === 'no',
+                fn ($query) => $query->whereNotExists(
+                    DB::table('product_location')
+                        ->selectRaw('1')
+                        ->whereColumn('product_location.product_id', 'products.id')
+                        ->where('quantity', '>', 0),
+                ),
+            )
             ->addSelect([
                 'stock_quantity' => DB::table('product_location')
                     ->selectRaw('COALESCE(SUM(quantity), 0)')
@@ -100,6 +154,7 @@ class ProductController extends Controller
                 'published' => $product->published,
                 'is_featured' => $product->is_featured,
                 'stock_quantity' => $product->stock_quantity,
+                'retail_price' => $product->retail_price,
                 'category' => $product->category ? [
                     'id' => $product->category->id,
                     'name' => $product->category->name,
@@ -132,7 +187,20 @@ class ProductController extends Controller
                 'product_type_id' => $request->integer('product_type_id') ?: null,
                 'sort' => $request->string('sort')->toString(),
                 'direction' => $request->string('direction')->toString() === 'desc' ? 'desc' : 'asc',
+                'manufacturer_id' => $request->integer('manufacturer_id') ?: null,
+                'country_id' => $request->integer('country_id') ?: null,
+                'is_active' => $request->string('is_active')->toString(),
+                'published' => $request->string('published')->toString(),
+                'price' => $request->string('price')->toString(),
+                'stock' => $request->string('stock')->toString(),
             ],
+            'manufacturers' => Manufacturer::query()
+                ->where('is_active', true)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'countries' => Country::query()
+                ->orderBy('name')
+                ->get(['id', 'name']),
         ]);
     }
 
@@ -142,6 +210,7 @@ class ProductController extends Controller
             'code' => 'code',
             'article' => 'article',
             'stock' => 'stock_quantity',
+            'price' => 'retail_price',
             'published' => 'published',
             'featured' => 'is_featured',
             'created_at' => 'created_at',

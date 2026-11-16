@@ -217,7 +217,7 @@ class StockMovementService
         int $productId,
         int $locationId,
         string|int|float $quantity,
-        string $comment,
+        ?string $comment,
         ?int $userId,
     ): StockMovement {
         return DB::transaction(function () use (

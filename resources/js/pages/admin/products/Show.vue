@@ -98,6 +98,7 @@ interface Product {
     description: string | null;
     is_active: boolean;
     unit: string;
+    retail_price?: number | string | null;
     // Необязательное поле: показываем, если бэкенд его передаёт
     minimum_stock?: number | null;
     manufacturer: { id: number; name: string } | null;
@@ -122,6 +123,16 @@ const formatNumber = (value: number | string | null | undefined): string =>
     value === null || value === undefined
         ? '—'
         : numberFormat.format(Number(value));
+
+const priceFormat = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 2,
+});
+
+const formatPrice = (value: number | string | null | undefined): string => {
+    const price = Number(value ?? 0);
+
+    return price > 0 ? `${priceFormat.format(price)} ₽` : '—';
+};
 
 const formatCharacteristicValue = (characteristic: Characteristic): string => {
     if (characteristic.value === null || characteristic.value === '') {
@@ -154,6 +165,10 @@ const infoItems = computed(() => [
         ? [{ label: 'Угол', value: `${props.product.angle}°` }]
         : []),
     { label: 'Единица измерения', value: props.product.unit },
+    {
+        label: 'Розничная цена',
+        value: formatPrice(props.product.retail_price),
+    },
     {
         label: 'Производитель',
         value: props.product.manufacturer?.name ?? '—',

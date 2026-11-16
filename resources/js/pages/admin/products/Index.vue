@@ -1,14 +1,18 @@
 <script setup lang="ts">
-import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import {
+    ChevronDown,
     ChevronLeft,
     ChevronRight,
     Eye,
+    Globe,
     Package,
     Pencil,
     Plus,
     Search,
+    SlidersHorizontal,
+    Star,
     Trash2,
     X,
 } from '@lucide/vue';
@@ -51,6 +55,7 @@ interface Product {
     published: boolean;
     is_featured: boolean;
     stock_quantity: number | null;
+    retail_price: number | string | null;
     category: Category;
     product_type: ProductType | null;
 }
@@ -71,10 +76,21 @@ interface PaginatedProducts {
     links: PaginationLink[];
 }
 
+interface NamedOption {
+    id: number;
+    name: string;
+}
+
 interface Filters {
     search: string;
     category_id: number | null;
     product_type_id: number | null;
+    manufacturer_id: number | null;
+    country_id: number | null;
+    is_active: string;
+    published: string;
+    price: string;
+    stock: string;
     sort: string;
     direction: 'asc' | 'desc';
 }
@@ -84,6 +100,8 @@ interface Props {
     filters: Filters;
     categories: Category[];
     productTypes: ProductType[];
+    manufacturers: NamedOption[];
+    countries: NamedOption[];
 }
 
 const props = defineProps<Props>();
@@ -97,6 +115,16 @@ const numberFormat = new Intl.NumberFormat('ru-RU', {
 const formatStock = (value: number | string | null | undefined): string =>
     numberFormat.format(Number(value ?? 0));
 
+const priceFormat = new Intl.NumberFormat('ru-RU', {
+    maximumFractionDigits: 2,
+});
+
+const formatPrice = (value: number | string | null | undefined): string => {
+    const price = Number(value ?? 0);
+
+    return price > 0 ? `${priceFormat.format(price)} ₽` : '—';
+};
+
 const hasStock = (product: Product): boolean =>
     Number(product.stock_quantity ?? 0) > 0;
 
@@ -105,6 +133,12 @@ const hasStock = (product: Product): boolean =>
 const search = ref(props.filters.search ?? '');
 const categoryId = ref(props.filters.category_id?.toString() ?? 'all');
 const productTypeId = ref(props.filters.product_type_id?.toString() ?? 'all');
+const manufacturerId = ref(props.filters.manufacturer_id?.toString() ?? 'all');
+const countryId = ref(props.filters.country_id?.toString() ?? 'all');
+const isActive = ref(props.filters.is_active || 'all');
+const publishedFilter = ref(props.filters.published || 'all');
+const priceFilter = ref(props.filters.price || 'all');
+const stockFilter = ref(props.filters.stock || 'all');
 const sort = ref(
     props.filters.sort && props.filters.direction
         ? `${props.filters.sort}:${props.filters.direction}`
@@ -120,6 +154,8 @@ const sortOptions = [
     { value: 'article:desc', label: 'Артикул: Я–А' },
     { value: 'stock:desc', label: 'Остаток: больше' },
     { value: 'stock:asc', label: 'Остаток: меньше' },
+    { value: 'price:asc', label: 'Цена: по возрастанию' },
+    { value: 'price:desc', label: 'Цена: по убыванию' },
     { value: 'featured:desc', label: 'Популярные первыми' },
     { value: 'published:desc', label: 'Опубликованные первыми' },
     { value: 'created_at:desc', label: 'Сначала новые' },
@@ -135,7 +171,8 @@ const availableTypes = computed(() =>
         ),
 );
 
-const activeFiltersCount = computed(
+// Основные фильтры (всегда видны)
+const mainFiltersCount = computed(
     () =>
         [
             search.value,
@@ -143,6 +180,26 @@ const activeFiltersCount = computed(
             productTypeId.value !== 'all' ? productTypeId.value : '',
         ].filter(Boolean).length,
 );
+
+// Дополнительные фильтры (в раскрывающейся панели)
+const extraFiltersCount = computed(
+    () =>
+        [
+            manufacturerId.value !== 'all' ? manufacturerId.value : '',
+            countryId.value !== 'all' ? countryId.value : '',
+            isActive.value !== 'all' ? isActive.value : '',
+            publishedFilter.value !== 'all' ? publishedFilter.value : '',
+            priceFilter.value !== 'all' ? priceFilter.value : '',
+            stockFilter.value !== 'all' ? stockFilter.value : '',
+        ].filter(Boolean).length,
+);
+
+const activeFiltersCount = computed(
+    () => mainFiltersCount.value + extraFiltersCount.value,
+);
+
+// Панель открыта сразу, если уже выбран какой-то дополнительный фильтр
+const showExtra = ref(extraFiltersCount.value > 0);
 
 let debounceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -157,11 +214,24 @@ const submitFilters = (): void => {
                 categoryId.value !== 'all' ? categoryId.value : undefined,
             product_type_id:
                 productTypeId.value !== 'all' ? productTypeId.value : undefined,
+            manufacturer_id:
+                manufacturerId.value !== 'all'
+                    ? manufacturerId.value
+                    : undefined,
+            country_id:
+                countryId.value !== 'all' ? countryId.value : undefined,
+            is_active: isActive.value !== 'all' ? isActive.value : undefined,
+            published:
+                publishedFilter.value !== 'all'
+                    ? publishedFilter.value
+                    : undefined,
+            price: priceFilter.value !== 'all' ? priceFilter.value : undefined,
+            stock: stockFilter.value !== 'all' ? stockFilter.value : undefined,
             ...(sort.value !== 'name:asc'
                 ? {
-                      sort: sort.value.split(':')[0],
-                      direction: sort.value.split(':')[1],
-                  }
+                    sort: sort.value.split(':')[0],
+                    direction: sort.value.split(':')[1],
+                }
                 : {}),
         },
         {
@@ -185,10 +255,24 @@ watch(categoryId, () => {
 });
 
 // Применяем фильтры автоматически, с небольшой задержкой
-watch([search, categoryId, productTypeId, sort], () => {
-    clearTimeout(debounceTimer);
-    debounceTimer = setTimeout(submitFilters, 350);
-});
+watch(
+    [
+        search,
+        categoryId,
+        productTypeId,
+        manufacturerId,
+        countryId,
+        isActive,
+        publishedFilter,
+        priceFilter,
+        stockFilter,
+        sort,
+    ],
+    () => {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(submitFilters, 350);
+    },
+);
 
 onBeforeUnmount(() => clearTimeout(debounceTimer));
 
@@ -196,6 +280,12 @@ const resetFilters = (): void => {
     search.value = '';
     categoryId.value = 'all';
     productTypeId.value = 'all';
+    manufacturerId.value = 'all';
+    countryId.value = 'all';
+    isActive.value = 'all';
+    publishedFilter.value = 'all';
+    priceFilter.value = 'all';
+    stockFilter.value = 'all';
 };
 
 /* ---------- Удаление ---------- */
@@ -250,51 +340,41 @@ const hasPagination = computed(() => props.products.links.length > 3);
 const pageButtonBase =
     'inline-flex h-9 min-w-9 items-center justify-center rounded-xl border px-3 text-sm font-medium transition';
 
-const activeBadge =
-    'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
-const inactiveBadge = 'bg-muted text-muted-foreground ring-border';
-const publishedBadge =
-    'bg-blue-500/10 text-blue-700 ring-blue-600/20 dark:text-blue-400';
-const unpublishedBadge = 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400';
-const featuredBadge =
-    'bg-orange-500/10 text-orange-700 ring-orange-600/20 dark:text-orange-400';
-const notFeaturedBadge = 'bg-muted text-muted-foreground ring-border';
-
-/* ---------- Публикация ---------- */
+/* ---------- Публикация / Популярные ---------- */
 
 function togglePublished(product: Product) {
     router.put(
         `/admin/products/${product.id}/toggle-published`,
         { published: !product.published },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            onError: () => {
-            },
-        },
-    )
+        { preserveScroll: true, preserveState: true },
+    );
 }
-
-/* ---------- Популярные ---------- */
 
 function toggleFeatured(product: Product) {
     router.put(
         `/admin/products/${product.id}/toggle-featured`,
         { is_featured: !product.is_featured },
-        {
-            preserveScroll: true,
-            preserveState: true,
-            onError: () => {
-            },
-        },
-    )
+        { preserveScroll: true, preserveState: true },
+    );
 }
+
+// Общие стили кнопок-переключателей
+const toggleBase =
+    'inline-flex size-8 items-center justify-center rounded-lg border transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
+const publishedOn =
+    'border-blue-600/20 bg-blue-500/10 text-blue-700 hover:bg-blue-500/20 dark:text-blue-400';
+const publishedOff =
+    'border-border bg-transparent text-muted-foreground/60 hover:bg-muted';
+const featuredOn =
+    'border-orange-600/20 bg-orange-500/10 text-orange-600 hover:bg-orange-500/20 dark:text-orange-400';
+const featuredOff =
+    'border-border bg-transparent text-muted-foreground/60 hover:bg-muted';
 </script>
 
 <template>
     <Head title="Товары" />
 
-    <div class="space-y-6">
+    <div class="space-y-5">
         <!-- Заголовок -->
         <header
             class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between"
@@ -328,8 +408,9 @@ function toggleFeatured(product: Product) {
             class="rounded-2xl border bg-card p-4 shadow-sm sm:p-5"
             @submit.prevent="submitFilters"
         >
-            <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-[2fr_1fr_1fr_1fr]">
-                <div class="space-y-1.5 md:col-span-2 lg:col-span-1">
+            <!-- Основная строка -->
+            <div class="grid gap-3 md:grid-cols-2 lg:grid-cols-12">
+                <div class="space-y-1.5 md:col-span-2 lg:col-span-4">
                     <Label for="search">Поиск</Label>
 
                     <div class="relative">
@@ -342,7 +423,7 @@ function toggleFeatured(product: Product) {
                             id="search"
                             v-model="search"
                             type="search"
-                            placeholder="Название или артикул"
+                            placeholder="Название, код или артикул"
                             class="h-10 rounded-xl pr-10 pl-9"
                         />
 
@@ -360,7 +441,7 @@ function toggleFeatured(product: Product) {
                     </div>
                 </div>
 
-                <div class="space-y-1.5">
+                <div class="space-y-1.5 lg:col-span-3">
                     <Label for="category">Категория</Label>
 
                     <Select v-model="categoryId">
@@ -382,7 +463,7 @@ function toggleFeatured(product: Product) {
                     </Select>
                 </div>
 
-                <div class="space-y-1.5">
+                <div class="space-y-1.5 lg:col-span-3">
                     <Label for="product-type">Тип товара</Label>
 
                     <Select v-model="productTypeId">
@@ -404,7 +485,7 @@ function toggleFeatured(product: Product) {
                     </Select>
                 </div>
 
-                <div class="space-y-1.5">
+                <div class="space-y-1.5 lg:col-span-2">
                     <Label for="sort">Сортировка</Label>
 
                     <Select v-model="sort">
@@ -425,8 +506,143 @@ function toggleFeatured(product: Product) {
                 </div>
             </div>
 
-            <div v-if="activeFiltersCount" class="mt-4 flex justify-end border-t pt-3">
+            <!-- Дополнительные фильтры -->
+            <div v-if="showExtra" class="mt-3 grid gap-3 border-t pt-4 sm:grid-cols-2 lg:grid-cols-6">
+                <div class="space-y-1.5">
+                    <Label for="manufacturer">Производитель</Label>
+
+                    <Select v-model="manufacturerId">
+                        <SelectTrigger id="manufacturer" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все производители</SelectItem>
+
+                            <SelectItem
+                                v-for="manufacturer in manufacturers"
+                                :key="manufacturer.id"
+                                :value="manufacturer.id.toString()"
+                            >
+                                {{ manufacturer.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="country">Страна</Label>
+
+                    <Select v-model="countryId">
+                        <SelectTrigger id="country" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все страны</SelectItem>
+
+                            <SelectItem
+                                v-for="country in countries"
+                                :key="country.id"
+                                :value="country.id.toString()"
+                            >
+                                {{ country.name }}
+                            </SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="is-active">Активность</Label>
+
+                    <Select v-model="isActive">
+                        <SelectTrigger id="is-active" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            <SelectItem value="1">Активные</SelectItem>
+                            <SelectItem value="0">Неактивные</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="published-filter">Публикация</Label>
+
+                    <Select v-model="publishedFilter">
+                        <SelectTrigger id="published-filter" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            <SelectItem value="1">Опубликованные</SelectItem>
+                            <SelectItem value="0">Не опубликованные</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="price-filter">Цена</Label>
+
+                    <Select v-model="priceFilter">
+                        <SelectTrigger id="price-filter" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            <SelectItem value="with">С ценой</SelectItem>
+                            <SelectItem value="without">Без цены</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+
+                <div class="space-y-1.5">
+                    <Label for="stock-filter">Остаток</Label>
+
+                    <Select v-model="stockFilter">
+                        <SelectTrigger id="stock-filter" class="h-10 w-full rounded-xl">
+                            <SelectValue placeholder="Все" />
+                        </SelectTrigger>
+
+                        <SelectContent>
+                            <SelectItem value="all">Все</SelectItem>
+                            <SelectItem value="yes">В наличии</SelectItem>
+                            <SelectItem value="no">Нет в наличии</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <!-- Панель управления фильтрами -->
+            <div class="mt-4 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
                 <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    class="text-muted-foreground"
+                    @click="showExtra = !showExtra"
+                >
+                    <SlidersHorizontal :size="15" class="mr-1.5" />
+                    Больше фильтров
+                    <span
+                        v-if="extraFiltersCount"
+                        class="ml-1.5 inline-flex size-5 items-center justify-center rounded-full bg-primary text-[11px] font-semibold text-primary-foreground"
+                    >
+                        {{ extraFiltersCount }}
+                    </span>
+                    <ChevronDown
+                        :size="15"
+                        class="ml-1 transition-transform"
+                        :class="showExtra ? 'rotate-180' : ''"
+                    />
+                </Button>
+
+                <Button
+                    v-if="activeFiltersCount"
                     type="button"
                     variant="ghost"
                     size="sm"
@@ -500,103 +716,86 @@ function toggleFeatured(product: Product) {
                         v-for="product in products.data"
                         :key="product.id"
                         class="space-y-3 p-4"
+                        :class="product.is_active ? '' : 'bg-muted/30'"
                     >
                         <div class="flex items-start justify-between gap-3">
                             <div class="min-w-0">
-                                <h3 class="break-words text-sm font-semibold">
+                                <h3 class="text-sm font-semibold break-words">
                                     {{ product.name }}
                                 </h3>
-                                <p v-if="product.code" class="mt-1 font-mono text-xs text-muted-foreground">
-                                        Код: {{ product.code }}
-                                    </p>
-                                <p v-if="product.article" class="font-mono text-xs text-muted-foreground">
-                                        Артикул: {{ product.article }}
-                                    </p>
+                                <p class="mt-1 font-mono text-xs text-muted-foreground">
+                                    <span v-if="product.code">{{ product.code }}</span>
+                                    <span v-if="product.code && product.article"> · </span>
+                                    <span v-if="product.article">{{ product.article }}</span>
+                                </p>
+                                <p class="mt-1 text-xs text-muted-foreground">
+                                    {{ product.category.name }}
+                                    <span v-if="product.product_type"> / {{ product.product_type.name }}</span>
+                                </p>
                             </div>
 
-                            <div class="flex flex-wrap gap-1.5">
-                                <span
-                                    class="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-                                    :class="product.is_active ? activeBadge : inactiveBadge"
-                                >
-                                    <span
-                                        class="size-1.5 rounded-full"
-                                        :class="product.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/50'"
-                                    />
-                                    {{ product.is_active ? 'Активен' : 'Неактивен' }}
-                                </span>
-
+                            <div class="flex shrink-0 gap-1.5">
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-                                    :class="product.published ? publishedBadge : unpublishedBadge"
+                                    :class="[toggleBase, product.published ? publishedOn : publishedOff]"
+                                    :title="product.published ? 'Опубликован' : 'Не опубликован'"
+                                    :aria-pressed="product.published"
                                     @click="togglePublished(product)"
                                 >
-                                    <span
-                                        class="size-1.5 rounded-full"
-                                        :class="product.published ? 'bg-blue-500' : 'bg-amber-500'"
-                                    />
-                                    {{ product.published ? 'Опубликован' : 'Не опубликован' }}
+                                    <Globe :size="15" />
+                                    <span class="sr-only">Публикация</span>
                                 </button>
 
                                 <button
                                     type="button"
-                                    class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
-                                    :class="product.is_featured ? featuredBadge : notFeaturedBadge"
+                                    :class="[toggleBase, product.is_featured ? featuredOn : featuredOff]"
+                                    :title="product.is_featured ? 'Популярный' : 'Не популярный'"
+                                    :aria-pressed="product.is_featured"
                                     @click="toggleFeatured(product)"
                                 >
-                                    <span
-                                        class="size-1.5 rounded-full"
-                                        :class="product.is_featured ? 'bg-orange-500' : 'bg-muted-foreground/50'"
-                                    />
-                                    {{ product.is_featured ? 'Популярный' : 'Не популярный' }}
+                                    <Star :size="15" :class="product.is_featured ? 'fill-current' : ''" />
+                                    <span class="sr-only">Популярный</span>
                                 </button>
                             </div>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-2 text-center">
-                            <div class="min-w-0 rounded-lg bg-muted/50 px-2 py-2">
-                                <p class="text-[11px] text-muted-foreground">Категория</p>
-                                <p class="mt-0.5 truncate text-xs font-medium">
-                                    {{ product.category.name }}
-                                </p>
-                            </div>
-                            <div class="min-w-0 rounded-lg bg-muted/50 px-2 py-2">
-                                <p class="text-[11px] text-muted-foreground">Тип</p>
-                                <p class="mt-0.5 truncate text-xs font-medium">
-                                    {{ product.product_type?.name ?? '—' }}
-                                </p>
-                            </div>
-                            <div class="rounded-lg bg-muted/50 px-2 py-2">
+                        <div class="flex items-center justify-between gap-3 rounded-lg bg-muted/50 px-3 py-2">
+                            <div>
                                 <p class="text-[11px] text-muted-foreground">Остаток</p>
                                 <p
-                                    class="mt-0.5 text-xs font-bold tabular-nums"
+                                    class="text-sm font-bold tabular-nums"
                                     :class="hasStock(product) ? '' : 'text-muted-foreground'"
                                 >
                                     {{ formatStock(product.stock_quantity) }}
                                 </p>
                             </div>
+                            <div class="text-right">
+                                <p class="text-[11px] text-muted-foreground">Цена</p>
+                                <p class="text-sm font-bold tabular-nums">
+                                    {{ formatPrice(product.retail_price) }}
+                                </p>
+                            </div>
+                            <span
+                                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-semibold ring-1 ring-inset"
+                                :class="
+                                    product.is_active
+                                        ? 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400'
+                                        : 'bg-muted text-muted-foreground ring-border'
+                                "
+                            >
+                                {{ product.is_active ? 'Активен' : 'Неактивен' }}
+                            </span>
                         </div>
 
                         <div class="flex items-center gap-2">
-                            <Button
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                class="h-9 flex-1"
-                            >
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
                                 <Link :href="show(product.id).url">
                                     <Eye :size="14" class="mr-1.5" />
                                     Просмотр
                                 </Link>
                             </Button>
 
-                            <Button
-                                as-child
-                                variant="outline"
-                                size="sm"
-                                class="h-9 flex-1"
-                            >
+                            <Button as-child variant="outline" size="sm" class="h-9 flex-1">
                                 <Link :href="edit(product.id).url">
                                     <Pencil :size="14" class="mr-1.5" />
                                     Изменить
@@ -617,19 +816,16 @@ function toggleFeatured(product: Product) {
                 </ul>
 
                 <!-- Таблица -->
-                <div class="hidden overflow-x-auto md:block">
+                <div class="hidden md:block">
                     <table class="w-full text-left text-sm">
                         <thead>
                         <tr class="border-b bg-muted/40">
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Товар</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Код товара</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Артикул</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Категория</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Тип</th>
-                            <th scope="col" class="px-5 py-3.5 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Остаток</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Опубликован</th>
-                            <th scope="col" class="px-5 py-3.5 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Популярный</th>
-                            <th scope="col" class="px-5 py-3.5">
+                            <th scope="col" class="px-4 py-3 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Товар</th>
+                            <th scope="col" class="hidden px-4 py-3 text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase lg:table-cell">Категория</th>
+                            <th scope="col" class="px-4 py-3 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Остаток</th>
+                            <th scope="col" class="px-4 py-3 text-right text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Цена</th>
+                            <th scope="col" class="px-4 py-3 text-center text-xs font-semibold tracking-wider whitespace-nowrap text-muted-foreground uppercase">Статус</th>
+                            <th scope="col" class="px-4 py-3">
                                 <span class="sr-only">Действия</span>
                             </th>
                         </tr>
@@ -640,77 +836,105 @@ function toggleFeatured(product: Product) {
                             v-for="product in products.data"
                             :key="product.id"
                             class="transition-colors hover:bg-muted/40"
+                            :class="product.is_active ? '' : 'bg-muted/20'"
                         >
-                            <td class="px-5 py-4">
-                                <div class="font-semibold">
-                                    {{ product.name }}
+                            <!-- Товар: название + код + артикул + (категория на узких экранах) -->
+                            <td class="max-w-[22rem] px-4 py-3">
+                                <div class="flex items-start gap-2">
+                                        <span
+                                            class="mt-1.5 size-2 shrink-0 rounded-full"
+                                            :class="product.is_active ? 'bg-emerald-500' : 'bg-muted-foreground/40'"
+                                            :title="product.is_active ? 'Активен' : 'Неактивен'"
+                                        />
+                                    <div class="min-w-0">
+                                        <div
+                                            class="line-clamp-2 font-semibold"
+                                            :class="product.is_active ? '' : 'text-muted-foreground'"
+                                            :title="product.name"
+                                        >
+                                            {{ product.name }}
+                                        </div>
+
+                                        <div class="mt-1 flex flex-wrap gap-1.5">
+                                                <span
+                                                    v-if="product.code"
+                                                    class="inline-flex items-center rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[11px]"
+                                                    title="Код товара"
+                                                >
+                                                    {{ product.code }}
+                                                </span>
+                                            <span
+                                                v-if="product.article"
+                                                class="inline-flex items-center rounded-md border bg-muted/50 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground"
+                                                title="Артикул"
+                                            >
+                                                    {{ product.article }}
+                                                </span>
+                                        </div>
+
+                                        <div class="mt-1 text-xs text-muted-foreground lg:hidden">
+                                            {{ product.category.name }}
+                                            <span v-if="product.product_type"> / {{ product.product_type.name }}</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </td>
 
-                            <td class="px-5 py-4 whitespace-nowrap">
+                            <!-- Категория + тип -->
+                            <td class="hidden px-4 py-3 lg:table-cell">
+                                <div class="font-medium">{{ product.category.name }}</div>
+                                <div class="text-xs text-muted-foreground">
+                                    {{ product.product_type?.name ?? '—' }}
+                                </div>
+                            </td>
+
+                            <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
                                     <span
-                                        class="inline-flex rounded-md border bg-muted/50 px-2 py-1 font-mono text-xs"
+                                        v-if="hasStock(product)"
+                                        class="font-bold"
                                     >
-                                    {{ product.code }}
+                                        {{ formatStock(product.stock_quantity) }}
+                                    </span>
+                                <span
+                                    v-else
+                                    class="inline-flex rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground"
+                                >
+                                        Нет
                                     </span>
                             </td>
 
-                            <td class="px-5 py-4 whitespace-nowrap text-muted-foreground">
-                                    <span
-                                        v-if="product.article"
-                                        class="inline-flex rounded-md border bg-muted/50 px-2 py-1 font-mono text-xs"
-                                    >
-                                    {{ product.article }}
-                                    </span>
-                                    <span v-else>—</span>
+                            <td class="px-4 py-3 text-right whitespace-nowrap tabular-nums">
+                                {{ formatPrice(product.retail_price) }}
                             </td>
 
-                            <td class="px-5 py-4 text-muted-foreground">
-                                {{ product.category.name }}
-                            </td>
-
-                            <td class="px-5 py-4 text-muted-foreground">
-                                {{ product.product_type?.name ?? '—' }}
-                            </td>
-
-                            <td
-                                class="px-5 py-4 text-right font-bold whitespace-nowrap tabular-nums"
-                                :class="hasStock(product) ? '' : 'text-muted-foreground/60'"
-                            >
-                                {{ formatStock(product.stock_quantity) }}
-                            </td>
-
-                            <td class="px-5 py-4 whitespace-nowrap">
+                            <!-- Быстрые переключатели -->
+                            <td class="px-4 py-3">
+                                <div class="flex items-center justify-center gap-1.5">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
-                                        :class="product.published ? publishedBadge : unpublishedBadge"
+                                        :class="[toggleBase, product.published ? publishedOn : publishedOff]"
+                                        :title="product.published ? 'Опубликован — нажмите, чтобы скрыть' : 'Не опубликован — нажмите, чтобы опубликовать'"
+                                        :aria-pressed="product.published"
                                         @click="togglePublished(product)"
                                     >
-                                        <span
-                                            class="size-1.5 rounded-full"
-                                            :class="product.published ? 'bg-blue-500' : 'bg-amber-500'"
-                                        />
-                                        {{ product.published ? 'Опубликован' : 'Не опубликован' }}
+                                        <Globe :size="15" />
+                                        <span class="sr-only">Публикация</span>
                                     </button>
-                            </td>
 
-                            <td class="px-5 py-4 whitespace-nowrap">
                                     <button
                                         type="button"
-                                        class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset"
-                                        :class="product.is_featured ? featuredBadge : notFeaturedBadge"
+                                        :class="[toggleBase, product.is_featured ? featuredOn : featuredOff]"
+                                        :title="product.is_featured ? 'Популярный — нажмите, чтобы убрать' : 'Отметить популярным'"
+                                        :aria-pressed="product.is_featured"
                                         @click="toggleFeatured(product)"
                                     >
-                                        <span
-                                            class="size-1.5 rounded-full"
-                                            :class="product.is_featured ? 'bg-orange-500' : 'bg-muted-foreground/50'"
-                                        />
-                                        {{ product.is_featured ? 'Популярный' : 'Не популярный' }}
+                                        <Star :size="15" :class="product.is_featured ? 'fill-current' : ''" />
+                                        <span class="sr-only">Популярный</span>
                                     </button>
+                                </div>
                             </td>
 
-                            <td class="px-5 py-4 text-right whitespace-nowrap">
+                            <td class="px-4 py-3 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end gap-0.5">
                                     <Button
                                         variant="ghost"
