@@ -17,6 +17,7 @@ Dashboard — статистика и складская сводка.
 Права доступа — ограничение маршрутов и пунктов меню по роли.
 Пользователи — список, поиск, смена роли.
 
+php artisan products:import-prices "Номенклатура и цены.xls"
 php artisan products:import-prices file.xlsx --dry-run   # только отчёт
 php artisan products:import-prices file.csv --sheet="Лист_1"
 

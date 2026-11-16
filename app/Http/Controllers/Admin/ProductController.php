@@ -52,6 +52,9 @@ class ProductController extends Controller
                                     )
                                     ->orWhereRaw(
                                         'LOWER(code) LIKE ?',
+                                        ["%{$word}%"],
+                                    )
+                                    ->orWhereRaw(
                                         'LOWER(article) LIKE ?',
                                         ["%{$word}%"],
                                     );

@@ -124,6 +124,13 @@ class CatalogController extends Controller
             $query->where('product_type_id', $productTypeId);
         }
 
+        // Filter by angle
+        $angle = $request->input('angle');
+        $angle = is_numeric($angle) ? (int) $angle : null;
+        if ($angle !== null) {
+            $query->where('angle', $angle);
+        }
+
         // Filter by stock status
         $stockStatus = $request->input('stock_status');
         $stockStatus = in_array($stockStatus, ['in_stock', 'out_of_stock'], true) ? $stockStatus : null;
@@ -270,6 +277,16 @@ class CatalogController extends Controller
                 ->get();
         }
 
+        // Get available angles for current category (or whole catalog)
+        $angles = Product::query()
+            ->where('is_active', true)
+            ->where('published', true)
+            ->when($categoryModel, fn ($q) => $q->where('category_id', $categoryModel->id))
+            ->whereNotNull('angle')
+            ->distinct()
+            ->orderBy('angle')
+            ->pluck('angle');
+
         // Get available product types for current category
         $productTypes = collect();
         if ($categoryModel) {
@@ -315,12 +332,14 @@ class CatalogController extends Controller
             'favorite_product_ids' => $favoriteProductIds,
             'standards' => $standards,
             'diameters' => $diameters,
+            'angles' => $angles,
             'product_types' => $productTypes,
             'filters' => [
                 'category' => $categoryId,
                 'standard' => $standardId,
                 'diameter' => $diameterId,
                 'product_type' => $productTypeId,
+                'angle' => $angle,
                 'stock_status' => $stockStatus,
                 'min_price' => $minPrice,
                 'max_price' => $maxPrice,

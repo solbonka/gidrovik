@@ -38,6 +38,7 @@ const props = defineProps<{
     categories: Array<{ id: number, name: string, slug: string }>
     standards: Array<{ id: number, name: string, code: string }>
     diameters: Array<{ id: number, value: string }>
+    angles: number[]
     product_types: Array<{ id: number, name: string }>
     characteristics: Array<{
         id: number
@@ -53,6 +54,7 @@ const props = defineProps<{
         standard?: string | null
         diameter?: string | null
         product_type?: string | null
+        angle?: number | string | null
         stock_status?: string | null
         min_price?: string | null
         max_price?: string | null
@@ -200,6 +202,7 @@ function go(overrides: Params = {}, scrollTop = false) {
         standard: props.filters.standard ?? null,
         diameter: props.filters.diameter ?? null,
         product_type: props.filters.product_type ?? null,
+        angle: props.filters.angle ?? null,
         stock_status: props.filters.stock_status ?? null,
         min_price: minPrice.value || null,
         max_price: maxPrice.value || null,
@@ -282,13 +285,14 @@ function selectCategory(slug: string) {
         standard: null,
         diameter: null,
         product_type: null,
+        angle: null,
         characteristics: {},
         page: 1,
     })
 }
 
 // ---------- Выпадающие фильтры (стандарт / диаметр / тип) ----------
-type SelectKey = 'standard' | 'diameter' | 'product_type'
+type SelectKey = 'standard' | 'diameter' | 'product_type' | 'angle'
 
 const selectFilters = computed(() => [
     {
@@ -304,6 +308,13 @@ const selectFilters = computed(() => [
         all: 'Все диаметры',
         value: props.filters.diameter ?? '',
         options: props.diameters.map(d => ({ value: String(d.id), label: d.value })),
+    },
+    {
+        key: 'angle' as SelectKey,
+        label: 'Угол',
+        all: 'Все углы',
+        value: props.filters.angle != null ? String(props.filters.angle) : '',
+        options: props.angles.map(a => ({ value: String(a), label: `${a}°` })),
     },
     {
         key: 'product_type' as SelectKey,
@@ -372,6 +383,10 @@ const activeChips = computed<Chip[]>(() => {
 
     if (productType) {
         chips.push({ key: 'product_type', label: `Тип: ${productType.name}`, remove: () => go({ product_type: null, page: 1 }) })
+    }
+
+    if (f.angle !== null && f.angle !== undefined && f.angle !== '') {
+        chips.push({ key: 'angle', label: `Угол: ${f.angle}°`, remove: () => go({ angle: null, page: 1 }) })
     }
 
     for (const characteristic of props.characteristics) {
