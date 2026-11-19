@@ -36,16 +36,25 @@ class CartController extends Controller
         $cartItems = $items->items->map(function (CartItem $item) {
             $product = $item->product;
 
+            $isPieceLine = $product->usesLengthStock() && $item->length_mm !== null;
+            $lineMeters = $isPieceLine
+                ? bcdiv(bcmul((string) $item->length_mm, (string) $item->quantity, 3), '1000', 3)
+                : (string) $item->quantity;
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
                 'product_slug' => $product->slug,
                 'quantity' => (float) $item->quantity,
+                'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
+                'length_label' => $item->length_mm !== null
+                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                    : null,
                 'name' => $product->name,
                 'code' => $product->code,
                 'article' => $product->article,
                 'price' => $product->retail_price ?? '0',
-                'subtotal' => bcmul((string) $product->retail_price, (string) $item->quantity, 2),
+                'subtotal' => bcmul((string) $product->retail_price, $lineMeters, 2),
                 'stock_status' => $product->stock_status,
                 'unit' => $product->unit ?? 'шт.',
                 'image_path' => $product->images->first()?->getUrlForSize('thumbnail'),
@@ -69,6 +78,7 @@ class CartController extends Controller
         $request->validate([
             'product_id' => 'required|exists:products,id',
             'quantity' => 'required|numeric|min:0.001',
+            'length_mm' => 'nullable|numeric|gt:0|max:999999999.999',
         ]);
 
         $product = Product::findOrFail($request->product_id);
@@ -78,9 +88,24 @@ class CartController extends Controller
         $cart = $this->getCart();
         $quantity = $request->input('quantity', 1);
 
-        $existingItem = $cart->items()
-            ->where('product_id', $product->id)
-            ->first();
+        // Для товаров с учётом по отрезкам строка = N кусков длиной length_mm.
+        // quantity трактуется как количество кусков.
+        $lengthMm = null;
+        if ($product->usesLengthStock() && $request->filled('length_mm')) {
+            $lengthMm = bcadd((string) $request->input('length_mm'), '0', 3);
+            $quantity = max(1, (int) round((float) $quantity));
+        }
+
+        $existingQuery = $cart->items()
+            ->where('product_id', $product->id);
+
+        if ($lengthMm === null) {
+            $existingQuery->whereNull('length_mm');
+        } else {
+            $existingQuery->where('length_mm', $lengthMm);
+        }
+
+        $existingItem = $existingQuery->first();
 
         if ($existingItem) {
             $existingItem->quantity = bcadd(
@@ -93,6 +118,7 @@ class CartController extends Controller
             $cart->items()->create([
                 'product_id' => $product->id,
                 'quantity' => $quantity,
+                'length_mm' => $lengthMm,
             ]);
         }
 

@@ -42,6 +42,12 @@ const props = defineProps<{
         }>
         locations?: Array<{ rack_code: string; location_code: string; quantity: string }>
         unit?: string
+        stock_mode?: string
+        length_stock?: {
+            total_m: string
+            max_m: string | null
+            allow_cutting: boolean
+        } | null
     }
     related_products: Array<{
         id: number
@@ -156,18 +162,32 @@ let addedTimer: ReturnType<typeof setTimeout> | undefined
 
 const unit = computed(() => props.product.unit ?? 'шт.')
 const isPiece = computed(() => unit.value === 'шт.')
+const isLength = computed(() => props.product.stock_mode === 'length')
 const step = computed(() => (isPiece.value ? 1 : 0.01))
 const min = computed(() => (isPiece.value ? 1 : 0.01))
-const quantityPrecision = computed(() => (isPiece.value ? 0 : 2))
+const quantityPrecision = computed(() => (isPiece.value ? 0 : (unit.value === 'м' ? 3 : 2)))
+
+// Для мерных товаров количество не может превышать самый длинный
+// доступный отрезок — больший кусок физически не существует
+const maxQuantity = computed<number | null>(() => {
+    if (!isLength.value || !props.product.length_stock?.max_m) return null
+    return Number(props.product.length_stock.max_m)
+})
+
+function clampQuantity(q: number): number {
+    const max = maxQuantity.value
+    if (max !== null && q > max) return max
+    return q
+}
 
 function normalizeQuantity() {
-    const q = Number(quantity.value) || min.value
+    const q = clampQuantity(Number(quantity.value) || min.value)
     const rounded = Math.round(q / step.value) * step.value
     quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
 }
 
 function changeQuantity(delta: number) {
-    const next = (Number(quantity.value) || min.value) + delta * step.value
+    const next = clampQuantity((Number(quantity.value) || min.value) + delta * step.value)
     const rounded = Math.round(next / step.value) * step.value
     quantity.value = Math.max(min.value, Number(rounded.toFixed(quantityPrecision.value)))
 }
@@ -176,9 +196,19 @@ function addToCart() {
     if (outOfStock.value) return
     normalizeQuantity()
 
+    // Для мерных товаров позиция = кусок длиной quantity метров;
+    // backend трактует quantity как число кусков при merge
+    const payload: Record<string, unknown> = isLength.value
+        ? {
+            product_id: props.product.id,
+            quantity: 1,
+            length_mm: Math.round((Number(quantity.value) || 0) * 1000 * 1000) / 1000,
+        }
+        : { product_id: props.product.id, quantity: quantity.value }
+
     router.post(
         route('store.cart.store'),
-        { product_id: props.product.id, quantity: quantity.value },
+        payload,
         {
             preserveState: true,
             preserveScroll: true,
@@ -341,6 +371,19 @@ onBeforeUnmount(() => {
                             {{ stock.label }}
                         </span>
                     </div>
+
+                    <p
+                        v-if="isLength && product.length_stock"
+                        class="mt-2 text-xs text-zinc-500 dark:text-zinc-400"
+                    >
+                        На складе: {{ product.length_stock.total_m }} м
+                        <template v-if="product.length_stock.max_m">
+                            · самый длинный отрезок: {{ product.length_stock.max_m }} м
+                        </template>
+                        <template v-if="!product.length_stock.allow_cutting && product.length_stock.max_m">
+                            · продаётся целыми отрезками
+                        </template>
+                    </p>
 
                     <!-- Покупка: панель внизу экрана на мобильных, блок в карточке на десктопе -->
                     <div

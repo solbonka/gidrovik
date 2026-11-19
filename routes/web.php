@@ -13,6 +13,7 @@ use App\Http\Controllers\Admin\OrderController as AdminOrderController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\Admin\ProductCreateController;
 use App\Http\Controllers\Admin\ProductImageController;
+use App\Http\Controllers\Admin\ProductSegmentController;
 use App\Http\Controllers\Admin\ProductTypeController;
 use App\Http\Controllers\Admin\RackController;
 use App\Http\Controllers\Admin\StandardController;
@@ -304,6 +305,32 @@ Route::middleware(['auth', 'verified', 'employee'])
                 StockInventoryController::class,
                 'store',
             ])->name('stock.inventory.store');
+
+            // Отрезки мерных товаров
+            Route::post('/products/{product}/segments', [
+                ProductSegmentController::class,
+                'store',
+            ])->name('products.segments.store');
+
+            Route::post('/products/{product}/segments/transfer', [
+                ProductSegmentController::class,
+                'transfer',
+            ])->name('products.segments.transfer');
+
+            Route::post('/products/{product}/segments/write-off', [
+                ProductSegmentController::class,
+                'writeOff',
+            ])->name('products.segments.write-off');
+
+            Route::patch('/products/{product}/segments/{segment}/correct', [
+                ProductSegmentController::class,
+                'correct',
+            ])->name('products.segments.correct');
+
+            Route::get('/stock/segments', [
+                \App\Http\Controllers\Admin\SegmentReportController::class,
+                'index',
+            ])->name('stock.segments.index');
         });
 
         Route::middleware('permission:stock.correct')->group(function () {

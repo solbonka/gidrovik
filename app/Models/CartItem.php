@@ -14,10 +14,12 @@ class CartItem extends Model
         'cart_id',
         'product_id',
         'quantity',
+        'length_mm',
     ];
 
     protected $casts = [
         'quantity' => 'decimal:3',
+        'length_mm' => 'decimal:3',
     ];
 
     public function cart(): BelongsTo

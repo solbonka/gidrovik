@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ProductSegmentStatus;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Category;
 use App\Models\Country;
 use App\Models\Diameter;
+use App\Models\Location;
 use App\Models\Manufacturer;
 use App\Models\Product;
 use App\Models\ProductType;
@@ -249,7 +251,89 @@ class ProductController extends Controller
             '.'
         );
 
+        $segmentsData = [];
+        $allLocations = [];
+        $segmentStats = [
+            'total_mm' => '0',
+            'max_mm' => '0',
+            'count' => 0,
+        ];
+
+        if ($product->usesLengthStock()) {
+            $segments = $product->segments()
+                ->with('location.rack:id,code,name')
+                ->orderByDesc('length_mm')
+                ->get();
+
+            $segmentsData = $segments
+                ->map(fn ($segment): array => [
+                    'id' => $segment->id,
+                    'length_mm' => (string) $segment->length_mm,
+                    'status' => $segment->status->value,
+                    'status_label' => $segment->status->label(),
+                    'parent_segment_id' => $segment->parent_segment_id,
+                    'created_at' => $segment->created_at?->toDateTimeString(),
+                    'location' => $segment->location ? [
+                        'id' => $segment->location->id,
+                        'number' => $segment->location->number,
+                        'rack' => $segment->location->rack ? [
+                            'id' => $segment->location->rack->id,
+                            'code' => $segment->location->rack->code,
+                            'name' => $segment->location->rack->name,
+                        ] : null,
+                    ] : null,
+                ])
+                ->values()
+                ->all();
+
+            $activeStatuses = array_map(
+                fn ($status) => $status->value,
+                ProductSegmentStatus::stockCounting(),
+            );
+
+            $activeSegments = $segments
+                ->filter(fn ($segment) => in_array($segment->status->value, $activeStatuses, true));
+
+            $totalMm = '0';
+            $maxMm = '0';
+
+            foreach ($activeSegments as $segment) {
+                $totalMm = bcadd($totalMm, (string) $segment->length_mm, 3);
+
+                if (bccomp((string) $segment->length_mm, $maxMm, 3) > 0) {
+                    $maxMm = (string) $segment->length_mm;
+                }
+            }
+
+            $segmentStats = [
+                'total_mm' => $totalMm,
+                'max_mm' => $maxMm,
+                'count' => $activeSegments->count(),
+            ];
+
+            $allLocations = Location::query()
+                ->with('rack:id,code,name')
+                ->orderBy('rack_id')
+                ->orderBy('number')
+                ->get()
+                ->map(fn (Location $location): array => [
+                    'id' => $location->id,
+                    'number' => $location->number,
+                    'code' => $location->code,
+                    'rack' => $location->rack ? [
+                        'id' => $location->rack->id,
+                        'code' => $location->rack->code,
+                        'name' => $location->rack->name,
+                    ] : null,
+                ])
+                ->values()
+                ->all();
+        }
+
         return Inertia::render('admin/products/Show', [
+            'segments' => $segmentsData,
+            'allLocations' => $allLocations,
+            'segmentStats' => $segmentStats,
             'product' => [
                 'id' => $product->id,
                 'name' => $product->name,
@@ -267,6 +351,11 @@ class ProductController extends Controller
                 'meta_description' => $product->meta_description,
                 'is_active' => $product->is_active,
                 'unit' => $product->unit,
+                'stock_mode' => $product->stock_mode?->value ?? 'quantity',
+                'allow_cutting' => (bool) $product->allow_cutting,
+                'cut_width_mm' => $product->cut_width_mm,
+                'min_remainder_mm' => $product->min_remainder_mm,
+                'min_sale_length_mm' => $product->min_sale_length_mm,
                 'manufacturer' => $product->manufacturer ? [
                     'id' => $product->manufacturer->id,
                     'name' => $product->manufacturer->name,
@@ -415,6 +504,11 @@ class ProductController extends Controller
                 'meta_description' => $product->meta_description,
                 'is_active' => $product->is_active,
                 'unit' => $product->unit,
+                'stock_mode' => $product->stock_mode?->value ?? 'quantity',
+                'allow_cutting' => (bool) $product->allow_cutting,
+                'cut_width_mm' => $product->cut_width_mm,
+                'min_remainder_mm' => $product->min_remainder_mm,
+                'min_sale_length_mm' => $product->min_sale_length_mm,
                 'manufacturer_id' => $product->manufacturer_id,
                 'country_id' => $product->country_id,
 

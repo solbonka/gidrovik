@@ -24,6 +24,10 @@ class StockMovementService
         'л',
     ];
 
+    public function __construct(
+        private readonly ProductSegmentService $productSegmentService,
+    ) {}
+
     public function receipt(
         int $productId,
         int $locationId,
@@ -31,6 +35,23 @@ class StockMovementService
         ?string $comment,
         ?int $userId,
     ): StockMovement {
+        $product = Product::query()->find($productId);
+
+        if ($product?->usesLengthStock()) {
+            $quantity = $this->normalizeQuantity(
+                $quantity,
+                $product->unit,
+            );
+
+            return $this->productSegmentService->receiptSingle(
+                $product->id,
+                $locationId,
+                $quantity,
+                $comment,
+                $userId,
+            );
+        }
+
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -105,6 +126,8 @@ class StockMovementService
         ?string $comment,
         ?int $userId,
     ): StockMovement {
+        $this->assertQuantityStockMode($productId);
+
         if ($fromLocationId === $toLocationId) {
             throw ValidationException::withMessages([
                 'to_location_id' => 'Исходная и целевая ячейки должны отличаться.',
@@ -220,6 +243,8 @@ class StockMovementService
         ?string $comment,
         ?int $userId,
     ): StockMovement {
+        $this->assertQuantityStockMode($productId);
+
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -284,6 +309,18 @@ class StockMovementService
         ?string $comment,
         ?int $userId,
     ): StockMovement {
+        $product = Product::query()->findOrFail($productId);
+
+        if ($product->usesLengthStock()) {
+            return $this->productSegmentService->returnSingle(
+                $productId,
+                $locationId,
+                $this->normalizeQuantity($quantity, $product->unit),
+                $comment,
+                $userId,
+            );
+        }
+
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -357,6 +394,8 @@ class StockMovementService
         ?string $comment,
         ?int $userId,
     ): ?StockMovement {
+        $this->assertQuantityStockMode($productId);
+
         return DB::transaction(function () use (
             $productId,
             $locationId,
@@ -438,6 +477,17 @@ class StockMovementService
                 'user_id' => $userId,
             ]);
         }, attempts: 3);
+    }
+
+    private function assertQuantityStockMode(int $productId): void
+    {
+        $product = Product::query()->find($productId);
+
+        if ($product?->usesLengthStock()) {
+            throw ValidationException::withMessages([
+                'product_id' => 'Товар с учётом по отрезкам: используйте операции со складскими отрезками.',
+            ]);
+        }
     }
 
     private function normalizeQuantity(

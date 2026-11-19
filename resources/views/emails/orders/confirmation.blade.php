@@ -51,7 +51,13 @@
                                 <tr style="border-bottom:1px solid #f1f5f9;">
                                     <td style="padding:12px 0;font-size:14px;">
                                         <strong>{{ $item->product_name }}</strong>
-                                        <span style="color:#94a3b8;"> × {{ $item->quantity }}</span>
+                                        <span style="color:#94a3b8;">
+                                            @if($item->length_mm)
+                                                × {{ $item->quantity }} по {{ rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.') }} м
+                                            @else
+                                                × {{ $item->quantity }}
+                                            @endif
+                                        </span>
                                     </td>
                                     <td style="padding:12px 0;font-size:14px;font-weight:600;text-align:right;">{{ number_format((float) $item->subtotal, 2, '.', ' ') }} ₽</td>
                                 </tr>

@@ -44,7 +44,7 @@ class Cart extends Model
         }
 
         $sessionId = session()->getId() ?? str()->random(40);
-        if (!session()->getId()) {
+        if (! session()->getId()) {
             session(['cart_session_id' => $sessionId]);
         }
 
@@ -60,8 +60,10 @@ class Cart extends Model
     public function mergeInto(self $userCart): void
     {
         foreach ($this->items as $item) {
+            // Для мерных товаров строки с разной длиной куска не склеиваются
             $existing = $userCart->items()
                 ->where('product_id', $item->product_id)
+                ->where('length_mm', $item->length_mm)
                 ->first();
 
             if ($existing) {
@@ -75,6 +77,7 @@ class Cart extends Model
                 $userCart->items()->create([
                     'product_id' => $item->product_id,
                     'quantity' => $item->quantity,
+                    'length_mm' => $item->length_mm,
                 ]);
             }
         }

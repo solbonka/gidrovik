@@ -33,6 +33,7 @@ class StockReceiptController extends Controller
                 'code',
                 'article',
                 'unit',
+                'stock_mode',
                 'minimum_stock',
                 'category_id',
             ]);
@@ -46,11 +47,11 @@ class StockReceiptController extends Controller
         $products = $products->map(function (Product $product) use ($stockQuantities): array {
             $characteristics = $product->characteristicValues
                 ->map(function ($cv): ?string {
-                    if (!$cv->characteristic) {
+                    if (! $cv->characteristic) {
                         return null;
                     }
 
-                    return $cv->characteristic->name . ': ' . $cv->value;
+                    return $cv->characteristic->name.': '.$cv->value;
                 })
                 ->filter()
                 ->implode(', ');
@@ -63,6 +64,7 @@ class StockReceiptController extends Controller
                 'code' => $product->code,
                 'article' => $product->article,
                 'unit' => $product->unit,
+                'stock_mode' => $product->stock_mode?->value ?? 'quantity',
                 'minimum_stock' => $product->minimum_stock,
                 'stock_quantity' => $stockQuantities->get($product->id, 0),
                 'characteristics' => $characteristics,

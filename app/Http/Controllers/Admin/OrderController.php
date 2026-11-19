@@ -5,7 +5,8 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\OrderStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Order;
-use App\Models\OrderStatusHistory;
+use App\Queue\Jobs\SendOrderStatusChangedEmail;
+use App\Services\Admin\ProductSegmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -13,11 +14,13 @@ use Inertia\Response;
 
 class OrderController extends Controller
 {
+    public function __construct(private readonly ProductSegmentService $productSegments) {}
+
     public function index(Request $request): Response
     {
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'string', 'in:' . implode(',', array_map(fn ($s) => $s->value, OrderStatus::cases()))],
+            'status' => ['nullable', 'string', 'in:'.implode(',', array_map(fn ($s) => $s->value, OrderStatus::cases()))],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date'],
         ]);
@@ -108,7 +111,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['items', 'statusHistory.changedBy']);
+        $order->load(['items.product', 'items.segment', 'statusHistory.changedBy']);
 
         $orderData = [
             'id' => $order->id,
@@ -135,6 +138,14 @@ class OrderController extends Controller
                 'quantity' => (float) $item->quantity,
                 'price' => number_format((float) $item->price, 2, '.', ''),
                 'subtotal' => number_format((float) $item->subtotal, 2, '.', ''),
+                'unit' => $item->product?->unit,
+                'stock_mode' => $item->product?->usesLengthStock() ? 'length' : 'quantity',
+                'segment' => $item->segment ? [
+                    'id' => $item->segment->id,
+                    'length_mm' => (float) $item->segment->length_mm,
+                    'status' => $item->segment->status->value,
+                    'status_label' => $item->segment->status->label(),
+                ] : null,
             ]),
             'status_history' => $order->statusHistory->map(fn ($history): array => [
                 'id' => $history->id,
@@ -160,8 +171,9 @@ class OrderController extends Controller
     public function updateStatus(Request $request, Order $order): RedirectResponse
     {
         $validated = $request->validate([
-            'status' => ['required', 'string', 'in:' . implode(',', array_map(fn ($s) => $s->value, OrderStatus::cases()))],
+            'status' => ['required', 'string', 'in:'.implode(',', array_map(fn ($s) => $s->value, OrderStatus::cases()))],
             'note' => ['nullable', 'string', 'max:1000'],
+            'cut_width_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
         ]);
 
         $newStatus = OrderStatus::from($validated['status']);
@@ -172,6 +184,16 @@ class OrderController extends Controller
         }
 
         $oldStatus = $order->status;
+
+        // При переходе в «Комплектуется» выполняем резку отрезков
+        // для товаров с учётом по длине
+        if ($newStatus === OrderStatus::Picking && $oldStatus !== OrderStatus::Picking) {
+            $this->productSegments->cutForOrder(
+                $order,
+                auth()->id(),
+                isset($validated['cut_width_mm']) ? (string) $validated['cut_width_mm'] : null,
+            );
+        }
 
         $order->status = $newStatus;
         $order->save();
@@ -184,7 +206,7 @@ class OrderController extends Controller
         ]);
 
         // Send status change notification (async)
-        \App\Queue\Jobs\SendOrderStatusChangedEmail::dispatch(
+        SendOrderStatusChangedEmail::dispatch(
             $order,
             $newStatus->label(),
             $validated['note'] ?? null
@@ -208,7 +230,7 @@ class OrderController extends Controller
         ]);
 
         // Send completion notification (async)
-        \App\Queue\Jobs\SendOrderStatusChangedEmail::dispatch(
+        SendOrderStatusChangedEmail::dispatch(
             $order,
             OrderStatus::Completed->label(),
             'Заказ завершён'
@@ -223,6 +245,9 @@ class OrderController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
+        // Снимаем резервы отрезков до смены статуса
+        $this->productSegments->releaseForOrder($order, auth()->id());
+
         $oldStatus = $order->status;
 
         $order->status = OrderStatus::Cancelled;
@@ -236,7 +261,7 @@ class OrderController extends Controller
         ]);
 
         // Send cancellation notification (async)
-        \App\Queue\Jobs\SendOrderStatusChangedEmail::dispatch(
+        SendOrderStatusChangedEmail::dispatch(
             $order,
             OrderStatus::Cancelled->label(),
             $validated['reason'] ?? 'Заказ отменён'

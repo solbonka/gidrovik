@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import {
     ArrowLeft,
     ArrowRight,
@@ -15,11 +15,15 @@ import {
     Package,
     Pencil,
     Plug,
+    Plus,
     Ruler,
+    Scissors,
+    Trash2,
     Warehouse,
 } from '@lucide/vue';
 import AdminLayout from '@/layouts/AdminLayout.vue';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { edit, index } from '@/routes/admin/products';
 
 defineOptions({
@@ -89,6 +93,41 @@ interface Location {
     quantity: number;
 }
 
+interface SegmentRack {
+    id: number;
+    code: string;
+    name: string | null;
+}
+
+interface SegmentLocation {
+    id: number;
+    number: number;
+    rack: SegmentRack | null;
+}
+
+interface ProductSegment {
+    id: number;
+    length_mm: string;
+    status: string;
+    status_label: string;
+    parent_segment_id: number | null;
+    created_at: string | null;
+    location: SegmentLocation | null;
+}
+
+interface StockLocation {
+    id: number;
+    number: number;
+    code: string | null;
+    rack: SegmentRack | null;
+}
+
+interface SegmentStats {
+    total_mm: string;
+    max_mm: string;
+    count: number;
+}
+
 interface Product {
     id: number;
     name: string;
@@ -98,6 +137,8 @@ interface Product {
     description: string | null;
     is_active: boolean;
     unit: string;
+    stock_mode?: string;
+    allow_cutting?: boolean;
     retail_price?: number | string | null;
     // Необязательное поле: показываем, если бэкенд его передаёт
     minimum_stock?: number | null;
@@ -113,7 +154,19 @@ interface Product {
 
 const props = defineProps<{
     product: Product;
+    segments?: ProductSegment[];
+    allLocations?: StockLocation[];
+    segmentStats?: SegmentStats;
 }>();
+
+const isLengthMode = computed(() => props.product.stock_mode === 'length');
+
+const page = usePage();
+const canOperateStock = computed(() =>
+    ((page.props.permissions as string[] | undefined) ?? []).includes(
+        'stock.operate',
+    ),
+);
 
 const numberFormat = new Intl.NumberFormat('ru-RU', {
     maximumFractionDigits: 3,
@@ -158,6 +211,166 @@ const connectionTitle = (connection: Connection): string => {
     return parts.length > 0 ? parts.join(' / ') : 'Параметры не указаны';
 };
 
+/* ---------- Отрезки ---------- */
+
+const formatMm = (mm: string | number | null | undefined): string =>
+    mm === null || mm === undefined ? '—' : numberFormat.format(Number(mm));
+
+const formatMmAsUnit = (mm: string | number): string => {
+    const value = Number(mm) / 1000;
+
+    return `${numberFormat.format(value)} ${props.product.unit}`;
+};
+
+const locationLabel = (
+    location:
+        | { number: number; rack: SegmentRack | null }
+        | null
+        | undefined,
+): string => {
+    if (!location) return '—';
+
+    const rack = location.rack?.code ? `${location.rack.code}-` : '';
+
+    return `${rack}${location.number}`;
+};
+
+const segmentStatusClass = (status: string): string => {
+    switch (status) {
+        case 'available':
+            return 'bg-emerald-500/10 text-emerald-700 ring-emerald-600/20 dark:text-emerald-400';
+        case 'reserved':
+            return 'bg-blue-500/10 text-blue-700 ring-blue-600/20 dark:text-blue-400';
+        case 'quarantined':
+            return 'bg-amber-500/10 text-amber-700 ring-amber-600/20 dark:text-amber-400';
+        default:
+            return 'bg-muted text-muted-foreground ring-border';
+    }
+};
+
+const availableSegments = computed(() =>
+    (props.segments ?? []).filter((segment) => segment.status === 'available'),
+);
+
+const receiptForm = useForm({
+    segments: [{ location_id: null as number | null, length_mm: '' }],
+    comment: '',
+});
+
+const addSegmentRow = (): void => {
+    receiptForm.segments.push({ location_id: null, length_mm: '' });
+};
+
+const removeSegmentRow = (index: number): void => {
+    receiptForm.segments.splice(index, 1);
+};
+
+const submitSegments = (): void => {
+    receiptForm.post(
+        route('admin.products.segments.store', { product: props.product.id }),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                receiptForm.reset();
+                receiptForm.segments = [{ location_id: null, length_mm: '' }];
+            },
+        },
+    );
+};
+
+const transferForm = useForm({
+    segment_ids: [] as number[],
+    to_location_id: null as number | null,
+    comment: '',
+});
+
+const toggleSegment = (segmentId: number, checked: boolean): void => {
+    const ids = transferForm.segment_ids;
+
+    if (checked) {
+        if (!ids.includes(segmentId)) ids.push(segmentId);
+    } else {
+        transferForm.segment_ids = ids.filter((id) => id !== segmentId);
+    }
+
+    writeOffForm.segment_ids = [...transferForm.segment_ids];
+};
+
+const selectedSegmentsTotalMm = computed(() => {
+    const ids = new Set(transferForm.segment_ids);
+
+    return (props.segments ?? [])
+        .filter((segment) => ids.has(segment.id))
+        .reduce((sum, segment) => sum + Number(segment.length_mm), 0);
+});
+
+const writeOffForm = useForm({
+    segment_ids: [] as number[],
+    comment: '',
+});
+
+const editingSegmentId = ref<number | null>(null);
+const editLengthMm = ref('');
+const correctForm = useForm({
+    length_mm: '',
+    comment: '',
+});
+
+const startEditSegment = (segment: { id: number; length_mm: number | string }): void => {
+    editingSegmentId.value = segment.id;
+    editLengthMm.value = String(segment.length_mm);
+    correctForm.comment = '';
+};
+
+const cancelEditSegment = (): void => {
+    editingSegmentId.value = null;
+};
+
+const submitCorrectSegment = (segmentId: number): void => {
+    correctForm.length_mm = editLengthMm.value;
+    correctForm.patch(
+        route('admin.products.segments.correct', {
+            product: props.product.id,
+            segment: segmentId,
+        }),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                editingSegmentId.value = null;
+                correctForm.reset('comment');
+            },
+        },
+    );
+};
+
+const submitWriteOff = (): void => {
+    writeOffForm.post(
+        route('admin.products.segments.write-off', {
+            product: props.product.id,
+        }),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                writeOffForm.reset('comment');
+            },
+        },
+    );
+};
+
+const submitTransfer = (): void => {
+    transferForm.post(
+        route('admin.products.segments.transfer', {
+            product: props.product.id,
+        }),
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                transferForm.reset('segment_ids', 'comment');
+            },
+        },
+    );
+};
+
 const infoItems = computed(() => [
     { label: 'Категория', value: props.product.category?.name ?? '—' },
     { label: 'Тип товара', value: props.product.product_type?.name ?? '—' },
@@ -165,6 +378,10 @@ const infoItems = computed(() => [
         ? [{ label: 'Угол', value: `${props.product.angle}°` }]
         : []),
     { label: 'Единица измерения', value: props.product.unit },
+    {
+        label: 'Режим учёта',
+        value: isLengthMode.value ? 'По отрезкам (мерный)' : 'По количеству',
+    },
     {
         label: 'Розничная цена',
         value: formatPrice(props.product.retail_price),
@@ -444,6 +661,392 @@ const stockPercent = computed<number | null>(() => {
                 </Button>
             </section>
         </div>
+
+        <!-- Складские отрезки -->
+        <section
+            v-if="isLengthMode"
+            class="overflow-hidden rounded-2xl border bg-card shadow-sm"
+        >
+            <div class="flex items-center gap-3 border-b px-5 py-4 sm:px-6">
+                <div
+                    class="flex size-10 items-center justify-center rounded-xl bg-cyan-500/10 text-cyan-600 dark:text-cyan-400"
+                >
+                    <Scissors :size="20" />
+                </div>
+                <div>
+                    <h2 class="font-semibold">Складские отрезки</h2>
+                    <p class="mt-0.5 text-xs text-muted-foreground">
+                        Физические куски товара с учётом длины
+                    </p>
+                </div>
+                <span
+                    class="ml-auto rounded-lg bg-muted px-2.5 py-1 text-xs font-semibold tabular-nums"
+                >
+                    {{ segmentStats?.count ?? 0 }} шт.
+                </span>
+            </div>
+
+            <div class="grid gap-px bg-border sm:grid-cols-3">
+                <div class="bg-card px-5 py-4 sm:px-6">
+                    <p class="text-xs text-muted-foreground">Общая длина</p>
+                    <p class="mt-1 text-lg font-bold tabular-nums">
+                        {{ formatMmAsUnit(segmentStats?.total_mm ?? '0') }}
+                    </p>
+                </div>
+                <div class="bg-card px-5 py-4 sm:px-6">
+                    <p class="text-xs text-muted-foreground">
+                        Самый длинный отрезок
+                    </p>
+                    <p class="mt-1 text-lg font-bold tabular-nums">
+                        {{ formatMmAsUnit(segmentStats?.max_mm ?? '0') }}
+                    </p>
+                </div>
+                <div class="bg-card px-5 py-4 sm:px-6">
+                    <p class="text-xs text-muted-foreground">
+                        Отрезков в наличии
+                    </p>
+                    <p class="mt-1 text-lg font-bold tabular-nums">
+                        {{ segmentStats?.count ?? 0 }}
+                    </p>
+                </div>
+            </div>
+
+            <div class="border-t">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="border-b text-left text-xs text-muted-foreground">
+                            <th class="px-5 py-3 font-medium sm:px-6">
+                                Отрезок
+                            </th>
+                            <th class="px-3 py-3 font-medium">Длина</th>
+                            <th class="px-3 py-3 font-medium">Ячейка</th>
+                            <th class="px-3 py-3 font-medium">Статус</th>
+                            <th class="px-5 py-3 font-medium sm:px-6">
+                                Дата
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="segment in segments ?? []"
+                            :key="segment.id"
+                            class="border-b last:border-0"
+                        >
+                            <td class="px-5 py-3 font-mono text-xs sm:px-6">
+                                #{{ segment.id }}
+                                <span
+                                    v-if="segment.parent_segment_id"
+                                    class="ml-1 text-muted-foreground"
+                                >
+                                    от #{{ segment.parent_segment_id }}
+                                </span>
+                            </td>
+                            <td class="px-3 py-3 font-semibold tabular-nums">
+                                <div
+                                    v-if="editingSegmentId === segment.id && hasStockOperate"
+                                    class="flex items-center gap-1.5"
+                                >
+                                    <Input
+                                        v-model="editLengthMm"
+                                        type="number"
+                                        step="0.001"
+                                        min="0.001"
+                                        class="h-8 w-24"
+                                    />
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        :disabled="correctForm.processing"
+                                        @click="submitCorrectSegment(segment.id)"
+                                    >
+                                        OK
+                                    </Button>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="ghost"
+                                        @click="cancelEditSegment"
+                                    >
+                                        ✕
+                                    </Button>
+                                </div>
+                                <template v-else>
+                                    {{ formatMm(segment.length_mm) }} мм
+                                    <span class="ml-1 text-xs font-normal text-muted-foreground">
+                                        ({{ formatMmAsUnit(segment.length_mm) }})
+                                    </span>
+                                    <button
+                                        v-if="hasStockOperate && segment.status !== 'consumed' && segment.status !== 'scrapped'"
+                                        type="button"
+                                        class="ml-2 text-muted-foreground hover:text-foreground"
+                                        title="Скорректировать длину (инвентаризация)"
+                                        @click="startEditSegment(segment)"
+                                    >
+                                        <Pencil :size="12" />
+                                    </button>
+                                </template>
+                            </td>
+                            <td class="px-3 py-3">
+                                {{ locationLabel(segment.location) }}
+                            </td>
+                            <td class="px-3 py-3">
+                                <span
+                                    class="inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset"
+                                    :class="segmentStatusClass(segment.status)"
+                                >
+                                    {{ segment.status_label }}
+                                </span>
+                            </td>
+                            <td class="px-5 py-3 text-xs text-muted-foreground sm:px-6">
+                                {{ segment.created_at?.slice(0, 10) ?? '—' }}
+                            </td>
+                        </tr>
+                        <tr v-if="!(segments ?? []).length">
+                            <td
+                                colspan="5"
+                                class="px-6 py-8 text-center text-sm text-muted-foreground"
+                            >
+                                Отрезков пока нет. Оприходуйте первый отрезок
+                                ниже.
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div
+                v-if="canOperateStock"
+                class="grid gap-6 border-t p-5 sm:p-6 lg:grid-cols-2"
+            >
+                <!-- Поступление отрезков -->
+                <div class="rounded-xl border p-4">
+                    <h3 class="text-sm font-semibold">Оприходовать отрезки</h3>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Укажите длину каждого физического куска в мм.
+                    </p>
+
+                    <div class="mt-4 space-y-3">
+                        <div
+                            v-for="(row, index) in receiptForm.segments"
+                            :key="index"
+                            class="flex items-start gap-2"
+                        >
+                            <select
+                                v-model="row.location_id"
+                                class="h-10 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+                            >
+                                <option :value="null">
+                                    Ячейка…
+                                </option>
+                                <option
+                                    v-for="location in allLocations ?? []"
+                                    :key="location.id"
+                                    :value="location.id"
+                                >
+                                    {{ locationLabel(location) }}
+                                </option>
+                            </select>
+                            <input
+                                v-model="row.length_mm"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.001"
+                                placeholder="Длина, мм"
+                                class="h-10 w-32 rounded-lg border border-input bg-background px-2 text-sm"
+                            />
+                            <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                class="text-muted-foreground hover:text-destructive"
+                                :disabled="receiptForm.segments.length === 1"
+                                @click="removeSegmentRow(index)"
+                            >
+                                <Trash2 :size="15" />
+                            </Button>
+                        </div>
+
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            @click="addSegmentRow"
+                        >
+                            <Plus :size="15" class="mr-1.5" />
+                            Добавить отрезок
+                        </Button>
+                    </div>
+
+                    <input
+                        v-model="receiptForm.comment"
+                        type="text"
+                        placeholder="Комментарий (необязательно)"
+                        class="mt-3 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    />
+
+                    <p
+                        v-if="receiptForm.errors.segments"
+                        class="mt-2 text-sm text-destructive"
+                    >
+                        {{ receiptForm.errors.segments }}
+                    </p>
+                    <p
+                        v-for="(error, key) in receiptForm.errors"
+                        :key="key"
+                        v-show="String(key).startsWith('segments.')"
+                        class="mt-1 text-xs text-destructive"
+                    >
+                        {{ error }}
+                    </p>
+
+                    <Button
+                        type="button"
+                        class="mt-4 w-full"
+                        :disabled="receiptForm.processing"
+                        @click="submitSegments"
+                    >
+                        Оприходовать
+                    </Button>
+                </div>
+
+                <!-- Перемещение отрезков -->
+                <div class="rounded-xl border p-4">
+                    <h3 class="text-sm font-semibold">
+                        Переместить отрезки
+                    </h3>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Выберите отрезки и целевую ячейку. Отрезки перемещаются
+                        целиком.
+                    </p>
+
+                    <div
+                        class="mt-4 max-h-56 space-y-1 overflow-y-auto rounded-lg border p-2"
+                    >
+                        <label
+                            v-for="segment in availableSegments"
+                            :key="segment.id"
+                            class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted/60"
+                        >
+                            <input
+                                type="checkbox"
+                                class="size-4 rounded border-input accent-primary"
+                                :checked="transferForm.segment_ids.includes(segment.id)"
+                                @change="
+                                    toggleSegment(
+                                        segment.id,
+                                        ($event.target as HTMLInputElement).checked,
+                                    )
+                                "
+                            />
+                            <span class="font-mono text-xs">#{{ segment.id }}</span>
+                            <span class="tabular-nums">
+                                {{ formatMm(segment.length_mm) }} мм
+                            </span>
+                            <span class="ml-auto text-xs text-muted-foreground">
+                                {{ locationLabel(segment.location) }}
+                            </span>
+                        </label>
+                        <p
+                            v-if="!availableSegments.length"
+                            class="px-2 py-4 text-center text-xs text-muted-foreground"
+                        >
+                            Нет доступных отрезков для перемещения
+                        </p>
+                    </div>
+
+                    <p class="mt-2 text-xs text-muted-foreground">
+                        Выбрано: {{ transferForm.segment_ids.length }} шт.,
+                        {{ formatMm(selectedSegmentsTotalMm) }} мм
+                    </p>
+
+                    <div class="mt-3 flex gap-2">
+                        <select
+                            v-model="transferForm.to_location_id"
+                            class="h-10 flex-1 rounded-lg border border-input bg-background px-2 text-sm"
+                        >
+                            <option :value="null">Целевая ячейка…</option>
+                            <option
+                                v-for="location in allLocations ?? []"
+                                :key="location.id"
+                                :value="location.id"
+                            >
+                                {{ locationLabel(location) }}
+                            </option>
+                        </select>
+                    </div>
+
+                    <input
+                        v-model="transferForm.comment"
+                        type="text"
+                        placeholder="Комментарий (необязательно)"
+                        class="mt-3 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm"
+                    />
+
+                    <p
+                        v-if="transferForm.errors.segment_ids"
+                        class="mt-2 text-sm text-destructive"
+                    >
+                        {{ transferForm.errors.segment_ids }}
+                    </p>
+                    <p
+                        v-if="transferForm.errors.to_location_id"
+                        class="mt-1 text-xs text-destructive"
+                    >
+                        {{ transferForm.errors.to_location_id }}
+                    </p>
+
+                    <Button
+                        type="button"
+                        class="mt-4 w-full"
+                        :disabled="
+                            transferForm.processing ||
+                            !transferForm.segment_ids.length ||
+                            !transferForm.to_location_id
+                        "
+                        @click="submitTransfer"
+                    >
+                        Переместить
+                    </Button>
+                </div>
+
+                <div
+                    v-if="hasStockOperate"
+                    class="rounded-xl border border-destructive/30 bg-destructive/5 p-4"
+                >
+                    <p class="text-sm font-semibold">Списание отрезков</p>
+                    <p class="mt-1 text-xs text-muted-foreground">
+                        Выбранные отрезки получат статус «Списан» и выбывают из запаса.
+                    </p>
+                    <div class="mt-3">
+                        <Label for="segment-writeoff-comment">Комментарий</Label>
+                        <Textarea
+                            id="segment-writeoff-comment"
+                            v-model="writeOffForm.comment"
+                            rows="2"
+                        />
+                    </div>
+                    <p
+                        v-if="writeOffForm.errors.segment_ids"
+                        class="mt-1 text-xs text-destructive"
+                    >
+                        {{ writeOffForm.errors.segment_ids }}
+                    </p>
+                    <Button
+                        type="button"
+                        variant="destructive"
+                        class="mt-3 w-full"
+                        :disabled="
+                            writeOffForm.processing ||
+                            !writeOffForm.segment_ids.length
+                        "
+                        @click="submitWriteOff"
+                    >
+                        Списать выбранные ({{ writeOffForm.segment_ids.length }})
+                    </Button>
+                </div>
+            </div>
+        </section>
 
         <!-- Характеристики -->
         <section class="overflow-hidden rounded-2xl border bg-card shadow-sm">

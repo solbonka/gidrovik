@@ -51,6 +51,14 @@ const props = defineProps<{
             quantity: number
             price: string
             subtotal: string
+            unit: string | null
+            stock_mode: string
+            segment: {
+                id: number
+                length_mm: number
+                status: string
+                status_label: string
+            } | null
         }>
         status_history: Array<{
             id: number
@@ -68,6 +76,7 @@ const showCompleteDialog = ref(false)
 const showCancelDialog = ref(false)
 const cancelReason = ref('')
 const statusNote = ref('')
+const cutWidthMm = ref('')
 const showStatusMenu = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const processing = ref(false)
@@ -85,6 +94,8 @@ const isCancelled = computed(() => props.order.status === 'cancelled')
 const currentStyle = computed(() => statusStyle(props.order.status))
 
 // Основной путь заказа (без «отменён»), в порядке, как пришло с сервера
+const hasLengthItems = computed(() => props.order.items.some((i) => i.stock_mode === 'length'))
+
 const flow = computed(() => props.statuses.filter((s) => s.value !== 'cancelled'))
 const currentIndex = computed(() => flow.value.findIndex((s) => s.value === props.order.status))
 const nextStatus = computed(() => {
@@ -129,7 +140,11 @@ function updateStatus(newStatus: string) {
     showStatusMenu.value = false
     router.put(
         route('admin.orders.status.update', { order: props.order.order_number }),
-        { status: newStatus, note: statusNote.value },
+        {
+            status: newStatus,
+            note: statusNote.value,
+            cut_width_mm: cutWidthMm.value !== '' ? Number(cutWidthMm.value) : null,
+        },
         {
             preserveState: true,
             preserveScroll: true,
@@ -287,6 +302,20 @@ const itemsCount = computed(() => props.order.items.reduce((sum, i) => sum + i.q
                                 type="text"
                                 placeholder="Комментарий к смене статуса (необязательно)"
                             />
+
+                            <div v-if="hasLengthItems" class="space-y-1">
+                                <label class="text-xs font-medium text-muted-foreground">
+                                    Ширина реза, мм (для отрезков; пусто — из настроек товара)
+                                </label>
+                                <Input
+                                    v-model="cutWidthMm"
+                                    type="number"
+                                    min="0"
+                                    max="100"
+                                    step="0.001"
+                                    placeholder="например, 3"
+                                />
+                            </div>
 
                             <Button
                                 v-if="nextStatus"
@@ -512,6 +541,17 @@ const itemsCount = computed(() => props.order.items.reduce((sum, i) => sum + i.q
                                         <span v-if="item.code">Код: {{ item.code }}</span>
                                         <span v-if="item.code && item.article"> · </span>
                                         <span v-if="item.article">Арт.: {{ item.article }}</span>
+                                    </p>
+                                    <p
+                                        v-if="item.stock_mode === 'length'"
+                                        class="mt-0.5 text-xs text-muted-foreground"
+                                    >
+                                        Длина: {{ item.quantity }} {{ item.unit ?? 'м' }}
+                                        <template v-if="item.segment">
+                                            · отрезок #{{ item.segment.id }}
+                                            ({{ (item.segment.length_mm / 1000).toFixed(3) }} м,
+                                            {{ item.segment.status_label }})
+                                        </template>
                                     </p>
                                 </div>
                             </div>

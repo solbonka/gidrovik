@@ -9,6 +9,7 @@ enum StockMovementType: string
     case WRITE_OFF = 'write_off';
     case RETURN = 'return';
     case INVENTORY = 'inventory';
+    case SALE = 'sale';
 
     public function label(): string
     {
@@ -18,6 +19,7 @@ enum StockMovementType: string
             self::WRITE_OFF => 'Списание',
             self::RETURN => 'Возврат',
             self::INVENTORY => 'Корректировка инвентаризации',
+            self::SALE => 'Продажа',
         };
     }
 }

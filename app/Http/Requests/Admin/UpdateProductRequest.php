@@ -128,6 +128,34 @@ class UpdateProductRequest extends FormRequest
                 'in:'.implode(',', UnitType::getAll()),
             ],
 
+            'stock_mode' => [
+                'nullable',
+                'string',
+                Rule::in(['quantity', 'length']),
+            ],
+
+            'allow_cutting' => [
+                'boolean',
+            ],
+
+            'cut_width_mm' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'min_remainder_mm' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
+            'min_sale_length_mm' => [
+                'nullable',
+                'numeric',
+                'min:0',
+            ],
+
             'manufacturer_id' => [
                 'nullable',
                 'integer',
@@ -190,6 +218,25 @@ class UpdateProductRequest extends FormRequest
                         'Выбранный тип товара не относится к выбранной категории.'
                     );
                 }
+            }
+        });
+
+        $validator->after(function ($validator): void {
+            $stockMode = $this->string('stock_mode')->toString() ?: 'quantity';
+            $unit = $this->string('unit')->toString() ?: 'шт.';
+
+            if ($stockMode === 'length' && $unit !== 'м') {
+                $validator->errors()->add(
+                    'stock_mode',
+                    'Для учёта по отрезкам единица измерения должна быть «м».'
+                );
+            }
+
+            if ($this->boolean('allow_cutting') && $stockMode !== 'length') {
+                $validator->errors()->add(
+                    'allow_cutting',
+                    'Резка доступна только для товаров с учётом по отрезкам.'
+                );
             }
         });
     }

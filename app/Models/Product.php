@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\StockMode;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -33,6 +34,11 @@ class Product extends Model
         'featured_position',
         'meta_title',
         'meta_description',
+        'stock_mode',
+        'allow_cutting',
+        'cut_width_mm',
+        'min_remainder_mm',
+        'min_sale_length_mm',
     ];
 
     protected $casts = [
@@ -44,6 +50,11 @@ class Product extends Model
         'published' => 'boolean',
         'is_featured' => 'boolean',
         'featured_position' => 'integer',
+        'stock_mode' => StockMode::class,
+        'allow_cutting' => 'boolean',
+        'cut_width_mm' => 'decimal:3',
+        'min_remainder_mm' => 'decimal:3',
+        'min_sale_length_mm' => 'decimal:3',
     ];
 
     public function category(): BelongsTo
@@ -82,6 +93,21 @@ class Product extends Model
     public function stockMovements(): HasMany
     {
         return $this->hasMany(StockMovement::class);
+    }
+
+    public function segments(): HasMany
+    {
+        return $this->hasMany(ProductSegment::class);
+    }
+
+    public function segmentMovements(): HasMany
+    {
+        return $this->hasMany(SegmentMovement::class);
+    }
+
+    public function usesLengthStock(): bool
+    {
+        return $this->stock_mode === StockMode::LENGTH;
     }
 
     public function getTotalQuantityAttribute(): string

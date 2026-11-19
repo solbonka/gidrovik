@@ -18,6 +18,8 @@ defineProps<{
         code: string | null
         article: string | null
         quantity: number
+        length_mm?: number | null
+        length_label?: string | null
         price: string
         subtotal: string
     }>
@@ -363,7 +365,7 @@ function submitForm() {
                             >
                                 <div class="min-w-0 flex-1">
                                     <span class="font-medium text-zinc-900 dark:text-zinc-100">{{ item.name }}</span>
-                                    <span class="ml-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">×{{ item.quantity }}</span>
+                                    <span class="ml-1 rounded-md bg-zinc-100 px-1.5 py-0.5 text-xs font-semibold text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400">{{ item.length_label ?? `×${item.quantity}` }}</span>
                                 </div>
 
                                 <span class="shrink-0 font-semibold text-zinc-900 dark:text-zinc-100">

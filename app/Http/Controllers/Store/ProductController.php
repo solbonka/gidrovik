@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Store;
 
+use App\Enums\ProductSegmentStatus;
 use App\Http\Controllers\Controller;
 use App\Models\Favorite;
 use App\Models\Product;
@@ -42,6 +43,7 @@ class ProductController extends Controller
                 'alt' => $image->alt,
             ]),
             'unit' => $product->unit ?? 'шт.',
+            'stock_mode' => $product->stock_mode?->value ?? 'quantity',
             'characteristics' => $product->characteristicValues->map(fn ($cv) => [
                 'id' => $cv->characteristic->id,
                 'name' => $cv->characteristic->name,
@@ -49,6 +51,30 @@ class ProductController extends Controller
                 'unit' => $cv->characteristic->unit,
             ]),
         ];
+
+        // Для товаров с учётом по отрезкам передаём реальную доступность:
+        // суммарную длину и самый длинный доступный отрезок
+        if ($product->usesLengthStock()) {
+            $segments = $product->segments()
+                ->where('status', ProductSegmentStatus::AVAILABLE)
+                ->get(['length_mm']);
+
+            $totalMm = '0';
+            $maxMm = '0';
+
+            foreach ($segments as $segment) {
+                $totalMm = bcadd($totalMm, (string) $segment->length_mm, 3);
+                if (bccomp((string) $segment->length_mm, $maxMm, 3) > 0) {
+                    $maxMm = (string) $segment->length_mm;
+                }
+            }
+
+            $productData['length_stock'] = [
+                'total_m' => bcdiv($totalMm, '1000', 3),
+                'max_m' => bccomp($maxMm, '0', 3) > 0 ? bcdiv($maxMm, '1000', 3) : null,
+                'allow_cutting' => (bool) $product->allow_cutting,
+            ];
+        }
 
         // Related products (same category)
         $relatedProducts = Product::query()

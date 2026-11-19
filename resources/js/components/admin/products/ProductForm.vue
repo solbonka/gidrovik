@@ -113,6 +113,11 @@ export interface ProductFormInitial {
     is_featured: boolean;
     featured_position: number | null;
     unit: string;
+    stock_mode?: string;
+    allow_cutting?: boolean;
+    cut_width_mm?: number | string | null;
+    min_remainder_mm?: number | string | null;
+    min_sale_length_mm?: number | string | null;
     manufacturer_id: number | null;
     country_id: number | null;
     characteristics: Record<string, string>;
@@ -183,6 +188,23 @@ const form = useForm({
             ? String(props.initial.featured_position)
             : '',
     unit: props.initial?.unit ?? 'шт.',
+    stock_mode: props.initial?.stock_mode ?? 'quantity',
+    allow_cutting: props.initial?.allow_cutting ?? false,
+    cut_width_mm:
+        props.initial?.cut_width_mm !== null &&
+        props.initial?.cut_width_mm !== undefined
+            ? String(props.initial.cut_width_mm)
+            : '',
+    min_remainder_mm:
+        props.initial?.min_remainder_mm !== null &&
+        props.initial?.min_remainder_mm !== undefined
+            ? String(props.initial.min_remainder_mm)
+            : '',
+    min_sale_length_mm:
+        props.initial?.min_sale_length_mm !== null &&
+        props.initial?.min_sale_length_mm !== undefined
+            ? String(props.initial.min_sale_length_mm)
+            : '',
     manufacturer_id: (props.initial?.manufacturer_id ?? null) as number | null,
     country_id: (props.initial?.country_id ?? null) as number | null,
     characteristics: buildCharacteristics(
@@ -244,6 +266,22 @@ const kind = computed<CategoryKind | null>(() => {
 });
 
 const isFitting = computed(() => kind.value === 'fitting');
+
+/* ---------- Режим учёта ---------- */
+
+const isLengthMode = computed(() => form.stock_mode === 'length');
+
+watch(
+    () => form.stock_mode,
+    (mode) => {
+        if (mode === 'length' && form.unit !== 'м') {
+            form.unit = 'м';
+        }
+        if (mode !== 'length') {
+            form.allow_cutting = false;
+        }
+    },
+);
 
 // У муфт и рукавов указывается только диаметр
 const diameterOnly = computed(
@@ -395,6 +433,14 @@ const submit = (): void => {
             data.featured_position === '' || data.featured_position === null
                 ? null
                 : Number(data.featured_position),
+        cut_width_mm:
+            data.cut_width_mm === '' ? null : Number(data.cut_width_mm),
+        min_remainder_mm:
+            data.min_remainder_mm === '' ? null : Number(data.min_remainder_mm),
+        min_sale_length_mm:
+            data.min_sale_length_mm === ''
+                ? null
+                : Number(data.min_sale_length_mm),
         connections:
             props.mode === 'edit'
                 ? padConnections(data.connections)
@@ -607,6 +653,124 @@ const hasErrors = computed(() => Object.keys(form.errors).length > 0);
                         <option value="л">л</option>
                     </select>
                 </StockField>
+
+                <StockField
+                    label="Режим учёта"
+                    for-id="stock_mode"
+                    :error="form.errors.stock_mode"
+                    hint="Мерный товар учитывается по физическим отрезкам (длина в мм), а не по общему количеству."
+                >
+                    <select
+                        id="stock_mode"
+                        v-model="form.stock_mode"
+                        :class="fieldClass"
+                        :aria-invalid="!!form.errors.stock_mode"
+                    >
+                        <option value="quantity">По количеству</option>
+                        <option value="length">По отрезкам (мерный)</option>
+                    </select>
+                </StockField>
+
+                <template v-if="isLengthMode">
+                    <StockField
+                        label="Ширина реза"
+                        for-id="cut_width_mm"
+                        :error="form.errors.cut_width_mm"
+                        hint="Ширина пропила при отрезании, мм."
+                    >
+                        <div class="relative">
+                            <Input
+                                id="cut_width_mm"
+                                v-model="form.cut_width_mm"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.001"
+                                placeholder="Например: 3"
+                                class="h-11 rounded-xl pr-10"
+                                :aria-invalid="!!form.errors.cut_width_mm"
+                            />
+                            <span
+                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground"
+                            >
+                                мм
+                            </span>
+                        </div>
+                    </StockField>
+
+                    <StockField
+                        label="Мин. сохраняемый остаток"
+                        for-id="min_remainder_mm"
+                        :error="form.errors.min_remainder_mm"
+                        hint="Отрезки короче этого значения считаются отходом, мм."
+                    >
+                        <div class="relative">
+                            <Input
+                                id="min_remainder_mm"
+                                v-model="form.min_remainder_mm"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.001"
+                                placeholder="Например: 100"
+                                class="h-11 rounded-xl pr-10"
+                                :aria-invalid="!!form.errors.min_remainder_mm"
+                            />
+                            <span
+                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground"
+                            >
+                                мм
+                            </span>
+                        </div>
+                    </StockField>
+
+                    <StockField
+                        label="Мин. длина продажи"
+                        for-id="min_sale_length_mm"
+                        :error="form.errors.min_sale_length_mm"
+                        hint="Минимальный отрезок, который можно продать/отрезать, мм."
+                    >
+                        <div class="relative">
+                            <Input
+                                id="min_sale_length_mm"
+                                v-model="form.min_sale_length_mm"
+                                type="number"
+                                inputmode="decimal"
+                                min="0"
+                                step="0.001"
+                                placeholder="Например: 100"
+                                class="h-11 rounded-xl pr-10"
+                                :aria-invalid="!!form.errors.min_sale_length_mm"
+                            />
+                            <span
+                                class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-muted-foreground"
+                            >
+                                мм
+                            </span>
+                        </div>
+                    </StockField>
+
+                    <label
+                        class="flex cursor-pointer items-start gap-3 rounded-xl border bg-muted/40 p-4 sm:col-span-2"
+                    >
+                        <input
+                            v-model="form.allow_cutting"
+                            type="checkbox"
+                            class="mt-0.5"
+                            :class="checkboxClass"
+                        />
+                        <span>
+                            <span class="block text-sm font-semibold">
+                                Разрешена резка на отрез
+                            </span>
+                            <span class="mt-1 block text-xs leading-5 text-muted-foreground">
+                                Товар можно отрезать и продавать произвольной
+                                длиной. Если выключено — отрезки учитываются,
+                                но продаются только целиком.
+                            </span>
+                        </span>
+                    </label>
+                </template>
 
                 <StockField
                     v-if="showAngle"

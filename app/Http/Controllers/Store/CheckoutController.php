@@ -7,10 +7,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Cart;
 use App\Models\Order;
 use App\Queue\Jobs\SendOrderConfirmationEmail;
+use App\Services\Admin\ProductSegmentService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 use Inertia\Response as InertiaResponse;
@@ -25,6 +27,11 @@ class CheckoutController extends Controller
         $cartItems = $items->items->map(function ($item) {
             $product = $item->product;
 
+            $isPieceLine = $product->usesLengthStock() && $item->length_mm !== null;
+            $lineMeters = $isPieceLine
+                ? bcdiv(bcmul((string) $item->length_mm, (string) $item->quantity, 3), '1000', 3)
+                : (string) $item->quantity;
+
             return [
                 'id' => $item->id,
                 'product_id' => $item->product_id,
@@ -32,8 +39,12 @@ class CheckoutController extends Controller
                 'code' => $product->code,
                 'article' => $product->article,
                 'quantity' => (float) $item->quantity,
+                'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
+                'length_label' => $item->length_mm !== null
+                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                    : null,
                 'price' => $product->retail_price ?? '0',
-                'subtotal' => bcmul((string) $product->retail_price, (string) $item->quantity, 2),
+                'subtotal' => bcmul((string) $product->retail_price, $lineMeters, 2),
             ];
         });
 
@@ -49,7 +60,7 @@ class CheckoutController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, ProductSegmentService $segmentService): RedirectResponse
     {
         $cart = $this->getCart();
 
@@ -75,7 +86,13 @@ class CheckoutController extends Controller
             abort_unless($product->is_active && $product->published, 404, 'Товар больше не доступен');
 
             $price = $product->retail_price ?? '0';
-            $subtotal = bcmul((string) $price, (string) $item->quantity, 2);
+
+            // Для позиций «N кусков по length_mm» цена считается
+            // за метр: price × длина_куска × количество кусков
+            $isPieceLine = $product->usesLengthStock() && $item->length_mm !== null;
+            $lineMeters = $isPieceLine ? bcdiv(bcmul((string) $item->length_mm, (string) $item->quantity, 3), '1000', 3) : (string) $item->quantity;
+
+            $subtotal = bcmul((string) $price, $lineMeters, 2);
             $totalAmount = bcadd($totalAmount, $subtotal, 2);
 
             $itemsData[] = [
@@ -84,9 +101,24 @@ class CheckoutController extends Controller
                 'product_code' => $product->code,
                 'article' => $product->article,
                 'price' => $price,
-                'quantity' => $item->quantity,
+                'quantity' => $isPieceLine ? (string) $item->quantity : $item->quantity,
+                'length_mm' => $item->length_mm !== null ? (string) $item->length_mm : null,
                 'subtotal' => $subtotal,
             ];
+
+            // Для товаров с учётом по отрезкам проверяем, что найдётся
+            // физический отрезок под заказанную длину
+            if ($product->usesLengthStock()) {
+                $requiredMm = $isPieceLine
+                    ? (string) $item->length_mm
+                    : bcmul((string) $item->quantity, '1000', 3);
+
+                if ($segmentService->findBestFitSegment($product->id, $requiredMm) === null) {
+                    throw ValidationException::withMessages([
+                        'cart' => "Товар «{$product->name}»: недостаточно длины на складе для заказанного объёма.",
+                    ]);
+                }
+            }
         }
 
         abort_if(empty($itemsData), 400, 'Корзина пуста');
@@ -120,6 +152,9 @@ class CheckoutController extends Controller
                 'note' => 'Заказ оформлен',
                 'changed_by' => Auth::id(),
             ]);
+
+            // Резервируем физические отрезки под позиции заказа
+            $segmentService->reserveForOrder($order, Auth::id());
 
             // Merge guest cart into user cart if applicable
             if (Auth::check() && session('guest_cart_id')) {
@@ -196,6 +231,10 @@ class CheckoutController extends Controller
                 'items' => $order->items->map(fn ($item) => [
                     'name' => $item->product_name,
                     'quantity' => (float) $item->quantity,
+                    'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
+                    'length_label' => $item->length_mm !== null
+                        ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                        : null,
                     'price' => number_format((float) $item->price, 2, '.', ''),
                     'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),
                 ]),

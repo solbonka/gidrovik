@@ -25,6 +25,8 @@ const props = defineProps<{
         subtotal: string
         stock_status: string
         unit: string
+        length_mm?: number | null
+        length_label?: string | null
         image_path?: string | null
     }>
     total: string
@@ -34,9 +36,10 @@ const props = defineProps<{
 const loadingItemId = ref<number | null>(null)
 
 const isPiece = (unit: string) => unit === 'шт.'
-const stepFor = (unit: string) => (isPiece(unit) ? 1 : 0.01)
-const minFor = (unit: string) => (isPiece(unit) ? 1 : 0.01)
-const precisionFor = (unit: string) => (isPiece(unit) ? 0 : 2)
+const isCutLine = (item: { length_mm?: number | null }) => item.length_mm != null
+const stepFor = (item: { unit: string; length_mm?: number | null }) => (isPiece(item.unit) || isCutLine(item) ? 1 : 0.01)
+const minFor = (item: { unit: string; length_mm?: number | null }) => (isPiece(item.unit) || isCutLine(item) ? 1 : 0.01)
+const precisionFor = (item: { unit: string; length_mm?: number | null }) => (isPiece(item.unit) || isCutLine(item) ? 0 : 2)
 
 const roundBtnClass = 'flex shrink-0 items-center justify-center rounded-full border border-zinc-200 bg-white text-zinc-600 shadow-sm transition hover:border-orange-400 hover:text-orange-600 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-orange-500/20 dark:border-zinc-800 dark:bg-zinc-900 dark:text-zinc-300 dark:hover:border-orange-500 dark:hover:text-orange-400'
 const metaChipClass = 'rounded-lg bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400'
@@ -182,7 +185,7 @@ function removeItem(itemId: number) {
                                     :disabled="loadingItemId === item.id"
                                     :class="qtyBtnClass"
                                     aria-label="Уменьшить количество"
-                                    @click="updateQuantity(item.id, Math.max(minFor(item.unit), Number((item.quantity - stepFor(item.unit)).toFixed(precisionFor(item.unit)))))"
+                                    @click="updateQuantity(item.id, Math.max(minFor(item), Number((item.quantity - stepFor(item)).toFixed(precisionFor(item)))))"
                                 >
                                     <PhMinus :size="14" weight="bold" />
                                 </button>
@@ -190,20 +193,20 @@ function removeItem(itemId: number) {
                                 <input
                                     type="number"
                                     :value="item.quantity"
-                                    :min="minFor(item.unit)"
-                                    :step="stepFor(item.unit)"
+                                    :min="minFor(item)"
+                                    :step="stepFor(item)"
                                     aria-label="Количество"
                                     class="w-14 border-none bg-transparent text-center text-sm font-bold text-zinc-900 focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
-                                    @change="updateQuantity(item.id, parseFloat(($event.target as HTMLInputElement).value) || minFor(item.unit))"
+                                    @change="updateQuantity(item.id, parseFloat(($event.target as HTMLInputElement).value) || minFor(item))"
                                 />
-                                <span class="px-1 text-sm text-zinc-500 dark:text-zinc-400" aria-hidden="true">{{ item.unit }}</span>
+                                <span class="px-1 text-sm text-zinc-500 dark:text-zinc-400" aria-hidden="true">{{ isCutLine(item) ? 'шт.' : item.unit }}</span>
 
                                 <button
                                     type="button"
                                     :disabled="loadingItemId === item.id"
                                     :class="qtyBtnClass"
                                     aria-label="Увеличить количество"
-                                    @click="updateQuantity(item.id, Number((item.quantity + stepFor(item.unit)).toFixed(precisionFor(item.unit))))"
+                                    @click="updateQuantity(item.id, Number((item.quantity + stepFor(item)).toFixed(precisionFor(item))))"
                                 >
                                     <PhPlus :size="14" weight="bold" />
                                 </button>
@@ -216,7 +219,12 @@ function removeItem(itemId: number) {
                                 </div>
 
                                 <div class="text-xs text-zinc-400">
-                                    {{ formatPrice(item.price) }} ₽ / {{ item.unit }} × {{ item.quantity }} {{ item.unit }}
+                                    <template v-if="item.length_label">
+                                        {{ formatPrice(item.price) }} ₽/м · {{ item.length_label }}
+                                    </template>
+                                    <template v-else>
+                                        {{ formatPrice(item.price) }} ₽ / {{ item.unit }} × {{ item.quantity }} {{ item.unit }}
+                                    </template>
                                 </div>
                             </div>
                         </div>

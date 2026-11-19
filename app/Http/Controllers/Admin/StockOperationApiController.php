@@ -4,12 +4,11 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Services\Admin\StockMovementService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
-use Inertia\Inertia;
-use Inertia\Response;
 
 class StockOperationApiController extends Controller
 {
@@ -81,7 +80,7 @@ class StockOperationApiController extends Controller
                 comment: $validated['comment'] ?? null,
                 userId: $request->user()?->id,
             ),
-            'return' => $this->stockMovementService->return(
+            'return' => $this->stockMovementService->returnStock(
                 productId: (int) $validated['product_id'],
                 locationId: (int) $validated['location_id'],
                 quantity: (string) $validated['quantity'],
@@ -103,7 +102,7 @@ class StockOperationApiController extends Controller
         ]);
     }
 
-    public function currentLocationProducts(Request $request): \Illuminate\Http\JsonResponse
+    public function currentLocationProducts(Request $request): JsonResponse
     {
         $locationId = (int) ($request->route('location') ?? $request->input('location_id'));
 
@@ -139,7 +138,7 @@ class StockOperationApiController extends Controller
         ]);
     }
 
-    public function productLocation(Request $request): \Illuminate\Http\JsonResponse
+    public function productLocation(Request $request): JsonResponse
     {
         $productId = (int) ($request->route('product') ?? $request->input('product_id'));
 
@@ -162,10 +161,10 @@ class StockOperationApiController extends Controller
             ->get()
             ->map(function ($item) {
                 return [
-                'id' => $item->id,
-                'number' => $item->number,
-                'code' => $item->rack_code.'-'.$item->number,
-                'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
+                    'id' => $item->id,
+                    'number' => $item->number,
+                    'code' => $item->rack_code.'-'.$item->number,
+                    'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
                 ];
             });
 
