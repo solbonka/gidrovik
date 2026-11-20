@@ -163,15 +163,18 @@ let addedTimer: ReturnType<typeof setTimeout> | undefined
 const unit = computed(() => props.product.unit ?? 'шт.')
 const isPiece = computed(() => unit.value === 'шт.')
 const isLength = computed(() => props.product.stock_mode === 'length')
-const step = computed(() => (isPiece.value ? 1 : 0.01))
-const min = computed(() => (isPiece.value ? 1 : 0.01))
-const quantityPrecision = computed(() => (isPiece.value ? 0 : (unit.value === 'м' ? 3 : 2)))
+// Для мерных товаров на витрине оперируем миллиметрами,
+// внутри учёт остаётся в метрах
+const inputUnit = computed(() => (isLength.value ? 'мм' : unit.value))
+const step = computed(() => (isPiece.value ? 1 : (isLength.value ? 10 : 0.01)))
+const min = computed(() => (isPiece.value ? 1 : (isLength.value ? 10 : 0.01)))
+const quantityPrecision = computed(() => (isPiece.value || isLength.value ? 0 : 2))
 
 // Для мерных товаров количество не может превышать самый длинный
 // доступный отрезок — больший кусок физически не существует
 const maxQuantity = computed<number | null>(() => {
     if (!isLength.value || !props.product.length_stock?.max_m) return null
-    return Number(props.product.length_stock.max_m)
+    return Math.floor(Number(props.product.length_stock.max_m) * 1000)
 })
 
 function clampQuantity(q: number): number {
@@ -196,13 +199,12 @@ function addToCart() {
     if (outOfStock.value) return
     normalizeQuantity()
 
-    // Для мерных товаров позиция = кусок длиной quantity метров;
-    // backend трактует quantity как число кусков при merge
+    // Для мерных товаров количество уже в мм — уходит как length_mm
     const payload: Record<string, unknown> = isLength.value
         ? {
             product_id: props.product.id,
             quantity: 1,
-            length_mm: Math.round((Number(quantity.value) || 0) * 1000 * 1000) / 1000,
+            length_mm: Math.round(Number(quantity.value) || 0),
         }
         : { product_id: props.product.id, quantity: quantity.value }
 
@@ -376,9 +378,9 @@ onBeforeUnmount(() => {
                         v-if="isLength && product.length_stock"
                         class="mt-2 text-xs text-zinc-500 dark:text-zinc-400"
                     >
-                        На складе: {{ product.length_stock.total_m }} м
+                        На складе: {{ isLength ? Math.round(Number(product.length_stock.total_m) * 1000) : product.length_stock.total_m }} {{ isLength ? 'мм' : 'м' }}
                         <template v-if="product.length_stock.max_m">
-                            · самый длинный отрезок: {{ product.length_stock.max_m }} м
+                            · самый длинный отрезок: {{ isLength ? Math.round(Number(product.length_stock.max_m) * 1000) : product.length_stock.max_m }} {{ isLength ? 'мм' : 'м' }}
                         </template>
                         <template v-if="!product.length_stock.allow_cutting && product.length_stock.max_m">
                             · продаётся целыми отрезками
@@ -408,7 +410,7 @@ onBeforeUnmount(() => {
                                 aria-label="Количество"
                                 @blur="normalizeQuantity"
                             />
-                            <span class="text-sm text-zinc-500 shrink-0" aria-hidden="true">{{ unit }}</span>
+                            <span class="text-sm text-zinc-500 shrink-0" aria-hidden="true">{{ inputUnit }}</span>
                             <button
                                 type="button"
                                 class="flex size-11 items-center justify-center rounded-full text-zinc-600 transition hover:text-orange-600 active:scale-90 dark:text-zinc-300 dark:hover:text-orange-400"

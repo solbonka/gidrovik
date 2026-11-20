@@ -50,6 +50,8 @@ interface LocationProduct {
     article: string | null;
     quantity: number;
     unit?: string;
+    stock_mode?: string;
+    segments?: Array<{ id: number; length_mm: number; status: string }>;
 }
 
 interface Location {
@@ -278,6 +280,9 @@ const locationQuantity = (location: Location): number => {
     const quantity = Number(location.stock_quantity ?? 0);
     return Number.isFinite(quantity) ? quantity : 0;
 };
+
+const formatMm = (mm: number): string =>
+    Number.isInteger(mm) ? String(mm) : mm.toFixed(3).replace(/0+$/, '').replace(/\.$/, '');
 
 const formatQuantity = (value: string | number | null | undefined): string => {
     const quantity = Number(value ?? 0);
@@ -1140,6 +1145,12 @@ const closeProductDetails = (): void => {
                                 </span>
                                 <span v-if="!product.code && !product.article" class="mt-0.5 block truncate text-[11px] text-muted-foreground">
                                     Без кода/артикула
+                                </span>
+                                <span
+                                    v-if="product.stock_mode === 'length' && product.segments?.length"
+                                    class="mt-0.5 block truncate text-[11px] text-muted-foreground"
+                                >
+                                    Отрезки: {{ product.segments.map((s) => formatMm(s.length_mm)).join(', ') }} мм
                                 </span>
                             </span>
 

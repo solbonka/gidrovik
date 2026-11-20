@@ -120,18 +120,46 @@ class StockOperationApiController extends Controller
                 'products.name',
                 'products.code',
                 'products.article',
+                'products.stock_mode',
                 'product_location.quantity',
             ])
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'name' => $item->name,
-                    'code' => $item->code ?? null,
-                    'article' => $item->article ?? null,
-                    'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
-                ];
-            });
+            ->get();
+
+        // Для товаров с учётом по отрезкам подгружаем физические куски
+        $lengthProductIds = $products
+            ->filter(fn ($item) => $item->stock_mode === 'length')
+            ->pluck('id')
+            ->all();
+
+        $segmentsByProduct = [];
+
+        if ($lengthProductIds !== []) {
+            $segmentsByProduct = DB::table('product_segments')
+                ->where('location_id', $locationId)
+                ->whereIn('product_id', $lengthProductIds)
+                ->whereIn('status', ['available', 'reserved', 'quarantined'])
+                ->orderBy('length_mm')
+                ->get(['product_id', 'id', 'length_mm', 'status'])
+                ->groupBy('product_id');
+        }
+
+        $products = $products->map(function ($item) use ($segmentsByProduct) {
+            $segments = ($segmentsByProduct[$item->id] ?? collect())->map(fn ($s) => [
+                'id' => $s->id,
+                'length_mm' => (float) $s->length_mm,
+                'status' => $s->status,
+            ])->values();
+
+            return [
+                'id' => $item->id,
+                'name' => $item->name,
+                'code' => $item->code ?? null,
+                'article' => $item->article ?? null,
+                'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
+                'stock_mode' => $item->stock_mode ?? 'quantity',
+                'segments' => $segments,
+            ];
+        });
 
         return response()->json([
             'products' => $products,
