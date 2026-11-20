@@ -41,7 +41,7 @@ class CheckoutController extends Controller
                 'quantity' => (float) $item->quantity,
                 'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
                 'length_label' => $item->length_mm !== null
-                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm, 3, '.', ''), '0'), '.').' мм'
                     : null,
                 'price' => $product->retail_price ?? '0',
                 'subtotal' => bcmul((string) $product->retail_price, $lineMeters, 2),
@@ -233,7 +233,7 @@ class CheckoutController extends Controller
                     'quantity' => (float) $item->quantity,
                     'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
                     'length_label' => $item->length_mm !== null
-                        ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                        ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm, 3, '.', ''), '0'), '.').' мм'
                         : null,
                     'price' => number_format((float) $item->price, 2, '.', ''),
                     'subtotal' => number_format((float) ($item->subtotal ?? 0), 2, '.', ''),

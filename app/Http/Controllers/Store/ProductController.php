@@ -69,10 +69,18 @@ class ProductController extends Controller
                 }
             }
 
+            $lengthsMm = $segments
+                ->map(fn ($segment) => (int) round((float) $segment->length_mm))
+                ->unique()
+                ->sortDesc()
+                ->values();
+
             $productData['length_stock'] = [
                 'total_m' => bcdiv($totalMm, '1000', 3),
                 'max_m' => bccomp($maxMm, '0', 3) > 0 ? bcdiv($maxMm, '1000', 3) : null,
                 'allow_cutting' => (bool) $product->allow_cutting,
+                'min_sale_length_mm' => (float) ($product->min_sale_length_mm ?? 0),
+                'lengths_mm' => $lengthsMm,
             ];
         }
 

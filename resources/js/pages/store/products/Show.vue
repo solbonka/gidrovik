@@ -47,6 +47,8 @@ const props = defineProps<{
             total_m: string
             max_m: string | null
             allow_cutting: boolean
+            min_sale_length_mm?: number
+            lengths_mm?: number[]
         } | null
     }
     related_products: Array<{
@@ -166,8 +168,16 @@ const isLength = computed(() => props.product.stock_mode === 'length')
 // Для мерных товаров на витрине оперируем миллиметрами,
 // внутри учёт остаётся в метрах
 const inputUnit = computed(() => (isLength.value ? 'мм' : unit.value))
+// Для мерных товаров шаг 10 мм — кнопки и округление ввода
 const step = computed(() => (isPiece.value ? 1 : (isLength.value ? 10 : 0.01)))
-const min = computed(() => (isPiece.value ? 1 : (isLength.value ? 10 : 0.01)))
+const min = computed(() => {
+    if (isPiece.value) return 1
+    if (isLength.value) {
+        const minSale = Number(props.product.length_stock?.min_sale_length_mm ?? 0)
+        return minSale > 0 ? minSale : 1
+    }
+    return 0.01
+})
 const quantityPrecision = computed(() => (isPiece.value || isLength.value ? 0 : 2))
 
 // Для мерных товаров количество не может превышать самый длинный
@@ -177,9 +187,21 @@ const maxQuantity = computed<number | null>(() => {
     return Math.floor(Number(props.product.length_stock.max_m) * 1000)
 })
 
+// Если резка запрещена — доступны только точные длины физических отрезков
+const allowedLengths = computed<number[] | null>(() => {
+    if (!isLength.value || props.product.length_stock?.allow_cutting !== false) return null
+    const lengths = props.product.length_stock?.lengths_mm ?? []
+    return lengths.length ? lengths : null
+})
+
 function clampQuantity(q: number): number {
     const max = maxQuantity.value
     if (max !== null && q > max) return max
+    const allowed = allowedLengths.value
+    if (allowed) {
+        // Округляем до ближайшей допустимой длины
+        return allowed.reduce((best, l) => (Math.abs(l - q) < Math.abs(best - q) ? l : best), allowed[0])
+    }
     return q
 }
 
@@ -405,8 +427,10 @@ onBeforeUnmount(() => {
                                 type="number"
                                 :min="min"
                                 :step="step"
+                                :list="allowedLengths ? 'segment-lengths' : undefined"
                                 inputmode="decimal"
-                                class="w-12 appearance-none border-none bg-transparent p-0 text-center text-sm font-bold text-zinc-900 outline-none focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                :class="isLength ? 'w-16' : 'w-12'"
+                                class="appearance-none border-none bg-transparent p-0 text-center text-sm font-bold text-zinc-900 outline-none focus:ring-0 dark:text-zinc-100 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                 aria-label="Количество"
                                 @blur="normalizeQuantity"
                             />
@@ -420,6 +444,9 @@ onBeforeUnmount(() => {
                                 <PhPlus :size="16" weight="bold" />
                             </button>
                         </div>
+                        <datalist v-if="allowedLengths" id="segment-lengths">
+                            <option v-for="len in allowedLengths" :key="len" :value="len" />
+                        </datalist>
 
                         <button
                             type="button"

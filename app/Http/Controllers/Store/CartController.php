@@ -48,7 +48,7 @@ class CartController extends Controller
                 'quantity' => (float) $item->quantity,
                 'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
                 'length_label' => $item->length_mm !== null
-                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm / 1000, 3, '.', ''), '0'), '.').' м'
+                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm, 3, '.', ''), '0'), '.').' мм'
                     : null,
                 'name' => $product->name,
                 'code' => $product->code,
@@ -145,7 +145,11 @@ class CartController extends Controller
         $cart = $this->getCart();
         $item = $cart->items()->findOrFail($itemId);
 
-        $item->quantity = $request->input('quantity');
+        // Для позиций «N кусков по length_mm» quantity — целое число кусков.
+        $quantity = $request->input('quantity');
+        $item->quantity = $item->length_mm !== null
+            ? max(1, (int) round((float) $quantity))
+            : $quantity;
         $item->save();
 
         return redirect()->back();
