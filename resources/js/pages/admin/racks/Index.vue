@@ -1161,9 +1161,16 @@ const closeProductDetails = (): void => {
                                 </span>
                                 <span
                                     v-if="product.stock_mode === 'length' && product.segments?.length"
-                                    class="mt-0.5 block truncate text-[11px] text-muted-foreground"
+                                    class="mt-1 flex flex-wrap gap-1"
                                 >
-                                    Отрезки: {{ product.segments.map((s) => formatMm(s.length_mm)).join(', ') }} мм
+                                    <span
+                                        v-for="segment in product.segments"
+                                        :key="segment.id"
+                                        class="rounded-md bg-blue-100 px-1.5 py-0.5 text-[11px] font-medium text-blue-700 tabular-nums dark:bg-blue-950/50 dark:text-blue-300"
+                                    >
+                                        {{ formatMm(segment.length_mm) }}
+                                    </span>
+                                    <span class="self-center text-[10px] text-muted-foreground">мм</span>
                                 </span>
                             </span>
 
@@ -1321,7 +1328,7 @@ const closeProductDetails = (): void => {
                                         <span
                                             class="flex h-7 w-7 items-center justify-center rounded-md bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
                                         >
-                                            {{ String(index + 1).padStart(2, '0') }}
+                                            {{ index + 1 }}
                                         </span>
                                         <span class="font-medium">{{ formatMm(segment.length_mm) }} мм</span>
                                     </div>

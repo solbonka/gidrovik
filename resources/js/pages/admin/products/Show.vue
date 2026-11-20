@@ -222,6 +222,18 @@ const formatMmAsUnit = (mm: string | number): string => {
     return `${numberFormat.format(value)} ${props.product.unit}`;
 };
 
+const maxSegmentMm = computed(() =>
+    Math.max(
+        0,
+        ...(props.segments ?? []).map((segment) => Number(segment.length_mm)),
+    ),
+);
+
+const segmentLengthPercent = (mm: string | number): number =>
+    maxSegmentMm.value > 0
+        ? Math.max(4, Math.round((Number(mm) / maxSegmentMm.value) * 100))
+        : 0;
+
 const locationLabel = (
     location:
         | { number: number; rack: SegmentRack | null }
@@ -771,7 +783,19 @@ const stockPercent = computed<number | null>(() => {
                                     </Button>
                                 </div>
                                 <template v-else>
-                                    {{ formatMm(segment.length_mm) }} мм
+                                    <div class="flex items-center gap-2">
+                                        <span
+                                            class="inline-block h-1.5 w-14 overflow-hidden rounded-full bg-muted"
+                                        >
+                                            <span
+                                                class="block h-full rounded-full bg-cyan-500"
+                                                :style="{
+                                                    width: `${segmentLengthPercent(segment.length_mm)}%`,
+                                                }"
+                                            />
+                                        </span>
+                                        {{ formatMm(segment.length_mm) }} мм
+                                    </div>
                                     <span class="ml-1 text-xs font-normal text-muted-foreground">
                                         ({{ formatMmAsUnit(segment.length_mm) }})
                                     </span>

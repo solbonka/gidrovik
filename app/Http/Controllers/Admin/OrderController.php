@@ -111,7 +111,7 @@ class OrderController extends Controller
 
     public function show(Order $order): Response
     {
-        $order->load(['items.product', 'items.segment', 'statusHistory.changedBy']);
+        $order->load(['items.product', 'items.segments', 'statusHistory.changedBy']);
 
         $orderData = [
             'id' => $order->id,
@@ -140,12 +140,13 @@ class OrderController extends Controller
                 'subtotal' => number_format((float) $item->subtotal, 2, '.', ''),
                 'unit' => $item->product?->unit,
                 'stock_mode' => $item->product?->usesLengthStock() ? 'length' : 'quantity',
-                'segment' => $item->segment ? [
-                    'id' => $item->segment->id,
-                    'length_mm' => (float) $item->segment->length_mm,
-                    'status' => $item->segment->status->value,
-                    'status_label' => $item->segment->status->label(),
-                ] : null,
+                'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
+                'segments' => $item->segments->map(fn ($segment): array => [
+                    'id' => $segment->id,
+                    'length_mm' => (float) $segment->length_mm,
+                    'status' => $segment->status->value,
+                    'status_label' => $segment->status->label(),
+                ])->values(),
             ]),
             'status_history' => $order->statusHistory->map(fn ($history): array => [
                 'id' => $history->id,

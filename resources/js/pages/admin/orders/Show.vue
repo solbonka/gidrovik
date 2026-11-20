@@ -53,12 +53,13 @@ const props = defineProps<{
             subtotal: string
             unit: string | null
             stock_mode: string
-            segment: {
+            length_mm: number | null
+            segments: Array<{
                 id: number
                 length_mm: number
                 status: string
                 status_label: string
-            } | null
+            }>
         }>
         status_history: Array<{
             id: number
@@ -546,11 +547,21 @@ const itemsCount = computed(() => props.order.items.reduce((sum, i) => sum + i.q
                                         v-if="item.stock_mode === 'length'"
                                         class="mt-0.5 text-xs text-muted-foreground"
                                     >
-                                        Длина: {{ item.quantity }} {{ item.unit ?? 'м' }}
-                                        <template v-if="item.segment">
-                                            · отрезок #{{ item.segment.id }}
-                                            ({{ (item.segment.length_mm / 1000).toFixed(3) }} м,
-                                            {{ item.segment.status_label }})
+                                        <template v-if="item.length_mm">
+                                            {{ item.quantity }} × {{ item.length_mm }} мм
+                                        </template>
+                                        <template v-else>
+                                            Длина: {{ item.quantity }} {{ item.unit ?? 'м' }}
+                                        </template>
+                                        <template v-if="item.segments.length">
+                                            · отрезки:
+                                            <template
+                                                v-for="(segment, index) in item.segments"
+                                                :key="segment.id"
+                                            >
+                                                <template v-if="index > 0">, </template>#{{ segment.id }}
+                                                ({{ segment.length_mm }} мм, {{ segment.status_label }})
+                                            </template>
                                         </template>
                                     </p>
                                 </div>
