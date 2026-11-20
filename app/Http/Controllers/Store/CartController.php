@@ -48,7 +48,7 @@ class CartController extends Controller
                 'quantity' => (float) $item->quantity,
                 'length_mm' => $item->length_mm !== null ? (float) $item->length_mm : null,
                 'length_label' => $item->length_mm !== null
-                    ? $item->quantity.' × '.rtrim(rtrim(number_format((float) $item->length_mm, 3, '.', ''), '0'), '.').' мм'
+                    ? rtrim(rtrim(number_format((float) $item->quantity, 3, '.', ''), '0'), '.').' × '.rtrim(rtrim(number_format((float) $item->length_mm, 3, '.', ''), '0'), '.').' мм'
                     : null,
                 'name' => $product->name,
                 'code' => $product->code,
