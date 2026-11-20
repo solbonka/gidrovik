@@ -91,6 +91,7 @@ interface ProductStockLocation {
     number: number;
     code: string | null;
     quantity: string | number;
+    segments?: Array<{ id: number; length_mm: number; status: string }>;
 }
 
 interface ProductDetails {
@@ -99,6 +100,7 @@ interface ProductDetails {
     code: string | null;
     article: string | null;
     quantity: string | number;
+    stock_mode?: string;
 }
 
 interface Props {
@@ -608,6 +610,7 @@ const showProductDetails = (product: LocationProduct): void => {
             code: product.code,
             article: product.article,
             quantity: product.quantity,
+            stock_mode: product.stock_mode,
         },
         locations: [],
         totalQuantity: 0,
@@ -625,6 +628,9 @@ const showProductDetails = (product: LocationProduct): void => {
             );
 
             productDetailsModal.value.locations = filteredLocations;
+            if (data.stock_mode) {
+                productDetailsModal.value.product!.stock_mode = data.stock_mode;
+            }
             productDetailsModal.value.totalQuantity = filteredLocations.reduce(
                 (sum, location) => sum + Number(location.quantity || 0),
                 0,
@@ -1244,9 +1250,17 @@ const closeProductDetails = (): void => {
                         :key="location.id"
                         class="flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-3"
                     >
-                        <p class="min-w-0 break-words font-medium">
-                            {{ location.code || `Ячейка ${location.number}` }}
-                        </p>
+                        <div class="min-w-0">
+                            <p class="min-w-0 break-words font-medium">
+                                {{ location.code || `Ячейка ${location.number}` }}
+                            </p>
+                            <p
+                                v-if="location.segments?.length"
+                                class="mt-0.5 truncate text-[11px] text-muted-foreground"
+                            >
+                                Отрезки: {{ location.segments.map((s) => formatMm(s.length_mm)).join(', ') }} мм
+                            </p>
+                        </div>
                         <p class="font-bold tabular-nums">
                             {{ formatQuantity(location.quantity) }}
                         </p>

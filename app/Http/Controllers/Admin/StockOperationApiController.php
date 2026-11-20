@@ -186,18 +186,45 @@ class StockOperationApiController extends Controller
                 'racks.code as rack_code',
                 'product_location.quantity',
             ])
-            ->get()
-            ->map(function ($item) {
-                return [
-                    'id' => $item->id,
-                    'number' => $item->number,
-                    'code' => $item->rack_code.'-'.$item->number,
-                    'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
-                ];
-            });
+            ->get();
+
+        // Для товаров с учётом по отрезкам подгружаем куски по ячейкам
+        $isLength = DB::table('products')
+            ->where('id', $productId)
+            ->value('stock_mode') === 'length';
+
+        $segmentsByLocation = [];
+
+        if ($isLength) {
+            $segmentsByLocation = DB::table('product_segments')
+                ->where('product_id', $productId)
+                ->whereIn('status', ['available', 'reserved', 'quarantined'])
+                ->orderBy('length_mm')
+                ->get(['location_id', 'id', 'length_mm', 'status'])
+                ->groupBy('location_id');
+        }
+
+        $locations = $locations->map(function ($item) use ($isLength, $segmentsByLocation) {
+            $segments = $isLength
+                ? ($segmentsByLocation[$item->id] ?? collect())->map(fn ($s) => [
+                    'id' => $s->id,
+                    'length_mm' => (float) $s->length_mm,
+                    'status' => $s->status,
+                ])->values()
+                : [];
+
+            return [
+                'id' => $item->id,
+                'number' => $item->number,
+                'code' => $item->rack_code.'-'.$item->number,
+                'quantity' => rtrim(rtrim(bcadd((string) $item->quantity, '0', 3), '0'), '.'),
+                'segments' => $segments,
+            ];
+        });
 
         return response()->json([
             'locations' => $locations,
+            'stock_mode' => $isLength ? 'length' : 'quantity',
         ]);
     }
 }
