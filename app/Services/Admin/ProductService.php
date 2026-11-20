@@ -17,6 +17,7 @@ class ProductService
                 'category_id' => $data['category_id'] ?? null,
                 'product_type_id' => $data['product_type_id'] ?? null,
                 'name' => $data['name'],
+                'slug' => $slug,
                 'code' => $data['code'],
                 'article' => $data['article'] ?? null,
                 'minimum_stock' => $data['minimum_stock'] ?? '0',
@@ -84,8 +85,8 @@ class ProductService
                 'country_id' => $data['country_id'] ?? null,
             ];
 
-            // Update slug if name changed
-            if (isset($data['name']) && $data['name'] !== $product->name) {
+            // Update slug if name changed or slug is missing
+            if ((isset($data['name']) && $data['name'] !== $product->name) || empty($product->slug)) {
                 $updateData['slug'] = $data['slug'] ?? Str::slug($data['name']);
             }
 
