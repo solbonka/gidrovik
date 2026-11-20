@@ -209,6 +209,13 @@ const productDetailsModal = ref({
     totalQuantity: 0,
 });
 
+const totalSegmentsCount = computed(() =>
+    productDetailsModal.value.locations.reduce(
+        (sum, location) => sum + (location.segments?.length ?? 0),
+        0,
+    ),
+);
+
 const deleteConfirmation = ref({
     open: false,
     type: null as 'rack' | 'location' | null,
@@ -1232,42 +1239,117 @@ const closeProductDetails = (): void => {
             </p>
 
             <template v-else>
-                <div class="rounded-xl bg-emerald-500/10 p-4">
-                    <p class="text-sm text-muted-foreground">Общий остаток</p>
-                    <p
-                        class="mt-1 text-3xl font-bold text-emerald-700 tabular-nums dark:text-emerald-300"
-                    >
-                        {{ formatQuantity(productDetailsModal.totalQuantity) }}
-                    </p>
-                </div>
+                <div class="rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/30">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-emerald-800 dark:text-emerald-300">
+                            Общий остаток
+                        </span>
+                        <span
+                            v-if="productDetailsModal.product?.stock_mode === 'length'"
+                            class="rounded-full bg-emerald-100 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
+                        >
+                            В наличии
+                        </span>
+                    </div>
 
-                <div
-                    v-if="productDetailsModal.locations.length"
-                    class="space-y-2"
-                >
+                    <div class="mt-2 flex items-baseline gap-2">
+                        <span
+                            class="text-4xl font-bold tracking-tight text-emerald-700 tabular-nums dark:text-emerald-300"
+                        >
+                            {{ formatQuantity(productDetailsModal.totalQuantity) }}
+                        </span>
+                        <span class="text-lg font-medium text-emerald-700 dark:text-emerald-300">м</span>
+                    </div>
+
                     <div
-                        v-for="location in productDetailsModal.locations"
-                        :key="location.id"
-                        class="flex min-w-0 items-center justify-between gap-3 rounded-xl border bg-card p-3"
+                        v-if="productDetailsModal.product?.stock_mode === 'length'"
+                        class="mt-3 flex gap-4 text-xs text-emerald-800/70 dark:text-emerald-300/70"
                     >
-                        <div class="min-w-0">
-                            <p class="min-w-0 break-words font-medium">
-                                {{ location.code || `Ячейка ${location.number}` }}
-                            </p>
-                            <p
-                                v-if="location.segments?.length"
-                                class="mt-0.5 truncate text-[11px] text-muted-foreground"
-                            >
-                                Отрезки: {{ location.segments.map((s) => formatMm(s.length_mm)).join(', ') }} мм
-                            </p>
-                        </div>
-                        <p class="font-bold tabular-nums">
-                            {{ formatQuantity(location.quantity) }}
-                        </p>
+                        <span>{{ productDetailsModal.locations.length }} ячейка(-ек)</span>
+                        <span>{{ totalSegmentsCount }} отрезков</span>
                     </div>
                 </div>
 
-                <p v-else class="py-6 text-center text-sm text-muted-foreground">
+                <div v-if="productDetailsModal.locations.length" class="mt-6 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <h3 class="font-semibold">Расположение товара</h3>
+                        <span class="text-xs text-muted-foreground">
+                            {{ productDetailsModal.locations.length }} ячейка(-ек)
+                        </span>
+                    </div>
+
+                    <div
+                        v-for="location in productDetailsModal.locations"
+                        :key="location.id"
+                        class="overflow-hidden rounded-xl border bg-card"
+                    >
+                        <div class="flex items-center justify-between gap-3 p-4">
+                            <div class="min-w-0">
+                                <p class="font-semibold">
+                                    {{ location.code || `Ячейка ${location.number}` }}
+                                </p>
+                                <p class="text-xs text-muted-foreground">Складская ячейка</p>
+                            </div>
+                            <div class="text-right">
+                                <p class="text-xl font-bold tabular-nums">
+                                    {{ formatQuantity(location.quantity) }} м
+                                </p>
+                                <p
+                                    v-if="location.segments?.length"
+                                    class="text-xs text-muted-foreground"
+                                >
+                                    {{ location.segments.length }} отрезков
+                                </p>
+                            </div>
+                        </div>
+
+                        <div
+                            v-if="location.segments?.length"
+                            class="border-t bg-muted/30 p-4"
+                        >
+                            <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                                Физические отрезки
+                            </p>
+
+                            <div class="space-y-2.5">
+                                <div
+                                    v-for="(segment, index) in location.segments"
+                                    :key="segment.id"
+                                    class="flex items-center justify-between"
+                                >
+                                    <div class="flex items-center gap-3">
+                                        <span
+                                            class="flex h-7 w-7 items-center justify-center rounded-md bg-blue-100 text-xs font-semibold text-blue-700 dark:bg-blue-950/50 dark:text-blue-300"
+                                        >
+                                            {{ String(index + 1).padStart(2, '0') }}
+                                        </span>
+                                        <span class="font-medium">{{ formatMm(segment.length_mm) }} мм</span>
+                                    </div>
+                                    <span class="text-sm text-muted-foreground tabular-nums">
+                                        {{ formatQuantity(segment.length_mm / 1000) }} м
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="mt-4 flex items-center justify-between border-t pt-3">
+                                <span class="text-sm text-muted-foreground">Суммарная длина</span>
+                                <span class="font-semibold tabular-nums">
+                                    {{ formatMm(location.segments.reduce((sum, s) => sum + s.length_mm, 0)) }} мм
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p
+                    v-if="productDetailsModal.product?.stock_mode === 'length'"
+                    class="mt-4 flex items-start gap-2 text-xs text-muted-foreground"
+                >
+                    <span>ⓘ</span>
+                    <span>Сумма длин физических отрезков соответствует общему складскому остатку.</span>
+                </p>
+
+                <p v-if="!productDetailsModal.locations.length" class="py-6 text-center text-sm text-muted-foreground">
                     Положительных остатков не найдено.
                 </p>
             </template>
