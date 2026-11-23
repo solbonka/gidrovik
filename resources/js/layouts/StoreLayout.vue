@@ -4,6 +4,7 @@ import {
     PhArrowCounterClockwise,
     PhCaretRight,
     PhDrop,
+    PhEnvelope,
     PhGearSix,
     PhHeart,
     PhHouse,
@@ -25,6 +26,7 @@ import {
 } from '@phosphor-icons/vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { Toaster } from '@/components/ui/sonner'
+import SiteMapDialog from '@/components/store/SiteMapDialog.vue'
 
 import { login, logout } from '@/routes'
 import { dashboard } from '@/routes/admin'
@@ -36,6 +38,50 @@ const props = defineProps<{
 const page = usePage()
 const cartCount = computed(() => page.props.cartCount ?? 0)
 const user = computed(() => page.props.auth.user)
+
+// ---------- Контакты и реквизиты из БД ----------
+const site = computed(() => {
+    const raw = page.props.site as Record<string, string | null> | undefined
+    return {
+        organization_name: raw?.organization_name ?? null,
+        inn: raw?.inn ?? null,
+        phone: raw?.phone ?? null,
+        email: raw?.email ?? null,
+        city: raw?.city ?? null,
+        address: raw?.address ?? null,
+        latitude: raw?.latitude ?? null,
+        longitude: raw?.longitude ?? null,
+    }
+})
+
+const sitePhoneHref = computed(() => {
+    const digits = (site.value.phone ?? '').replace(/[^\d+]/g, '')
+    return digits !== '' ? `tel:${digits}` : null
+})
+
+const siteLocation = computed(() => {
+    const parts = [
+        site.value.city ? `г. ${site.value.city}` : null,
+        site.value.address,
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join(', ') : null
+})
+
+const copyrightLine = computed(() => {
+    const org = site.value.organization_name || 'Гидровик РВД'
+    return site.value.inn ? `${org}. ИНН ${site.value.inn}` : org
+})
+
+// ---------- Карта с адресом ----------
+const mapDialogOpen = ref(false)
+
+const siteMapQuery = computed(() => {
+    const parts = [
+        site.value.city ? `г. ${site.value.city}` : null,
+        site.value.address,
+    ].filter(Boolean)
+    return parts.join(', ')
+})
 
 // Сотрудник (есть флаг is_employee)
 const isEmployee = computed(() => page.props.auth.user?.is_employee === true)
@@ -209,10 +255,11 @@ function isActive(name: string): boolean {
         <!-- Верхняя полоса (только десктоп) -->
         <div class="hidden border-b border-zinc-800 bg-zinc-950 text-zinc-400 md:block">
             <div class="mx-auto flex h-9 max-w-7xl items-center justify-between px-6 text-xs lg:px-10">
-                <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-2 transition hover:text-white">
+                <a v-if="site.phone" :href="sitePhoneHref" class="flex items-center gap-2 transition hover:text-white">
                     <PhPhone :size="14" weight="fill" class="text-orange-500" />
-                    +7 (XXX) XXX-XX-XX
+                    {{ site.phone }}
                 </a>
+                <span v-else />
                 <nav class="flex items-center gap-6">
                     <Link :href="route('store.pages.delivery')" class="transition hover:text-white">Доставка</Link>
                     <Link :href="route('store.pages.payment')" class="transition hover:text-white">Оплата</Link>
@@ -241,7 +288,7 @@ function isActive(name: string): boolean {
                             <PhDrop :size="22" weight="fill" />
                         </div>
                         <div class="leading-none">
-                            <div class="text-lg font-black tracking-tight md:text-xl">Гидровик</div>
+                            <div class="text-lg font-black tracking-tight md:text-xl">Гидровик РВД</div>
                             <div class="mt-1 hidden text-[9px] font-semibold uppercase tracking-[0.22em] text-zinc-400 sm:block">интернет-магазин</div>
                         </div>
                     </Link>
@@ -397,7 +444,7 @@ function isActive(name: string): boolean {
                             <div class="flex size-9 items-center justify-center rounded-xl bg-zinc-950 text-orange-500 dark:bg-orange-500 dark:text-zinc-950">
                                 <PhDrop :size="20" weight="fill" />
                             </div>
-                            <span class="text-lg font-black tracking-tight">Гидровик</span>
+                            <span class="text-lg font-black tracking-tight">Гидровик РВД</span>
                         </div>
                         <button
                             type="button"
@@ -496,9 +543,9 @@ function isActive(name: string): boolean {
                             </span>
                         </button>
 
-                        <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-3 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
+                        <a v-if="site.phone" :href="sitePhoneHref" class="flex items-center gap-3 rounded-2xl bg-zinc-100 px-4 py-3 text-sm font-semibold text-zinc-800 dark:bg-zinc-900 dark:text-zinc-100">
                             <PhPhone :size="20" weight="fill" class="text-orange-500" />
-                            +7 (XXX) XXX-XX-XX
+                            {{ site.phone }}
                         </a>
                         <button
                             v-if="user"
@@ -536,7 +583,7 @@ function isActive(name: string): boolean {
                             <div class="flex size-10 items-center justify-center rounded-xl bg-orange-500 text-zinc-950">
                                 <PhDrop :size="22" weight="fill" />
                             </div>
-                            <span class="text-xl font-black tracking-tight text-white">Гидровик</span>
+                            <span class="text-xl font-black tracking-tight text-white">Гидровик РВД</span>
                         </div>
                         <p class="mt-4 max-w-xs text-sm leading-6">
                             Промышленное гидравлическое оборудование и комплектующие.
@@ -564,22 +611,39 @@ function isActive(name: string): boolean {
                     <div class="col-span-2 lg:col-span-1">
                         <h3 class="text-xs font-bold uppercase tracking-[0.18em] text-white">Контакты</h3>
                         <ul class="mt-4 space-y-3 text-sm">
-                            <li>
-                                <a href="tel:+7XXXXXXXXXX" class="flex items-center gap-2.5 transition hover:text-orange-400">
+                            <li v-if="site.phone">
+                                <a :href="sitePhoneHref" class="flex items-center gap-2.5 transition hover:text-orange-400">
                                     <PhPhone :size="18" weight="fill" class="shrink-0 text-orange-500" />
-                                    +7 (XXX) XXX-XX-XX
+                                    {{ site.phone }}
                                 </a>
                             </li>
-                            <li class="flex items-start gap-2.5">
-                                <PhMapPin :size="18" weight="fill" class="mt-0.5 shrink-0 text-orange-500" />
-                                г. Город, ул. Улица
+                            <li v-if="site.email">
+                                <a :href="`mailto:${site.email}`" class="flex items-center gap-2.5 transition hover:text-orange-400">
+                                    <PhEnvelope :size="18" weight="fill" class="shrink-0 text-orange-500" />
+                                    {{ site.email }}
+                                </a>
+                            </li>
+                            <li v-if="siteLocation">
+                                <button
+                                    v-if="siteMapQuery"
+                                    type="button"
+                                    class="flex items-start gap-2.5 text-left transition hover:text-orange-400"
+                                    @click="mapDialogOpen = true"
+                                >
+                                    <PhMapPin :size="18" weight="fill" class="mt-0.5 shrink-0 text-orange-500" />
+                                    <span class="underline decoration-dotted underline-offset-4">{{ siteLocation }}</span>
+                                </button>
+                                <span v-else class="flex items-start gap-2.5">
+                                    <PhMapPin :size="18" weight="fill" class="mt-0.5 shrink-0 text-orange-500" />
+                                    {{ siteLocation }}
+                                </span>
                             </li>
                         </ul>
                     </div>
                 </div>
 
                 <div class="mt-12 flex flex-col gap-2 border-t border-zinc-800 pt-6 text-center text-xs text-zinc-500 sm:flex-row sm:justify-between sm:text-left">
-                    <span>&copy; {{ new Date().getFullYear() }} Гидровик. Все права защищены.</span>
+                    <span>&copy; {{ new Date().getFullYear() }} {{ copyrightLine }}</span>
                     <Link :href="route('store.pages.privacy')" class="transition hover:text-zinc-300">Политика обработки персональных данных</Link>
                 </div>
 
@@ -587,7 +651,7 @@ function isActive(name: string): boolean {
                     aria-hidden="true"
                     class="pointer-events-none mt-8 select-none text-center text-[16vw] font-black leading-[0.78] tracking-tighter text-white/[0.04] md:text-[11rem]"
                 >
-                    ГИДРОВИК
+                    ГИДРОВИК РВД
                 </div>
             </div>
         </footer>
@@ -643,5 +707,14 @@ function isActive(name: string): boolean {
         </nav>
 
         <Toaster v-if="isClient" rich-colors close-button position="top-right" />
+
+        <SiteMapDialog
+            :open="mapDialogOpen"
+            :query="siteMapQuery"
+            :address="siteLocation"
+            :latitude="site.latitude"
+            :longitude="site.longitude"
+            @close="mapDialogOpen = false"
+        />
     </div>
 </template>

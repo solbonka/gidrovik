@@ -15,7 +15,7 @@ const year = new Date().getFullYear()
 </script>
 
 <template>
-    <Head title="Гидровик — система складского учёта" />
+    <Head title="Гидровик РВД — система складского учёта" />
 
     <div class="min-h-screen bg-white text-slate-900">
         <!-- Header -->
@@ -26,7 +26,7 @@ const year = new Date().getFullYear()
                         <Warehouse :size="18" />
                     </div>
                     <div>
-                        <div class="text-[17px] font-extrabold text-slate-900">Гидровик</div>
+                        <div class="text-[17px] font-extrabold text-slate-900">Гидровик РВД</div>
                         <div class="text-[8px] font-bold uppercase tracking-[0.18em] text-slate-400">складской учёт</div>
                     </div>
                 </div>
@@ -52,7 +52,7 @@ const year = new Date().getFullYear()
                     <h1 class="text-3xl font-extrabold tracking-tight text-slate-950 sm:text-4xl lg:text-5xl">
                         Система складского учёта
                         <br />
-                        <span class="text-emerald-600">Гидровик</span>
+                        <span class="text-emerald-600">Гидровик РВД</span>
                     </h1>
 
                     <p class="mt-5 text-base leading-7 text-slate-500 sm:text-lg">
@@ -130,7 +130,7 @@ const year = new Date().getFullYear()
         <footer class="border-t border-slate-200">
             <div class="mx-auto max-w-7xl px-5 py-8 lg:px-10">
                 <p class="text-center text-xs text-slate-400">
-                    &copy; {{ year }} Гидровик · Система управления складскими запасами
+                    &copy; {{ year }} Гидровик РВД · Система управления складскими запасами
                 </p>
             </div>
         </footer>

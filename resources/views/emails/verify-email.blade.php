@@ -8,7 +8,7 @@
     <meta name="color-scheme" content="light">
     <meta name="supported-color-schemes" content="light">
 
-    <title>Подтверждение электронной почты — Гидровик</title>
+    <title>Подтверждение электронной почты — Гидровик РВД</title>
 
     <!--[if mso]>
     <noscript>
@@ -76,7 +76,7 @@
 
 <!-- Прехедер -->
 <div style="display:none; max-height:0; overflow:hidden; mso-hide:all; font-size:1px; line-height:1px; color:#f3f6fa; opacity:0;">
-    Подтвердите адрес электронной почты, чтобы завершить регистрацию в Гидровике.
+    Подтвердите адрес электронной почты, чтобы завершить регистрацию в Гидровике РВД.
     &nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;
 </div>
 
@@ -95,7 +95,7 @@
                                     Г
                                 </td>
                                 <td valign="middle" style="padding-left:13px; color:#14243a; font-size:24px; font-weight:800; letter-spacing:-0.6px;">
-                                    Гидровик
+                                    Гидровик РВД
                                     <div style="padding-top:3px; color:#718096; font-size:10px; line-height:14px; font-weight:600; letter-spacing:2px; text-transform:uppercase;">
                                         Личный кабинет
                                     </div>
@@ -148,7 +148,7 @@
                                     </p>
 
                                     <p style="margin:0; color:#526176; font-size:15px; line-height:26px;">
-                                        Спасибо за регистрацию в <strong style="color:#14243a;">Гидровике</strong>.
+                                        Спасибо за регистрацию в <strong style="color:#14243a;">Гидровике РВД</strong>.
                                         Чтобы подтвердить адрес электронной почты и получить доступ к своему аккаунту,
                                         нажмите на кнопку ниже.
                                     </p>
@@ -240,7 +240,7 @@
                                 <td class="px" style="padding:20px 40px 38px 40px;">
                                     <p style="margin:0; color:#718096; font-size:13px; line-height:22px;">
                                         <strong style="color:#526176;">Это не вы?</strong>
-                                        Если вы не регистрировались в Гидровике, просто проигнорируйте это письмо.
+                                        Если вы не регистрировались в Гидровике РВД, просто проигнорируйте это письмо.
                                         Ваш аккаунт не будет активирован без подтверждения адреса.
                                     </p>
                                 </td>
@@ -256,7 +256,7 @@
 
                         <p style="margin:0; color:#526176; font-size:14px; line-height:22px; text-align:center;">
                             С уважением,<br>
-                            <strong style="color:#14243a;">команда Гидровик</strong>
+                            <strong style="color:#14243a;">команда Гидровик РВД</strong>
                         </p>
 
                         <p style="margin:13px 0 0 0; color:#9aa6b5; font-size:12px; line-height:19px; text-align:center;">
@@ -264,7 +264,7 @@
                         </p>
 
                         <p style="margin:10px 0 0 0; color:#b0bac7; font-size:11px; line-height:18px; text-align:center;">
-                            &copy; {{ date('Y') }} Гидровик. Все права защищены.
+                            &copy; {{ date('Y') }} Гидровик РВД. Все права защищены.
                         </p>
 
                     </td>

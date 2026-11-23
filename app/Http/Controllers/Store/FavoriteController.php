@@ -50,7 +50,7 @@ class FavoriteController extends Controller
 
         return Inertia::render('store/favorites/Index', ['products' => $products])
             ->with([
-                'title' => 'Избранное — Гидровик',
+                'title' => 'Избранное — Гидровик РВД',
                 'robots' => 'noindex, nofollow',
             ]);
     }

@@ -298,7 +298,7 @@ class CatalogController extends Controller
         }
 
         $meta = [
-            'title' => 'Каталог товаров — Гидровик',
+            'title' => 'Каталог товаров — Гидровик РВД',
             'description' => 'Промышленное гидравлическое оборудование, фитинги, трубы и комплектующие. Поиск по категориям, производителям и техническим характеристикам.',
             'image' => url('/og-product.png'),
             'type' => 'website',
@@ -310,8 +310,8 @@ class CatalogController extends Controller
             $categoryUrl = url('/catalog/'.$categoryModel->slug);
             $total = $products->total();
 
-            $meta['title'] = $categoryModel->name.' — купить в Гидровик';
-            $meta['description'] = "Купить {$categoryModel->name} в интернет-магазине Гидровик. "
+            $meta['title'] = $categoryModel->name.' — купить в Гидровик РВД';
+            $meta['description'] = "Купить {$categoryModel->name} в интернет-магазине Гидровик РВД. "
                 ."Промышленное гидравлическое оборудование, {$total} товаров в категории. Доставка по всей России.";
             $meta['url'] = $categoryUrl;
             $meta['canonical'] = $categoryUrl;

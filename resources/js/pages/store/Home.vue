@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { Link, router } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import {
     PhArrowRight,
     PhArrowUpRight,
+    PhEnvelope,
     PhMagnifyingGlass,
+    PhMapPin,
     PhPackage,
     PhPhone,
     PhShieldCheck,
@@ -16,6 +18,7 @@ import type { Component, DirectiveBinding } from 'vue'
 
 import ProductCard from '@/components/store/ProductCard.vue'
 import RvdDiagram from '@/components/store/RvdDiagram.vue'
+import SiteMap from '@/components/store/SiteMap.vue'
 
 const props = defineProps<{
     categories: Array<{
@@ -42,7 +45,44 @@ const props = defineProps<{
     totalProducts?: number | null
 }>()
 
-const phone = { href: 'tel:+7XXXXXXXXXX', label: '+7 (XXX) XXX-XX-XX' }
+/* ---------- Контакты из БД ---------- */
+const page = usePage()
+
+const site = computed(() => {
+    const raw = page.props.site as Record<string, string | null> | undefined
+    return {
+        organization_name: raw?.organization_name ?? null,
+        inn: raw?.inn ?? null,
+        phone: raw?.phone ?? null,
+        email: raw?.email ?? null,
+        city: raw?.city ?? null,
+        address: raw?.address ?? null,
+        latitude: raw?.latitude ?? null,
+        longitude: raw?.longitude ?? null,
+    }
+})
+
+const phone = computed(() => {
+    const digits = (site.value.phone ?? '').replace(/[^\d+]/g, '')
+    return {
+        href: digits !== '' ? `tel:${digits}` : null,
+        label: site.value.phone,
+    }
+})
+
+const siteLocation = computed(() => {
+    const parts = [
+        site.value.city ? `г. ${site.value.city}` : null,
+        site.value.address,
+    ].filter(Boolean)
+    return parts.length > 0 ? parts.join(', ') : null
+})
+
+const mapQuery = computed(() => siteLocation.value ?? '')
+
+const hasContacts = computed(
+    () => Boolean(siteLocation.value || site.value.phone || site.value.email),
+)
 
 const standards: string[] = []
 
@@ -267,7 +307,7 @@ const vReveal = {
                                 Весь каталог
                                 <PhArrowUpRight :size="15" weight="bold" class="transition group-hover/btn:translate-x-0.5 group-hover/btn:-translate-y-0.5" />
                             </Link>
-                            <a :href="phone.href" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300 transition hover:text-white">
+                            <a v-if="phone.label && phone.href" :href="phone.href" class="inline-flex items-center gap-1.5 text-sm font-semibold text-zinc-300 transition hover:text-white">
                                 <PhPhone :size="16" weight="fill" class="text-orange-400" />
                                 {{ phone.label }}
                             </a>
@@ -415,7 +455,7 @@ const vReveal = {
             <div class="mx-auto max-w-7xl">
                 <div class="grid gap-6 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
                     <div v-reveal class="lg:sticky lg:top-24 lg:self-start">
-                        <p class="text-[11px] font-bold uppercase tracking-[.2em] text-orange-600 dark:text-orange-400 sm:text-xs sm:tracking-[.22em]">Почему Гидровик</p>
+                        <p class="text-[11px] font-bold uppercase tracking-[.2em] text-orange-600 dark:text-orange-400 sm:text-xs sm:tracking-[.22em]">Почему Гидровик РВД</p>
                         <h2 class="mt-1 max-w-md text-xl font-extrabold leading-tight tracking-tight sm:mt-2 sm:text-4xl">
                             Практичный подход к выбору оборудования
                         </h2>
@@ -491,6 +531,45 @@ const vReveal = {
             </div>
         </section>
 
+        <!-- КОНТАКТЫ И КАРТА -->
+        <section v-if="hasContacts" class="px-3 py-8 sm:px-6 sm:py-16 lg:px-8">
+            <div class="mx-auto max-w-7xl">
+                <div class="grid gap-6 lg:grid-cols-[.8fr_1.2fr] lg:gap-16">
+                    <div v-reveal class="lg:sticky lg:top-24 lg:self-start">
+                        <p class="text-[11px] font-bold uppercase tracking-[.2em] text-orange-600 dark:text-orange-400 sm:text-xs sm:tracking-[.22em]">Контакты</p>
+                        <h2 class="mt-1 text-xl font-extrabold tracking-tight sm:mt-2 sm:text-4xl">Как нас найти</h2>
+
+                        <ul class="mt-5 space-y-3 text-sm sm:mt-7">
+                            <li v-if="siteLocation" class="flex items-start gap-3 text-zinc-600 dark:text-zinc-300">
+                                <PhMapPin :size="20" weight="fill" class="mt-0.5 shrink-0 text-orange-500" />
+                                <span>{{ siteLocation }}</span>
+                            </li>
+                            <li v-if="phone.label && phone.href">
+                                <a :href="phone.href" class="flex items-center gap-3 text-zinc-600 transition hover:text-orange-600 dark:text-zinc-300 dark:hover:text-orange-400">
+                                    <PhPhone :size="20" weight="fill" class="shrink-0 text-orange-500" />
+                                    {{ phone.label }}
+                                </a>
+                            </li>
+                            <li v-if="site.email">
+                                <a :href="`mailto:${site.email}`" class="flex items-center gap-3 text-zinc-600 transition hover:text-orange-600 dark:text-zinc-300 dark:hover:text-orange-400">
+                                    <PhEnvelope :size="20" weight="fill" class="shrink-0 text-orange-500" />
+                                    {{ site.email }}
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div
+                        v-if="mapQuery || (site.latitude && site.longitude)"
+                        v-reveal="100"
+                        class="h-[300px] overflow-hidden rounded-2xl border border-zinc-200 bg-zinc-100 shadow-sm sm:h-[380px] lg:h-full lg:min-h-[380px] dark:border-zinc-800 dark:bg-zinc-900"
+                    >
+                        <SiteMap :query="mapQuery" :latitude="site.latitude" :longitude="site.longitude" />
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- CTA -->
         <section class="px-3 py-8 sm:px-6 sm:py-16 lg:px-8">
             <div
@@ -511,6 +590,7 @@ const vReveal = {
                     </div>
                     <div class="flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:gap-3">
                         <a
+                            v-if="phone.label && phone.href"
                             :href="phone.href"
                             class="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-5 text-sm font-bold text-white transition hover:bg-zinc-800 sm:h-12 sm:px-6"
                         >

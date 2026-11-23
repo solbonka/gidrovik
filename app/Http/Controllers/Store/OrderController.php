@@ -35,7 +35,7 @@ class OrderController extends Controller
         return Inertia::render('store/orders/Index', [
             'orders' => $orders,
         ])->with([
-            'title' => 'Мои заказы — Гидровик',
+            'title' => 'Мои заказы — Гидровик РВД',
             'robots' => 'noindex, nofollow',
         ]);
     }
@@ -94,7 +94,7 @@ class OrderController extends Controller
                 ]),
             ],
         ])->with([
-            'title' => 'Заказ '.$order->order_number.' — Гидровик',
+            'title' => 'Заказ '.$order->order_number.' — Гидровик РВД',
             'robots' => 'noindex, nofollow',
         ]);
     }
@@ -145,7 +145,7 @@ class OrderController extends Controller
         return Inertia::render('store/orders/Show', [
             'order' => $orderData,
         ])->with([
-            'title' => 'Заказ '.$order->order_number.' — Гидровик',
+            'title' => 'Заказ '.$order->order_number.' — Гидровик РВД',
             'robots' => 'noindex, nofollow',
         ]);
     }

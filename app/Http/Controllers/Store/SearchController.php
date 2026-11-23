@@ -69,8 +69,8 @@ class SearchController extends Controller
             'products' => $products,
             'total' => $total,
         ])->with([
-            'title' => $query !== '' ? "Поиск: {$query} — Гидровик" : 'Поиск — Гидровик',
-            'description' => 'Поиск товаров в каталоге интернет-магазина Гидровик.',
+            'title' => $query !== '' ? "Поиск: {$query} — Гидровик РВД" : 'Поиск — Гидровик РВД',
+            'description' => 'Поиск товаров в каталоге интернет-магазина Гидровик РВД.',
             'robots' => 'noindex, follow',
             'canonical' => url('/search'),
         ]);

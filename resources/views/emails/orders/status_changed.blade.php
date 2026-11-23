@@ -23,7 +23,7 @@
                             <p style="margin:0 0 16px;font-size:14px;background:#f8fafc;border-radius:8px;padding:12px 16px;">{{ $note }}</p>
                             @endif
 
-                            <p style="margin:0;font-size:13px;color:#94a3b8;">Спасибо, что выбираете Гидровик!</p>
+                            <p style="margin:0;font-size:13px;color:#94a3b8;">Спасибо, что выбираете Гидровик РВД!</p>
                         </td>
                     </tr>
                 </table>

@@ -13,7 +13,7 @@
                     <!-- Header -->
                     <tr>
                         <td style="background:#059669;padding:32px 32px 24px;text-align:center;">
-                            <h1 style="margin:0;font-size:24px;color:#fff;">Гидровик</h1>
+                            <h1 style="margin:0;font-size:24px;color:#fff;">Гидровик РВД</h1>
                             <p style="margin:8px 0 0;font-size:14px;color:#d1fae5;">Промышленное гидравлическое оборудование</p>
                         </td>
                     </tr>
@@ -116,7 +116,7 @@
                     <!-- Footer -->
                     <tr>
                         <td style="background:#f8fafc;padding:24px 32px;text-align:center;border-top:1px solid #e2e8f0;">
-                            <p style="margin:0;font-size:12px;color:#94a3b8;">© {{ date('Y') }} Гидровик. Все права защищены.</p>
+                            <p style="margin:0;font-size:12px;color:#94a3b8;">© {{ date('Y') }} Гидровик РВД. Все права защищены.</p>
                         </td>
                     </tr>
                 </table>

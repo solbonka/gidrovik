@@ -104,7 +104,7 @@ class SegmentReportController extends Controller
             'products' => array_values($byProduct),
             'scrap_last_30_days_mm' => (string) $scrapLast30,
         ])->with([
-            'title' => 'Отчёт по отрезкам — Гидровик',
+            'title' => 'Отчёт по отрезкам — Гидровик РВД',
         ]);
     }
 }

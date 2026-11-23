@@ -222,7 +222,7 @@ function closeSidebar(): void {
                         <LayoutDashboard :size="19" />
                     </div>
 
-                    <span>Гидровик</span>
+                    <span>Гидровик РВД</span>
                 </Link>
 
                 <Button

@@ -55,7 +55,7 @@ class CheckoutController extends Controller
             'total' => number_format($total, 2, '.', ''),
             'empty' => $cartItems->isEmpty(),
         ])->with([
-            'title' => 'Оформление заказа — Гидровик',
+            'title' => 'Оформление заказа — Гидровик РВД',
             'robots' => 'noindex, nofollow',
         ]);
     }
@@ -240,7 +240,7 @@ class CheckoutController extends Controller
                 ]),
             ],
         ])->with([
-            'title' => 'Заказ оформлен — Гидровик',
+            'title' => 'Заказ оформлен — Гидровик РВД',
             'robots' => 'noindex, nofollow',
         ]);
     }

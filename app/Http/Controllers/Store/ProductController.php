@@ -120,7 +120,7 @@ class ProductController extends Controller
                 : $product->name.' — '.config('app.name'),
             'description' => $product->meta_description
                 ?: (Str::limit(trim(preg_replace('/\s+/u', ' ', strip_tags((string) $product->description))), 160)
-                    ?: 'Купить '.$product->name.' в интернет-магазине Гидровик. Промышленное гидравлическое оборудование.'),
+                    ?: 'Купить '.$product->name.' в интернет-магазине Гидровик РВД. Промышленное гидравлическое оборудование.'),
             'image' => $product->images->first() ? $imageService->url($product->images->first()->image_path, 'large') : url('/og-product.png'),
             'type' => 'product',
             'url' => url()->current(),
