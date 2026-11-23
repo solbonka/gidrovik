@@ -28,7 +28,7 @@ class StockOperationApiController extends Controller
 
         $productId = (int) $request->input('product_id');
         $isLength = $productId > 0
-            && Product::query()->whereKey($productId)->value('stock_mode') === 'length';
+            && Product::query()->whereKey($productId)->first()?->usesLengthStock() === true;
 
         $baseRules = [
             'product_id' => ['required', 'integer', 'exists:products,id'],
