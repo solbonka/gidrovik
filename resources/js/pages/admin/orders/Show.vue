@@ -60,6 +60,11 @@ const props = defineProps<{
                 status: string
                 status_label: string
             }>
+            available_segments: Array<{
+                id: number
+                length_mm: number
+                location: string
+            }>
         }>
         status_history: Array<{
             id: number
@@ -78,6 +83,7 @@ const showCancelDialog = ref(false)
 const cancelReason = ref('')
 const statusNote = ref('')
 const cutWidthMm = ref('')
+const segmentChoices = ref<Record<number, string>>({})
 const showStatusMenu = ref(false)
 const menuRef = ref<HTMLElement | null>(null)
 const processing = ref(false)
@@ -145,6 +151,14 @@ function updateStatus(newStatus: string) {
             status: newStatus,
             note: statusNote.value,
             cut_width_mm: cutWidthMm.value !== '' ? Number(cutWidthMm.value) : null,
+            segments:
+                newStatus === 'picking'
+                    ? Object.fromEntries(
+                          Object.entries(segmentChoices.value)
+                              .filter(([, v]) => v !== '')
+                              .map(([k, v]) => [k, Number(v)]),
+                      )
+                    : undefined,
         },
         {
             preserveState: true,
@@ -316,6 +330,37 @@ const itemsCount = computed(() => props.order.items.reduce((sum, i) => sum + i.q
                                     step="0.001"
                                     placeholder="например, 3"
                                 />
+                            </div>
+
+                            <div
+                                v-if="nextStatus?.value === 'picking'"
+                                class="space-y-2"
+                            >
+                                <label class="text-xs font-medium text-muted-foreground">
+                                    Отрезок для резки (по умолчанию — автоматически)
+                                </label>
+                                <div
+                                    v-for="item in order.items.filter((i) => i.stock_mode === 'length')"
+                                    :key="item.id"
+                                    class="space-y-1"
+                                >
+                                    <p class="truncate text-xs text-muted-foreground">
+                                        {{ item.name }}
+                                    </p>
+                                    <select
+                                        v-model="segmentChoices[item.id]"
+                                        class="w-full rounded-md border bg-background px-2 py-1.5 text-sm"
+                                    >
+                                        <option value="">Автоматически</option>
+                                        <option
+                                            v-for="seg in item.available_segments"
+                                            :key="seg.id"
+                                            :value="String(seg.id)"
+                                        >
+                                            #{{ seg.id }} — {{ seg.length_mm }} мм ({{ seg.location }})
+                                        </option>
+                                    </select>
+                                </div>
                             </div>
 
                             <Button

@@ -505,12 +505,97 @@ class ProductSegmentService
     }
 
     /**
+     * Возврат товара на склад при отмене заказа, по которому уже
+     * выполнялась резка: каждая consume-операция превращается в новый
+     * доступный отрезок проданной длины в той же ячейке. Пропил
+     * (scrap-движения) не возвращается.
+     */
+    public function returnForOrder(Order $order, ?int $userId): void
+    {
+        DB::transaction(function () use ($order, $userId): void {
+            $itemIds = $order->items()->pluck('id');
+
+            if ($itemIds->isEmpty()) {
+                return;
+            }
+
+            $consumes = SegmentMovement::query()
+                ->whereIn('order_item_id', $itemIds)
+                ->where('type', SegmentMovementType::CONSUME)
+                ->get();
+
+            if ($consumes->isEmpty()) {
+                return;
+            }
+
+            $sourceSegments = ProductSegment::query()
+                ->whereIn('id', $consumes->pluck('product_segment_id')->unique())
+                ->get()
+                ->keyBy('id');
+
+            $affected = [];
+
+            foreach ($consumes as $consume) {
+                $source = $sourceSegments->get($consume->product_segment_id);
+
+                if ($source === null) {
+                    continue;
+                }
+
+                $quantity = bcdiv((string) $consume->length_mm, '1000', 3);
+                $comment = "Возврат по отменённому заказу {$order->order_number}";
+
+                $movement = StockMovement::query()->create([
+                    'product_id' => $source->product_id,
+                    'from_location_id' => null,
+                    'to_location_id' => $source->location_id,
+                    'quantity' => $quantity,
+                    'type' => StockMovementType::RETURN,
+                    'comment' => $comment,
+                    'user_id' => $userId,
+                ]);
+
+                $segment = ProductSegment::query()->create([
+                    'product_id' => $source->product_id,
+                    'location_id' => $source->location_id,
+                    'parent_segment_id' => $source->id,
+                    'length_mm' => $consume->length_mm,
+                    'status' => ProductSegmentStatus::AVAILABLE,
+                    'stock_movement_id' => $movement->id,
+                ]);
+
+                SegmentMovement::query()->create([
+                    'product_segment_id' => $segment->id,
+                    'product_id' => $source->product_id,
+                    'type' => SegmentMovementType::RETURN,
+                    'from_location_id' => null,
+                    'to_location_id' => $source->location_id,
+                    'length_mm' => $consume->length_mm,
+                    'stock_movement_id' => $movement->id,
+                    'order_item_id' => $consume->order_item_id,
+                    'comment' => $comment,
+                    'user_id' => $userId,
+                ]);
+
+                $affected[$source->product_id.'|'.$source->location_id] = [
+                    'product_id' => $source->product_id,
+                    'location_id' => $source->location_id,
+                ];
+            }
+
+            foreach ($affected as $pair) {
+                $this->syncLocationStock($pair['product_id'], $pair['location_id']);
+            }
+        }, attempts: 3);
+    }
+
+    /**
      * Выполняет резку под позиции заказа с товарами stock_mode = length.
      * Вызывается при переводе заказа в статус «Комплектуется».
      */
-    public function cutForOrder(Order $order, ?int $userId, ?string $cutWidthOverrideMm = null): void
+    public function cutForOrder(Order $order, ?int $userId, ?string $cutWidthOverrideMm = null, array $segmentOverrides = []): void
     {
-        DB::transaction(function () use ($order, $userId, $cutWidthOverrideMm): void {
+        DB::transaction(function () use ($order, $userId, $cutWidthOverrideMm, $segmentOverrides): void {
             foreach ($order->items()->with('product')->get() as $item) {
                 $product = $item->product;
 
@@ -518,18 +603,30 @@ class ProductSegmentService
                     continue;
                 }
 
+                $overrideSegmentId = isset($segmentOverrides[$item->id])
+                    ? (int) $segmentOverrides[$item->id]
+                    : null;
+
+                // Идемпотентность: не режем куски, которые уже списаны по этой позиции
+                $alreadyCut = SegmentMovement::query()
+                    ->where('order_item_id', $item->id)
+                    ->where('type', SegmentMovementType::CONSUME)
+                    ->count();
+
                 // Позиция «N кусков по length_mm»: режем каждый кусок отдельно
                 if ($item->length_mm !== null) {
                     $pieces = max(1, (int) round((float) $item->quantity));
 
-                    for ($i = 0; $i < $pieces; $i++) {
-                        $this->cutOrderItem($item, $product, $order, $userId, (string) $item->length_mm, $cutWidthOverrideMm);
+                    for ($i = $alreadyCut; $i < $pieces; $i++) {
+                        $this->cutOrderItem($item, $product, $order, $userId, (string) $item->length_mm, $cutWidthOverrideMm, $i === 0 ? $overrideSegmentId : null);
                     }
 
                     continue;
                 }
 
-                $this->cutOrderItem($item, $product, $order, $userId, null, $cutWidthOverrideMm);
+                if ($alreadyCut === 0) {
+                    $this->cutOrderItem($item, $product, $order, $userId, null, $cutWidthOverrideMm, $overrideSegmentId);
+                }
             }
         }, attempts: 3);
     }
@@ -546,6 +643,7 @@ class ProductSegmentService
         ?int $userId,
         ?string $pieceLengthMm = null,
         ?string $cutWidthOverrideMm = null,
+        ?int $overrideSegmentId = null,
     ): void {
         // Для позиций «N кусков» длина куска задана явно;
         // иначе — всё количество в метрах как одна длина
@@ -561,14 +659,44 @@ class ProductSegmentService
             ]);
         }
 
-        $segment = ProductSegment::query()
-            ->where('order_item_id', $item->id)
-            ->where('status', ProductSegmentStatus::RESERVED)
-            ->lockForUpdate()
-            ->first();
+        if ($overrideSegmentId !== null) {
+            $segment = ProductSegment::query()
+                ->where('product_id', $product->id)
+                ->whereKey($overrideSegmentId)
+                ->lockForUpdate()
+                ->first();
 
-        if ($segment === null) {
-            $segment = $this->findBestFitSegment($product->id, $requiredMm, null, true);
+            if ($segment === null || ! $segment->status->countsInStock()) {
+                throw ValidationException::withMessages([
+                    'segments' => "Отрезок #{$overrideSegmentId} недоступен для позиции «{$item->product_name}».",
+                ]);
+            }
+
+            if ($segment->status === ProductSegmentStatus::RESERVED && $segment->order_item_id !== $item->id) {
+                throw ValidationException::withMessages([
+                    'segments' => "Отрезок #{$overrideSegmentId} зарезервирован под другую позицию.",
+                ]);
+            }
+
+            // Если под позицию был зарезервирован другой отрезок — снимаем резерв
+            ProductSegment::query()
+                ->where('order_item_id', $item->id)
+                ->where('status', ProductSegmentStatus::RESERVED)
+                ->whereKeyNot($segment->id)
+                ->update([
+                    'status' => ProductSegmentStatus::AVAILABLE->value,
+                    'order_item_id' => null,
+                ]);
+        } else {
+            $segment = ProductSegment::query()
+                ->where('order_item_id', $item->id)
+                ->where('status', ProductSegmentStatus::RESERVED)
+                ->lockForUpdate()
+                ->first();
+
+            if ($segment === null) {
+                $segment = $this->findBestFitSegment($product->id, $requiredMm, null, true);
+            }
         }
 
         if ($segment === null) {

@@ -113,6 +113,23 @@ class OrderController extends Controller
     {
         $order->load(['items.product', 'items.segments', 'statusHistory.changedBy']);
 
+        // Доступные отрезки для ручного выбора при комплектации
+        $lengthProductIds = $order->items
+            ->filter(fn ($item) => $item->product?->usesLengthStock())
+            ->pluck('product_id')
+            ->unique()
+            ->all();
+
+        $availableSegments = $lengthProductIds === []
+            ? collect()
+            : \App\Models\ProductSegment::query()
+                ->whereIn('product_id', $lengthProductIds)
+                ->where('status', \App\Enums\ProductSegmentStatus::AVAILABLE)
+                ->with('location:id,number', 'location.rack:id,code,name')
+                ->orderBy('length_mm')
+                ->get()
+                ->groupBy('product_id');
+
         $orderData = [
             'id' => $order->id,
             'order_number' => $order->order_number,
@@ -147,6 +164,11 @@ class OrderController extends Controller
                     'status' => $segment->status->value,
                     'status_label' => $segment->status->label(),
                 ])->values(),
+                'available_segments' => ($availableSegments[$item->product_id] ?? collect())->map(fn ($segment): array => [
+                    'id' => $segment->id,
+                    'length_mm' => (float) $segment->length_mm,
+                    'location' => trim(($segment->location?->rack?->code ?? '').'-'.($segment->location?->number ?? '')),
+                ])->values(),
             ]),
             'status_history' => $order->statusHistory->map(fn ($history): array => [
                 'id' => $history->id,
@@ -175,6 +197,8 @@ class OrderController extends Controller
             'status' => ['required', 'string', 'in:'.implode(',', array_map(fn ($s) => $s->value, OrderStatus::cases()))],
             'note' => ['nullable', 'string', 'max:1000'],
             'cut_width_mm' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'segments' => ['nullable', 'array'],
+            'segments.*' => ['nullable', 'integer', 'min:1'],
         ]);
 
         $newStatus = OrderStatus::from($validated['status']);
@@ -193,6 +217,7 @@ class OrderController extends Controller
                 $order,
                 auth()->id(),
                 isset($validated['cut_width_mm']) ? (string) $validated['cut_width_mm'] : null,
+                $validated['segments'] ?? [],
             );
         }
 
@@ -246,8 +271,9 @@ class OrderController extends Controller
             'reason' => ['nullable', 'string', 'max:1000'],
         ]);
 
-        // Снимаем резервы отрезков до смены статуса
+        // Снимаем резервы отрезков и возвращаем уже вырезанный товар
         $this->productSegments->releaseForOrder($order, auth()->id());
+        $this->productSegments->returnForOrder($order, auth()->id());
 
         $oldStatus = $order->status;
 
