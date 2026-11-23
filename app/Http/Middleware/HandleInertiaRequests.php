@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Enums\Permission;
 use App\Enums\UserRole;
 use App\Models\Cart;
+use App\Models\SiteSetting;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -66,6 +67,17 @@ class HandleInertiaRequests extends Middleware
             ...parent::share($request),
 
             'name' => config('app.name'),
+
+            'site' => SiteSetting::current()->only([
+                'organization_name',
+                'inn',
+                'phone',
+                'email',
+                'city',
+                'address',
+                'latitude',
+                'longitude',
+            ]),
 
             'auth' => [
                 'user' => $user?->only(['id', 'name', 'email', 'role', 'is_employee']),
