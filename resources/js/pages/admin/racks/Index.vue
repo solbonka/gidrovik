@@ -78,6 +78,7 @@ interface Product {
     code: string | null;
     article: string | null;
     unit: string;
+    stock_mode?: string;
     characteristics?: string;
     category_id?: number | string | null;
     category?: {
@@ -200,6 +201,75 @@ const locationModal = ref({
 
 const operationForm = ref(emptyOperationForm());
 
+// ---------- Операции по отрезкам (stock_mode = length) ----------
+// Длины отрезков — в миллиметрах
+const segmentLengths = ref<string[]>(['']);
+const selectedSegmentIds = ref<number[]>([]);
+const inventoryRows = ref<
+    Array<{
+        id: number;
+        length_mm: string;
+        actual_mm: string;
+        status: string;
+        found: boolean;
+    }>
+>([]);
+
+const selectedProduct = computed(() => {
+    const id = Number(operationForm.value.product_id);
+    if (!id) return null;
+
+    const fromCatalog = props.allProducts.find((p) => p.id === id);
+    if (fromCatalog) return fromCatalog;
+
+    const inCell = locationModal.value.products.find((p) => p.id === id);
+    return inCell ?? null;
+});
+
+const isLengthProduct = computed(() => selectedProduct.value?.stock_mode === 'length');
+
+const selectedCellProduct = computed(() =>
+    locationModal.value.products.find(
+        (p) => p.id === Number(operationForm.value.product_id),
+    ) ?? null,
+);
+
+const selectableSegments = computed(() =>
+    (selectedCellProduct.value?.segments ?? []).filter(
+        (s) => s.status !== 'reserved',
+    ),
+);
+
+const initSegmentForm = (): void => {
+    segmentLengths.value = [''];
+    selectedSegmentIds.value = [];
+    inventoryRows.value = (selectedCellProduct.value?.segments ?? []).map((s) => ({
+        id: s.id,
+        length_mm: String(s.length_mm),
+        actual_mm: String(s.length_mm),
+        status: s.status,
+        found: true,
+    }));
+};
+
+const addSegmentLength = (): void => {
+    segmentLengths.value.push('');
+};
+
+const removeSegmentLength = (index: number): void => {
+    segmentLengths.value.splice(index, 1);
+    if (segmentLengths.value.length === 0) segmentLengths.value.push('');
+};
+
+const toggleSegment = (id: number): void => {
+    const index = selectedSegmentIds.value.indexOf(id);
+    if (index === -1) {
+        selectedSegmentIds.value.push(id);
+    } else {
+        selectedSegmentIds.value.splice(index, 1);
+    }
+};
+
 const productDetailsModal = ref({
     open: false,
     loading: false,
@@ -262,6 +332,7 @@ const productsForSelect = computed(() =>
         characteristics: product.characteristics,
         category_id: product.category_id ?? product.category?.id ?? null,
         category: product.category ?? null,
+        stock_mode: product.stock_mode,
     })),
 );
 
@@ -272,6 +343,8 @@ const locationProductsForSelect = computed(() =>
         code: product.code,
         article: product.article,
         unit: product.unit || 'шт.',
+        stock_mode: product.stock_mode,
+        segments: product.segments,
     })),
 );
 
@@ -529,6 +602,10 @@ watch(
         if (locationModal.value.operation === 'inventory' && product) {
             operationForm.value.quantity = String(product.quantity);
         }
+
+        if (isLengthProduct.value) {
+            initSegmentForm();
+        }
     },
 );
 
@@ -562,30 +639,84 @@ const submitOperation = (): void => {
 
     locationModal.value.operationLoading = true;
 
-    const data: Record<string, string | number> = {
+    const data: Record<string, string | number | Array<Record<string, number | string>>> = {
         product_id: Number(operationForm.value.product_id),
         comment: operationForm.value.comment,
         operation: operation,
     };
 
-    switch (operation) {
-        case 'receipt':
-        case 'write_off':
-        case 'return':
-            data.location_id = Number(locationId);
-            data.quantity = quantity;
-            break;
+    if (isLengthProduct.value) {
+        switch (operation) {
+            case 'receipt':
+            case 'return': {
+                const lengths = segmentLengths.value
+                    .map((value) => Number(value))
+                    .filter((value) => Number.isFinite(value) && value > 0);
+                if (lengths.length === 0) {
+                    locationModal.value.operationLoading = false;
+                    return;
+                }
+                data.segments = lengths.map((length_mm) => ({ length_mm }));
+                data.location_id = Number(locationId);
+                break;
+            }
+            case 'write_off':
+                if (selectedSegmentIds.value.length === 0) {
+                    locationModal.value.operationLoading = false;
+                    return;
+                }
+                data.segment_ids = selectedSegmentIds.value;
+                data.location_id = Number(locationId);
+                break;
+            case 'transfer':
+                if (
+                    !operationForm.value.to_location_id ||
+                    Number(operationForm.value.to_location_id) === locationId ||
+                    selectedSegmentIds.value.length === 0
+                ) {
+                    locationModal.value.operationLoading = false;
+                    return;
+                }
+                data.from_location_id = Number(locationId);
+                data.to_location_id = Number(operationForm.value.to_location_id);
+                data.segment_ids = selectedSegmentIds.value;
+                break;
+            case 'inventory': {
+                const rows = inventoryRows.value.filter(
+                    (row) => row.found && Number(row.actual_mm) > 0,
+                );
+                if (rows.length === 0) {
+                    locationModal.value.operationLoading = false;
+                    return;
+                }
+                data.segments = rows.map((row) => ({
+                    segment_id: row.id,
+                    length_mm: Number(row.actual_mm),
+                }));
+                data.location_id = Number(locationId);
+                break;
+            }
+        }
+    } else {
+        switch (operation) {
+            case 'receipt':
+            case 'write_off':
+            case 'return':
+                data.location_id = Number(locationId);
+                data.quantity = quantity;
+                break;
 
-        case 'transfer':
-            data.from_location_id = Number(locationId);
-            data.to_location_id = Number(operationForm.value.to_location_id);
-            data.quantity = quantity;
-            break;
+            case 'transfer':
+                data.from_location_id = Number(locationId);
+                data.to_location_id = Number(operationForm.value.to_location_id);
+                data.quantity = quantity;
+                break;
 
-        case 'inventory':
-            data.location_id = Number(locationId);
-            data.actual_quantity = quantity;
-            break;
+            case 'inventory':
+                data.location_id = Number(locationId);
+                data.actual_quantity = quantity;
+                break;
+        }
     }
 
     router.post(
@@ -1002,7 +1133,8 @@ const closeProductDetails = (): void => {
                         />
                     </div>
 
-                    <div class="space-y-1.5">
+                    <!-- Учёт по количеству -->
+                    <div v-if="!isLengthProduct" class="space-y-1.5">
                         <label class="text-sm font-medium">
                             {{
                                 locationModal.operation === 'inventory'
@@ -1031,6 +1163,170 @@ const closeProductDetails = (): void => {
                             <span class="font-medium text-foreground">
                                 {{ formatQuantity(operationForm.current_quantity) }}
                             </span>
+                        </p>
+                    </div>
+
+                    <!-- Поступление/возврат отрезков: список длин в мм -->
+                    <div
+                        v-if="
+                            isLengthProduct &&
+                            (locationModal.operation === 'receipt' ||
+                                locationModal.operation === 'return')
+                        "
+                        class="space-y-2"
+                    >
+                        <label class="text-sm font-medium">Отрезки (длина, мм)</label>
+
+                        <div
+                            v-for="(length, index) in segmentLengths"
+                            :key="index"
+                            class="flex items-center gap-2"
+                        >
+                            <input
+                                v-model="segmentLengths[index]"
+                                type="number"
+                                min="1"
+                                step="0.001"
+                                :class="fieldClass"
+                                placeholder="Например, 1000"
+                            />
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                :disabled="segmentLengths.length === 1"
+                                @click="removeSegmentLength(index)"
+                            >
+                                <Trash2 :size="15" />
+                            </Button>
+                        </div>
+
+                        <Button variant="outline" size="sm" @click="addSegmentLength">
+                            <Plus :size="15" class="mr-1.5" />
+                            Добавить отрезок
+                        </Button>
+
+                        <p class="text-xs text-muted-foreground">
+                            Каждый отрезок создаётся отдельным физическим куском.
+                            Сумма:
+                            <span class="font-medium text-foreground">
+                                {{ formatMm(segmentLengths.reduce((sum, v) => sum + (Number(v) || 0), 0)) }}
+                                мм
+                            </span>
+                        </p>
+                    </div>
+
+                    <!-- Списание/перемещение отрезков: выбор кусков -->
+                    <div
+                        v-if="
+                            isLengthProduct &&
+                            (locationModal.operation === 'write_off' ||
+                                locationModal.operation === 'transfer')
+                        "
+                        class="space-y-2"
+                    >
+                        <label class="text-sm font-medium">Отрезки в ячейке</label>
+
+                        <div
+                            v-if="!selectedCellProduct?.segments?.length"
+                            class="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground"
+                        >
+                            В ячейке нет отрезков этого товара
+                        </div>
+
+                        <div v-else class="max-h-56 space-y-1.5 overflow-y-auto rounded-xl border p-2">
+                            <label
+                                v-for="segment in selectedCellProduct?.segments"
+                                :key="segment.id"
+                                class="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 transition hover:bg-muted/60"
+                                :class="{
+                                    'opacity-50': segment.status === 'reserved',
+                                }"
+                            >
+                                <input
+                                    type="checkbox"
+                                    class="size-4 accent-primary"
+                                    :checked="selectedSegmentIds.includes(segment.id)"
+                                    :disabled="segment.status === 'reserved'"
+                                    @change="toggleSegment(segment.id)"
+                                />
+                                <span class="flex-1 text-sm font-medium tabular-nums">
+                                    {{ formatMm(segment.length_mm) }} мм
+                                </span>
+                                <span
+                                    class="rounded-md px-1.5 py-0.5 text-[10px] font-semibold"
+                                    :class="
+                                        segment.status === 'reserved'
+                                            ? 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
+                                            : 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300'
+                                    "
+                                >
+                                    {{
+                                        segment.status === 'reserved'
+                                            ? 'резерв'
+                                            : 'доступен'
+                                    }}
+                                </span>
+                            </label>
+                        </div>
+
+                        <p class="text-xs text-muted-foreground">
+                            Выбрано: {{ selectedSegmentIds.length }} отрезков
+                        </p>
+                    </div>
+
+                    <!-- Инвентаризация отрезков: фактические длины -->
+                    <div
+                        v-if="isLengthProduct && locationModal.operation === 'inventory'"
+                        class="space-y-2"
+                    >
+                        <label class="text-sm font-medium">Фактические отрезки</label>
+
+                        <div
+                            v-if="!inventoryRows.length"
+                            class="rounded-xl border border-dashed py-6 text-center text-sm text-muted-foreground"
+                        >
+                            Отрезков в ячейке нет
+                        </div>
+
+                        <div v-else class="max-h-64 space-y-1.5 overflow-y-auto rounded-xl border p-2">
+                            <div
+                                v-for="row in inventoryRows"
+                                :key="row.id"
+                                class="flex items-center gap-3 rounded-lg px-2 py-1.5"
+                                :class="row.status === 'reserved' ? 'opacity-60' : ''"
+                            >
+                                <span class="w-20 text-xs text-muted-foreground">
+                                    было {{ formatMm(Number(row.length_mm)) }}
+                                </span>
+                                <label
+                                    class="flex items-center gap-1 text-[11px] text-muted-foreground"
+                                    :title="row.found ? 'Отрезок найден' : 'Отрезок не найден — будет списан'"
+                                >
+                                    <input
+                                        v-model="row.found"
+                                        type="checkbox"
+                                        class="size-3.5 accent-primary"
+                                        :disabled="row.status === 'reserved'"
+                                    />
+                                    найден
+                                </label>
+                                <input
+                                    v-model="row.actual_mm"
+                                    type="number"
+                                    min="1"
+                                    step="0.001"
+                                    :class="[fieldClass, 'flex-1']"
+                                    :disabled="row.status === 'reserved' || !row.found"
+                                />
+                                <span class="text-[10px] font-semibold text-muted-foreground">
+                                    {{ row.status === 'reserved' ? 'резерв' : 'мм' }}
+                                </span>
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-muted-foreground">
+                            Укажите фактическую длину каждого найденного куска.
+                            Ненайденные отрезки будут списаны, зарезервированные не изменятся.
                         </p>
                     </div>
 

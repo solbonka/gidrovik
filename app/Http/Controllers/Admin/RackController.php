@@ -96,7 +96,7 @@ class RackController extends Controller
             ->where('is_active', true)
             ->with(['characteristicValues.characteristic:id,name'])
             ->orderBy('name')
-            ->get(['id', 'name', 'code', 'article', 'unit', 'category_id'])
+            ->get(['id', 'name', 'code', 'article', 'unit', 'category_id', 'stock_mode'])
             ->map(function ($product) {
                 $characteristics = $product->characteristicValues->map(function ($cv) {
                     return $cv->characteristic->name.': '.$cv->value;
@@ -110,6 +110,7 @@ class RackController extends Controller
                     'unit' => $product->unit,
                     'characteristics' => $characteristics,
                     'category_id' => $product->category_id,
+                    'stock_mode' => $product->stock_mode?->value ?? $product->stock_mode,
                 ];
             });
 
