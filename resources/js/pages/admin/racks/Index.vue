@@ -554,6 +554,28 @@ const viewLocationProducts = (
         });
 };
 
+const refreshLocationProducts = (): void => {
+    const locationId = locationModal.value.locationId;
+    if (!locationId) return;
+
+    fetch(`/admin/locations/${locationId}/products`)
+        .then(async (response) => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+            return response.json();
+        })
+        .then((data) => {
+            const products = data.products || [];
+            locationModal.value.products = (products as LocationProduct[]).filter(
+                (product) => Number(product.quantity) > 0,
+            );
+        })
+        .catch((error) => {
+            console.error(error);
+        });
+};
+
 const closeLocationModal = (): void => {
     if (locationModal.value.operationLoading) return;
 
@@ -724,6 +746,10 @@ const submitOperation = (): void => {
         data,
         {
             preserveScroll: true,
+            onSuccess: () => {
+                closeOperation();
+                refreshLocationProducts();
+            },
             onError: (errors) => {
                 const message = Object.values(errors).flat().join(', ') || 'Ошибка при выполнении операции.';
                 showErrorToast(message);
